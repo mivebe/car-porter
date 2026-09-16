@@ -224,7 +224,7 @@ function ListingItem({
   const eur = (c: number | null | undefined) => formatMoney(c, 'EUR', lang);
   const details = [
     listing.year,
-    listing.mileageKm != null ? `${formatNumber(listing.mileageKm, lang)} km` : null,
+    listing.mileageKm != null ? t('units.km', { value: formatNumber(listing.mileageKm, lang) }) : null,
     listing.fuel,
     listing.transmission,
     listing.location,

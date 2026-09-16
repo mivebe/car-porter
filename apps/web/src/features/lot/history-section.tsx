@@ -114,7 +114,7 @@ function EntryItem({ entry, lot }: { entry: HistoryEntry; lot: Lot }) {
   const isThisLot = entry.auction === lot.source && entry.lotNumber === lot.lotNumber;
   const details = [
     sentenceCase(entry.damage) || null,
-    entry.odometerMiles != null ? `${formatNumber(entry.odometerMiles, lang)} mi` : null,
+    entry.odometerMiles != null ? t('units.miles', { value: formatNumber(entry.odometerMiles, lang) }) : null,
     entry.location,
   ].filter(Boolean);
 

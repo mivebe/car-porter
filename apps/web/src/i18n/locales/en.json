@@ -65,6 +65,7 @@
     "loading": "Loading lots",
     "requestFailed": "The search request failed. Is the local server running?",
     "noResults": "No lots match these filters.",
+    "allSourcesFailed": "No source could be searched — hover the badges for details, then try Refresh.",
     "loadedCount_one": "{{count}} lot loaded",
     "loadedCount_other": "{{count}} lots loaded",
     "allSources": "All",
@@ -392,5 +393,11 @@
       "windowClosed": "No login window is open.",
       "openFailed": "Could not open the browser window. Is Google Chrome installed?"
     }
+  },
+  "units": {
+    "miles": "{{value}} mi",
+    "km": "{{value}} km",
+    "kmSuffix": "km",
+    "msSuffix": "ms"
   }
 }

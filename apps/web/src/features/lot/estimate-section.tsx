@@ -114,7 +114,7 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
                       rel="noreferrer"
                       className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      bidfax
+                      {t('history.sites.bidfax')}
                       <ExternalLink className="size-3" />
                     </a>
                   </div>
@@ -123,7 +123,7 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
                       r.trim,
                       r.engine,
                       r.damage,
-                      r.odometerMiles != null ? `${formatNumber(r.odometerMiles, lang)} mi` : null,
+                      r.odometerMiles != null ? t('units.miles', { value: formatNumber(r.odometerMiles, lang) }) : null,
                       r.auction?.toUpperCase(),
                       r.location,
                     ]

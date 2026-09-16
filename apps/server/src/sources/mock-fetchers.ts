@@ -19,15 +19,30 @@ export const FIXTURES_DIR = fileURLToPath(new URL('../../test/fixtures/', import
 
 export const readFixture = (relative: string) => readFile(path.join(FIXTURES_DIR, relative), 'utf8');
 
+/** A Cloudflare challenge page, as served to a blocked client. */
+const CHALLENGE_PAGE = '<html><head><title>Just a moment...</title></head><body><div id="cf-chl-widget"></div></body></html>';
+/** A page whose markup no parser recognizes (e.g. after a site redesign). */
+const UNRECOGNIZED_PAGE = '<html><body><main><h1>We have a new look!</h1></main></body></html>';
+
+/**
+ * Error paths for E2E, always through the real parsers:
+ * - lot search Toyota Corolla: Copart blocked by a challenge, IAAI markup not recognized;
+ * - bidfax 2018 Camry listing: bidfax's own 429 anti-bot page (blocked);
+ * - mobile.bg 2018 Camry search: markup not recognized (cars.bg still answers).
+ */
+export const MOCK_ERROR_MODEL = 'corolla';
+export const MOCK_ERROR_YEAR = 2018;
+
 /**
  * Recorded bidfax pages: the Toyota make page and 2019 Camry listing pages 1–2. Other listings are
- * empty; other make pages have no model links (→ not_found).
+ * empty (the 2018 Camry listing is the rate-limit page); other make pages have no model links (→ not_found).
  */
 export const mockBidfaxFetcher: HtmlFetcher = async (url) => {
   const routes: Record<string, string> = {
     'https://bidfax.info/toyota/': 'bidfax/make-toyota.html',
     [bidfaxListingUrl('toyota', 'camry', 2019, 1)]: 'bidfax/toyota-camry-2019-p1.html',
     [bidfaxListingUrl('toyota', 'camry', 2019, 2)]: 'bidfax/toyota-camry-2019-p2.html',
+    [bidfaxListingUrl('toyota', 'camry', MOCK_ERROR_YEAR, 1)]: 'bidfax/rate-limit-429.html',
   };
   const file = routes[url];
   if (file) return readFixture(file);
@@ -53,8 +68,10 @@ export const mockStatVinFetcher: HtmlFetcher = async (url) =>
  * searches of a known make/model return empty result pages.
  */
 export function createMockMarketFetchers(): Record<MarketSource, HtmlFetcher> {
-  const route = (routes: Record<string, string>, fallback: string) => async (url: string) =>
-    routes[url] ? readFixture(routes[url]) : fallback;
+  const route =
+    (routes: Record<string, string>, fallback: string, pages: Record<string, string> = {}) =>
+    async (url: string) =>
+      routes[url] ? readFixture(routes[url]) : (pages[url] ?? fallback);
   return {
     mobileBg: route(
       {
@@ -64,6 +81,7 @@ export function createMockMarketFetchers(): Record<MarketSource, HtmlFetcher> {
         [mobileBgSearchUrl('toyota', 'rav4', 2019)]: 'mobilebg/toyota-rav4-2019-p1.html',
       },
       '<html><body><div class="ads2023"></div></body></html>',
+      { [mobileBgSearchUrl('toyota', 'camry', MOCK_ERROR_YEAR)]: UNRECOGNIZED_PAGE },
     ),
     carsBg: route(
       {
@@ -109,17 +127,23 @@ export const mockNhtsaFetcher: JsonFetcher = async (url) => {
   return file ? JSON.parse(await readFixture(file)) : { Count: 0, Results: [] };
 };
 
+const isErrorSearch = (f: LotSearchFilters) => normalizeMake(f.make) === 'toyota' && modelMatches(f.model, MOCK_ERROR_MODEL);
+
 const isRecordedSearch = (f: LotSearchFilters) =>
   normalizeMake(f.make) === 'toyota' && modelMatches(f.model, 'camry') && f.yearFrom <= 2020 && f.yearTo >= 2018;
 
 /**
  * Fixture-backed auction adapters: Toyota Camry searches overlapping 2018–2020 return the
- * recorded pages (filtered to the requested years); everything else returns no results.
+ * recorded pages (filtered to the requested years); Toyota Corolla fails (see MOCK_ERROR_MODEL);
+ * everything else returns no results.
  */
 export function createMockAuctionAdapters(): AuctionSearchAdapter[] {
   const make = (source: AuctionSource, pages: Record<number, () => Promise<ReturnType<typeof parseCopartSearch>>>) => ({
     source,
     async search(filters: LotSearchFilters, page: number) {
+      if (isErrorSearch(filters)) {
+        return source === 'copart' ? parseCopartSearch(CHALLENGE_PAGE, page) : parseIaaiSearch(UNRECOGNIZED_PAGE, page);
+      }
       const load = pages[page];
       if (!isRecordedSearch(filters) || !load) {
         return { lots: [], total: 0, page, pageSize: AUCTION_PAGE_SIZE };

@@ -73,7 +73,7 @@ export function LotResults({ lots, selectedId, onSelect }: LotResultsProps) {
                 </div>
               </TableCell>
               <TableCell className="hidden tabular-nums lg:table-cell">
-                {lot.odometerMiles != null ? `${formatNumber(lot.odometerMiles, lang)} mi` : '—'}
+                {lot.odometerMiles != null ? t('units.miles', { value: formatNumber(lot.odometerMiles, lang) }) : '—'}
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 <div className="flex flex-col text-sm">

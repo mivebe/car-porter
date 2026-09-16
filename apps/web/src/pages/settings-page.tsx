@@ -312,7 +312,7 @@ function SettingsForm({ saved }: { saved: Settings }) {
               t('settings.market.mileageRangeKm'),
               draft.market.mileageRangeKm,
               (v) => update((d) => void (d.market.mileageRangeKm = num(v))),
-              { unit: 'km' },
+              { unit: t('units.kmSuffix') },
             )}
             {field(
               'market-pages',
@@ -356,7 +356,7 @@ function SettingsForm({ saved }: { saved: Settings }) {
               key={`delay-max-${formKey}`}
               id="delay-max"
               label={t('settings.scraping.maxDelayMs')}
-              unit="ms"
+              unit={t('units.msSuffix')}
               value={draft.scraping.maxDelayMs}
               error={errors.get('scraping.maxDelayMs') ?? errors.get('scraping')}
               onChange={(v) => update((d) => void (d.scraping.maxDelayMs = num(v)))}

@@ -218,7 +218,7 @@ function Facts({ lot }: { lot: Lot }) {
   const lang = i18n.language;
   const facts: [string, string | null][] = [
     ['vin', lot.vin],
-    ['odometer', lot.odometerMiles != null ? `${formatNumber(lot.odometerMiles, lang)} mi` : null],
+    ['odometer', lot.odometerMiles != null ? t('units.miles', { value: formatNumber(lot.odometerMiles, lang) }) : null],
     ['engine', lot.engine],
     ['fuel', sentenceCase(lot.fuel)],
     ['transmission', sentenceCase(lot.transmission)],

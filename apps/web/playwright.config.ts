@@ -17,7 +17,17 @@ export default defineConfig({
     baseURL: `http://127.0.0.1:${WEB_PORT}`,
     trace: 'retain-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /happy-path\.spec\.ts/ },
+    // The happy path touches the shared model/year scans, VIN history and tracking list that the
+    // focused specs assert exactly, so it runs after them on the same server.
+    {
+      name: 'happy-path',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /happy-path\.spec\.ts/,
+      dependencies: ['chromium'],
+    },
+  ],
   webServer: [
     {
       command: 'pnpm --filter @car-porter/server start',

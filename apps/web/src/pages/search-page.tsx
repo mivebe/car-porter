@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { CarFront, Loader2, RefreshCw, SearchX } from 'lucide-react';
+import { AlertTriangle, CarFront, Loader2, RefreshCw, SearchX } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
@@ -150,7 +150,15 @@ export function SearchPage() {
             </div>
           </div>
 
-          {lots.length === 0 ? (
+          {lots.length === 0 && latestSources.every((s) => !s.ok) ? (
+            <div
+              role="alert"
+              className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-destructive/40 py-16 text-center text-destructive"
+            >
+              <AlertTriangle className="size-10" />
+              <p className="max-w-md text-sm">{t('search.allSourcesFailed')}</p>
+            </div>
+          ) : lots.length === 0 ? (
             <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-16 text-muted-foreground">
               <SearchX className="size-10" />
               <p className="text-sm">{t('search.noResults')}</p>

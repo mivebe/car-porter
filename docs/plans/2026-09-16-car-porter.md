@@ -1,6 +1,6 @@
 # Car Porter — US auction → Bulgaria import evaluator
 
-- **Status:** In progress (Phases 0–7 complete)
+- **Status:** Complete (Phases 0–8)
 - **Created:** 2026-09-16
 - **Last updated:** 2026-09-16
 - **Owner:** mivebe
@@ -314,6 +314,17 @@ margin < 0       → Not worth (red)
 - **No live smoke tests** (owner's choice). Consequence: site markup changes surface only
   at runtime — mitigated by the `parse_failed` status badges and by refreshing fixtures
   when that happens.
+- **Error paths in mock mode (Phase 8):** mock sources simulate failures through the real parsers —
+  lot search Toyota Corolla (Copart Cloudflare challenge → `blocked`, IAAI unknown markup →
+  `parse_failed`), the 2018 Camry bidfax listing (bidfax 429 page → `blocked`) and the 2018 Camry
+  mobile.bg search (unknown markup → `parse_failed`, cars.bg still answers). A search where every source
+  failed shows an error state instead of "no results". `e2e/errors.spec.ts` covers them;
+  `e2e/happy-path.spec.ts` walks the whole flow through the UI.
+- **Hardcoded strings:** `apps/web/tests/hardcoded-strings.test.ts` parses every component with the
+  TypeScript compiler and fails on JSX text, rendered string literals/templates and user-facing
+  attributes (`aria-label`, `title`, `placeholder`, `alt`, `label`) that contain words; distance units
+  are locale keys too (`units.*`). Values that come from the sources (damage, fuel, titles) stay as the
+  sites publish them.
 - **Definition of done for any task:** tests written, `pnpm test` (and `pnpm e2e` where
   relevant) pass, typecheck + lint clean, and manually verified once in the running app
   for scraper tasks. A task is not checked off otherwise.
@@ -414,8 +425,8 @@ margin < 0       → Not worth (red)
   window (open state only — see Settings page decisions); tests/E2E. (depends on 5, 19)
 
 ### Phase 8 — Hardening
-- [ ] 36. Full BG translation pass; check no hardcoded strings (lint rule or test).
-- [ ] 37. Full E2E happy path + error paths (blocked source, empty results, parse
+- [x] 36. Full BG translation pass; check no hardcoded strings (lint rule or test).
+- [x] 37. Full E2E happy path + error paths (blocked source, empty results, parse
   failure) green; README with setup (pnpm install, Playwright browsers, first Copart
   login, `pnpm dev`).
 
