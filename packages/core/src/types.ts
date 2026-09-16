@@ -93,6 +93,8 @@ export interface MarketListing {
   priceEurCents: number | null;
   location: string | null;
   imageUrl: string | null;
+  /** Offered for import: the car is still abroad (e.g. mobile.bg "Намира се в САЩ"), not a BG market price. */
+  importOffer: boolean;
 }
 
 export interface LotSearchFilters {

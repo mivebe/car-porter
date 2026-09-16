@@ -225,5 +225,44 @@
       "on_approval": "Чака одобрение",
       "upcoming": "Предстоящ"
     }
+  },
+  "market": {
+    "title": "Пазарни цени в България",
+    "run": "Провери пазара в БГ",
+    "refresh": "Обнови",
+    "searching": "Търсят се обяви за тази марка, модел и година…",
+    "requestFailed": "Заявката за пазара е неуспешна. Работи ли локалният сървър?",
+    "sourcesLabel": "Сайтове за обяви",
+    "matchLabel": "Съвпадение и по",
+    "match": {
+      "mileage": "Пробег ±{{range}} км (лот: {{km}} км)",
+      "transmission": "Скоростна кутия",
+      "fuel": "Гориво"
+    },
+    "sites": {
+      "mobileBg": "mobile.bg",
+      "carsBg": "cars.bg",
+      "autoscout24": "AutoScout24 (ЕС)",
+      "olxBg": "OLX.bg"
+    },
+    "euReference": "AutoScout24 няма обяви в България — това са цени в ЕС, за сравнение.",
+    "average": "Средна",
+    "median": "Медиана",
+    "range": "Диапазон",
+    "included": "Включени",
+    "noMatches": "Няма обяви, съвпадащи с този лот (марка, модел, година и избраните критерии).",
+    "groupAverage_one": "{{average}} средно от {{count}} обява",
+    "groupAverage_other": "{{average}} средно от {{count}} обяви",
+    "checked_one": "{{count}} намерена обява {{when}}",
+    "checked_other": "{{count}} намерени обяви {{when}}",
+    "hidden_one": "{{count}} изключена от критериите или е в чужбина",
+    "hidden_other": "{{count}} изключени от критериите или са в чужбина",
+    "removed_one": "{{count}} премахната от последната проверка",
+    "removed_other": "{{count}} премахнати от последната проверка",
+    "pageLimit": "спряно при лимита от страници ({{pages}})",
+    "notChecked": "още не е проверено",
+    "openSearch": "Отвори търсенето",
+    "include": "Включи {{title}} ({{price}}) в средната цена",
+    "previousPrice": "Предишна цена"
   }
 }

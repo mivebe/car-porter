@@ -14,6 +14,8 @@ import { estimateSummary, useEstimate, useRunEstimate, useToggleEstimateRecord }
 import { EstimateSection } from './estimate-section';
 import { useHistory, useRunHistory } from './history-hooks';
 import { HistorySection } from './history-section';
+import { useMarket, useRunMarket, useToggleMarketListing } from './market-hooks';
+import { MarketSection } from './market-section';
 import { useFx, useLot, useLotInputs, useSettings, useUpdateLotInputs } from './hooks';
 import { MoneyInput } from './money-input';
 import { Section } from './section';
@@ -46,6 +48,9 @@ function LotDetail({ lotId }: { lotId: string }) {
   const toggleEstimate = useToggleEstimateRecord(lotId);
   const history = useHistory(lotId);
   const runHistory = useRunHistory(lotId);
+  const market = useMarket(lotId);
+  const runMarket = useRunMarket(lotId);
+  const toggleMarket = useToggleMarketListing(lotId);
 
   if (lot.isError) {
     return (
@@ -136,6 +141,18 @@ function LotDetail({ lotId }: { lotId: string }) {
           fx={fx.data}
           fxError={fx.isError}
           estimateUsdCents={estimateSummary(estimate.data)?.average ?? null}
+          onChange={(patch) => updateInputs.mutate(patch)}
+        />
+        <Separator />
+        <MarketSection
+          lot={data}
+          inputs={inputs.data}
+          settings={settings.data}
+          data={market.data}
+          running={runMarket.isPending}
+          runFailed={runMarket.isError}
+          onRun={(refresh) => runMarket.mutate(refresh)}
+          onToggle={(listingId, included) => toggleMarket.mutate({ listingId, included })}
           onChange={(patch) => updateInputs.mutate(patch)}
         />
       </div>

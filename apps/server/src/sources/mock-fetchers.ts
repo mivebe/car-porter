@@ -8,6 +8,11 @@ import { bidfaxListingUrl } from './bidfax.ts';
 import { parseCopartSearch } from './copart.ts';
 import { parseIaaiSearch } from './iaai.ts';
 import { statVinUrl } from './statvin.ts';
+import { autoscout24SearchUrl } from './autoscout24.ts';
+import { carsBgBrandUrl, carsBgHomeUrl, carsBgSearchUrl } from './carsbg.ts';
+import type { MarketSource } from '@car-porter/core';
+import { mobileBgMakesUrl, mobileBgMakeUrl, mobileBgSearchUrl } from './mobilebg.ts';
+import { olxCarsUrl, olxMakeUrl, olxOffersUrl } from './olxbg.ts';
 import { makesUrl, modelsUrl, type JsonFetcher } from './nhtsa.ts';
 
 export const FIXTURES_DIR = fileURLToPath(new URL('../../test/fixtures/', import.meta.url));
@@ -42,6 +47,51 @@ export const mockBidfaxSearcher: BidfaxSearcher = async (query) => {
 
 export const mockStatVinFetcher: HtmlFetcher = async (url) =>
   readFixture(url === statVinUrl(MOCK_HISTORY_VIN) ? 'statvin/vin-4t1b11hk0ku821110.html' : 'statvin/vin-not-found.html');
+
+/**
+ * Recorded BG marketplace pages for Toyota Camry 2019 (and RAV 4 on mobile.bg / cars.bg / OLX). Other
+ * searches of a known make/model return empty result pages.
+ */
+export function createMockMarketFetchers(): Record<MarketSource, HtmlFetcher> {
+  const route = (routes: Record<string, string>, fallback: string) => async (url: string) =>
+    routes[url] ? readFixture(routes[url]) : fallback;
+  return {
+    mobileBg: route(
+      {
+        [mobileBgMakesUrl()]: 'mobilebg/makes.html',
+        [mobileBgMakeUrl('toyota')]: 'mobilebg/make-toyota.html',
+        [mobileBgSearchUrl('toyota', 'camry', 2019)]: 'mobilebg/toyota-camry-2019.html',
+        [mobileBgSearchUrl('toyota', 'rav4', 2019)]: 'mobilebg/toyota-rav4-2019-p1.html',
+      },
+      '<html><body><div class="ads2023"></div></body></html>',
+    ),
+    carsBg: route(
+      {
+        [carsBgHomeUrl()]: 'carsbg/home.html',
+        [carsBgBrandUrl('80')]: 'carsbg/brand-toyota.html',
+        [carsBgSearchUrl('80', '1374', 2019)]: 'carsbg/toyota-camry-2019.html',
+        [carsBgSearchUrl('80', '1393', 2019)]: 'carsbg/toyota-rav4-2019-p1.html',
+      },
+      '<html><body><div id="listPage"></div></body></html>',
+    ),
+    autoscout24: route(
+      {
+        [autoscout24SearchUrl('toyota', 'camry', 2019)]: 'autoscout24/toyota-camry-2019-p1.html',
+        [autoscout24SearchUrl('toyota', 'camry', 2019, 2)]: 'autoscout24/toyota-camry-2019-p2.html',
+      },
+      '<html><body><script id="__NEXT_DATA__">{"props":{"pageProps":{"numberOfResults":0,"numberOfPages":0,"listings":[],"pageQuery":{"mmmv":"70|2046||"}}}}</script></body></html>',
+    ),
+    olxBg: route(
+      {
+        [olxCarsUrl()]: 'olxbg/cars.html',
+        [olxMakeUrl('toyota')]: 'olxbg/make-toyota.html',
+        [olxOffersUrl(1181, 'camry', 2019)]: 'olxbg/offers-1181-camry-2019.json',
+        [olxOffersUrl(1181, 'rav-4', 2020)]: 'olxbg/offers-1181-rav-4-2020.json',
+      },
+      '{"data":[],"links":{}}',
+    ),
+  };
+}
 
 /** Recorded ECB daily reference rates (2026-09-15: 1 EUR = 1.1539 USD). */
 export const mockEcbFetcher = () => readFixture('ecb/eurofxref-daily.xml');

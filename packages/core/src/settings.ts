@@ -25,6 +25,8 @@ export const settingsSchema = z.object({
   }),
   market: z.object({
     mileageRangeKm: nonNegative,
+    /** Result pages read per marketplace search (most model/year searches fit in a few). */
+    maxPages: z.number().int().positive(),
     enabledSources: z.record(z.enum(MARKET_SOURCES), z.boolean()),
   }),
   fx: z.object({
@@ -57,6 +59,7 @@ export const DEFAULT_SETTINGS: Settings = {
   bidfax: { maxMonths: 12, maxMatches: 20, maxPages: 20 },
   market: {
     mileageRangeKm: 30_000,
+    maxPages: 10,
     enabledSources: { mobileBg: true, carsBg: true, autoscout24: false, olxBg: false },
   },
   fx: { usdToEurOverride: null },

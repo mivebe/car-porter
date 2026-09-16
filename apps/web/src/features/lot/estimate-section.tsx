@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { formatDate, formatMoney, formatNumber, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { estimateSummary, type EstimateResponse } from './estimate-hooks';
-import { Section } from './section';
+import { Section, Stat } from './section';
 
 interface EstimateSectionProps {
   data: EstimateResponse | undefined;
@@ -14,17 +14,6 @@ interface EstimateSectionProps {
   runFailed: boolean;
   onRun: (refresh: boolean) => void;
   onToggle: (recordId: string, included: boolean) => void;
-}
-
-function Stat({ label, value, testId }: { label: string; value: string; testId?: string }) {
-  return (
-    <div className="rounded-lg border bg-muted/30 px-3 py-2">
-      <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="text-base font-semibold tabular-nums" data-testid={testId}>
-        {value}
-      </div>
-    </div>
-  );
 }
 
 export function EstimateSection({ data, running, runFailed, onRun, onToggle }: EstimateSectionProps) {

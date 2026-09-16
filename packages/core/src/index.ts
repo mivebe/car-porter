@@ -1,6 +1,7 @@
 export * from './cost.ts';
 export * from './history.ts';
 export * from './lot-inputs.ts';
+export * from './market.ts';
 export * from './matching.ts';
 export * from './money.ts';
 export * from './settings.ts';

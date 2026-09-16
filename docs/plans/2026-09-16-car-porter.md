@@ -1,6 +1,6 @@
 # Car Porter — US auction → Bulgaria import evaluator
 
-- **Status:** In progress (Phases 0–5 complete)
+- **Status:** In progress (Phases 0–6 complete)
 - **Created:** 2026-09-16
 - **Last updated:** 2026-09-16
 - **Owner:** mivebe
@@ -233,6 +233,32 @@ eurTotal  = usdTotal × usdToEur
 - Results **grouped by marketplace**: each listing with link, price (EUR), year, km, fuel,
   transmission, include checkbox. Per-marketplace average + overall average of included
   listings (median shown too).
+- **Adapters (verified live 2026-09-16; no bot challenge on any of them):**
+  - **mobile.bg:** makes from `/obiavi/avtomobili-dzhipove` links (e.g. VW is `vw`), models from the
+    make page, search `/{make}/{model}/ot-{Y}/do-{Y}[/p-N]`, ~20 ads per page, pages from the
+    pagination links. Promo cards without an `/obiava-` link are skipped. Many ads are cars still in
+    the USA/Canada ("Намира се в САЩ") → `importOffer`, never matched (not a BG market price).
+  - **cars.bg:** brand ids from the home page form, model ids from the brand's result page,
+    `carslist.php?…&brandId=&models[]=&yearFrom=&yearTo=&page=N`. The next page is always linked,
+    so a scan stops at the first empty page. Cards have no transmission.
+  - **AutoScout24:** **has no listings located in Bulgaria** (`cy=BG` is always empty), so it is an
+    off-by-default **EU reference** (site default countries), labelled as such in the UI. Listings
+    come from `__NEXT_DATA__`; an unknown make/model (no model id in `mmmv`) → `not_found`.
+  - **OLX.bg:** make categories (own URL names, e.g. `mercedes`) from the cars page state, model
+    values + category id from the make page state (raw response: the state script is removed from
+    the hydrated DOM), listings from the site's `/api/v1/offers/` JSON with model + year filters.
+    OLX has few car ads (often 0 for a model/year).
+- Catalogs cached 30 days; make/model picked by name (aliases, punctuation-insensitive).
+- Each site search (per make/model/exact year, shared by lots) is reused 24 h, reads up to
+  `market.maxPages` pages (default 10, setting), stores the listing ids it found; a complete re-scan
+  marks missing listings removed. Listings are stored by URL with a price snapshot on every change
+  (UI shows the previous price). Per-lot `marketMatch` toggles and `marketSources` (null = settings
+  defaults) are lot inputs; matching/averages run in `packages/core` (`summarizeMarket`) on the
+  client, so toggles apply instantly.
+- Trim: marketplaces only have free-text titles, so the lot trim found in the title counts as a
+  match and anything else stays unknown (never excludes).
+- Manual live check: `pnpm --filter @car-porter/server exec tsx scripts/live-market.ts toyota rav4 2019`;
+  fixtures: `scripts/record-market.ts [filter]`.
 
 ### Step 8: Repair (placeholder)
 - Manual "repair estimate (€)" field per lot, default 0, included in margin. To be
@@ -341,15 +367,15 @@ margin < 0       → Not worth (red)
   link); E2E incl. VIN paste. (depends on 12, 18, 25)
 
 ### Phase 6 — BG market (step 7)
-- [ ] 27. mobile.bg adapter (search + parse, pagination limit) + fixtures + tests; manual
+- [x] 27. mobile.bg adapter (search + parse, pagination limit) + fixtures + tests; manual
   verification. (depends on 6, 11)
-- [ ] 28. cars.bg adapter + fixtures + tests; manual verification. (depends on 6, 11)
-- [ ] 29. autoscout24 (BG) adapter + fixtures + tests. (depends on 6, 11)
-- [ ] 30. OLX.bg adapter + fixtures + tests. (depends on 6, 11)
-- [ ] 31. `/api/market` — selected sources, match toggles, grouped response, per-source
+- [x] 28. cars.bg adapter + fixtures + tests; manual verification. (depends on 6, 11)
+- [x] 29. autoscout24 (EU reference — no BG listings) adapter + fixtures + tests. (depends on 6, 11)
+- [x] 30. OLX.bg adapter + fixtures + tests. (depends on 6, 11)
+- [x] 31. `/api/market` — selected sources, match toggles, grouped response, per-source
   status, 24 h cache, listings upserted by URL with price snapshots + tests.
   (depends on 27–30)
-- [ ] 32. UI: market section — source toggles, match toggles (mileage ± range,
+- [x] 32. UI: market section — source toggles, match toggles (mileage ± range,
   transmission, fuel), grouped listings with include checkboxes, per-group + overall
   average/median; E2E. (depends on 10, 18, 31)
 
@@ -359,7 +385,7 @@ margin < 0       → Not worth (red)
 - [ ] 34. Tracking: `/api/tracked` CRUD + UI list (lot, estimate, total cost, BG avg,
   margin, verdict, links; open detail from list) + tests/E2E. (depends on 5, 33)
 - [ ] 35. Settings page: cost rates/amounts, reduced divisor, threshold, bidfax limits,
-  mileage range, FX override, default market toggles, language, theme, Copart login
+  mileage range, market page limit, FX override, default market toggles, language, theme, Copart login
   status/re-login button; tests/E2E. (depends on 5, 19)
 
 ### Phase 8 — Hardening
@@ -390,6 +416,9 @@ margin < 0       → Not worth (red)
   ≈ 3–4 s).
 - **Rate of blocking:** assume a residential IP with delays + cache is enough; if a source
   keeps blocking, revisit (headed mode, slower queue, or paid API for that source).
+- **AutoScout24 BG** — not possible (no BG listings); kept as an EU reference toggle (task 29).
+- **Market search bias:** AutoScout24 (and big mobile.bg searches) can hit the page limit; results are
+  then a subset in the site's own order, shown as "stopped at the page limit".
 - ~~History sources~~ — resolved in task 24: bidfax (form search) + stat.vin both work with
   Patchright. bid.cars needs an account for archived results.
 - **Sale dates** are stored as UTC midnight and formatted in local time, so a negative UTC offset

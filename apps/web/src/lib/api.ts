@@ -1,5 +1,6 @@
 import type { EstimateResponse } from '@/features/lot/estimate-hooks';
 import type { HistoryResponse } from '@/features/lot/history-hooks';
+import type { MarketResponse } from '@/features/lot/market-hooks';
 import type { AuctionSource, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
 
 export class ApiError extends Error {
@@ -94,6 +95,14 @@ export const api = {
   history: (id: string) => request<HistoryResponse>(`/api/lots/${encodeURIComponent(id)}/history`),
   runHistory: (id: string, refresh: boolean) =>
     request<HistoryResponse>(`/api/lots/${encodeURIComponent(id)}/history`, { method: 'POST', body: JSON.stringify({ refresh }) }),
+  market: (id: string) => request<MarketResponse>(`/api/lots/${encodeURIComponent(id)}/market`),
+  runMarket: (id: string, refresh: boolean) =>
+    request<MarketResponse>(`/api/lots/${encodeURIComponent(id)}/market`, { method: 'POST', body: JSON.stringify({ refresh }) }),
+  setMarketSelection: (id: string, listingId: string, included: boolean) =>
+    request<{ excludedIds: string[] }>(`/api/lots/${encodeURIComponent(id)}/market/selection`, {
+      method: 'PUT',
+      body: JSON.stringify({ listingId, included }),
+    }),
   makes: () => request<CatalogResponse>('/api/catalog/makes'),
   models: (make: string) => request<CatalogResponse>(`/api/catalog/models?${query({ make })}`),
   searchLots: (params: LotSearchParams & { page: number; refresh?: boolean }) =>

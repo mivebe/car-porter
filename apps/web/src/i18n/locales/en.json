@@ -225,5 +225,44 @@
       "on_approval": "On approval",
       "upcoming": "Upcoming"
     }
+  },
+  "market": {
+    "title": "BG market prices",
+    "run": "Check BG market",
+    "refresh": "Refresh",
+    "searching": "Searching the marketplaces for this make, model and year…",
+    "requestFailed": "The market request failed. Is the local server running?",
+    "sourcesLabel": "Marketplaces",
+    "matchLabel": "Also match",
+    "match": {
+      "mileage": "Mileage ±{{range}} km (lot: {{km}} km)",
+      "transmission": "Transmission",
+      "fuel": "Fuel"
+    },
+    "sites": {
+      "mobileBg": "mobile.bg",
+      "carsBg": "cars.bg",
+      "autoscout24": "AutoScout24 (EU)",
+      "olxBg": "OLX.bg"
+    },
+    "euReference": "AutoScout24 has no listings in Bulgaria — these are EU prices, for reference.",
+    "average": "Average",
+    "median": "Median",
+    "range": "Range",
+    "included": "Included",
+    "noMatches": "No listings match this lot (make, model, year and the chosen criteria).",
+    "groupAverage_one": "{{average}} average of {{count}} listing",
+    "groupAverage_other": "{{average}} average of {{count}} listings",
+    "checked_one": "{{count}} listing found {{when}}",
+    "checked_other": "{{count}} listings found {{when}}",
+    "hidden_one": "{{count}} ruled out by the criteria or located abroad",
+    "hidden_other": "{{count}} ruled out by the criteria or located abroad",
+    "removed_one": "{{count}} removed since the last check",
+    "removed_other": "{{count}} removed since the last check",
+    "pageLimit": "stopped at the page limit ({{pages}})",
+    "notChecked": "not checked yet",
+    "openSearch": "Open the search",
+    "include": "Include {{title}} ({{price}}) in the average",
+    "previousPrice": "Previous price"
   }
 }

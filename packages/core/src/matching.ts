@@ -57,10 +57,11 @@ export type Fuel = 'petrol' | 'diesel' | 'hybrid' | 'plugin_hybrid' | 'electric'
 
 const FUEL_PATTERNS: [RegExp, Fuel][] = [
   [/plug[\s-]?in|phev|включващ/i, 'plugin_hybrid'],
-  [/hybrid|хибрид/i, 'hybrid'],
+  // AutoScout24.bg writes hybrids as "Ел/Бензин" (sometimes with a Latin E)
+  [/hybrid|хибрид|[eе]л\s*\/\s*бензин|бензин\s*\/\s*[eе]л/i, 'hybrid'],
   [/electric|\bev\b|електр/i, 'electric'],
   [/diesel|дизел/i, 'diesel'],
-  [/lpg|газ\/бензин|пропан/i, 'lpg'],
+  [/lpg|автогаз|газ\/бензин|пропан/i, 'lpg'],
   [/cng|метан/i, 'cng'],
   [/gas(oline)?|petrol|flex|бензин/i, 'petrol'],
 ];
@@ -173,11 +174,28 @@ export interface MarketMatchToggles {
   fuel: boolean;
 }
 
-export type MarketCriterion = 'make' | 'model' | 'year' | 'trim' | 'mileage' | 'transmission' | 'fuel';
+export type MarketCriterion = 'make' | 'model' | 'year' | 'trim' | 'location' | 'mileage' | 'transmission' | 'fuel';
 
 /**
- * BG market match: make + model + exact year required, trim must not conflict; mileage
- * (± range, lot miles → km), transmission and fuel are only compared when toggled on.
+ * Trim against a listing: a structured trim must not conflict. Marketplaces mostly only have a
+ * free-text title, so there the lot's trim appearing as a word counts as a match and anything else
+ * stays unknown (titles are too inconsistent to rule a listing out).
+ */
+function marketTrim(lotTrim: string | null, listing: MarketListing): CriterionResult {
+  if (listing.trim) return compare(lotTrim, listing.trim, trimMatches);
+  if (!lotTrim) return 'unknown';
+  const words = new Set(normalizeText(listing.title).split(' '));
+  return normalizeText(lotTrim)
+    .split(' ')
+    .every((w) => words.has(w))
+    ? 'match'
+    : 'unknown';
+}
+
+/**
+ * BG market match: make + model + exact year required, trim must not conflict, import offers
+ * (cars still abroad) never match; mileage (± range, lot miles → km), transmission and fuel are
+ * only compared when toggled on.
  */
 export function matchMarketListing(
   lot: Lot,
@@ -192,7 +210,8 @@ export function matchMarketListing(
       make: compare(lot.make, listing.make, (a, b) => normalizeMake(a) === normalizeMake(b)),
       model: compare(lot.model, listing.model, modelMatches),
       year: compare(lot.year, listing.year, (a, b) => a === b),
-      trim: compare(lot.trim, listing.trim, trimMatches),
+      trim: marketTrim(lot.trim, listing),
+      location: listing.importOffer ? 'mismatch' : 'match',
       mileage: toggles.mileage
         ? compare(lotKm, listing.mileageKm, (a, b) => Math.abs(a - b) <= mileageRangeKm)
         : skip,

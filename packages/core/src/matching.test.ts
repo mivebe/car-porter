@@ -78,6 +78,7 @@ const listing = (over: Partial<MarketListing>): MarketListing => ({
   priceEurCents: 1_800_000,
   location: 'София',
   imageUrl: null,
+  importOffer: false,
   ...over,
 });
 
@@ -207,5 +208,24 @@ describe('matchMarketListing (BG)', () => {
     expect(matchMarketListing(lot, listing({ transmission: 'Ръчна' }), on, 30_000).matches).toBe(false);
     expect(matchMarketListing(lot, listing({ fuel: 'Дизелов' }), on, 30_000).matches).toBe(false);
     expect(matchMarketListing(lot, listing({}), on, 30_000).matches).toBe(true);
+  });
+
+  it('never matches import offers (cars still abroad)', () => {
+    const result = matchMarketListing(lot, listing({ importOffer: true }), off, 30_000);
+    expect(result.matches).toBe(false);
+    expect(result.criteria.location).toBe('mismatch');
+  });
+
+  it('without a structured trim, checks the title for the lot trim but never rules a listing out', () => {
+    const titleOnly = (title: string) => matchMarketListing(lot, listing({ trim: null, title }), off, 30_000);
+    expect(titleOnly('Toyota Camry 2.5l Se').criteria.trim).toBe('match');
+    expect(titleOnly('Toyota Camry 2.5 LUXURY').criteria.trim).toBe('unknown');
+    expect(titleOnly('Toyota Camry 2.5 LUXURY').matches).toBe(true);
+  });
+
+  it('reads AutoScout24 hybrid fuel labels', () => {
+    expect(normalizeFuel('Eл/Бензин')).toBe('hybrid');
+    expect(normalizeFuel('Ел/Бензин')).toBe('hybrid');
+    expect(normalizeFuel('Бензин')).toBe('petrol');
   });
 });

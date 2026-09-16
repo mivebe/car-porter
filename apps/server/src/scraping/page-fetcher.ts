@@ -49,15 +49,23 @@ export function createPageFetcher(options: {
   source: string;
   profile?: string;
   check?: (html: string, response: Response | null) => void;
+  /**
+   * Return the raw response body instead of the rendered DOM: for JSON endpoints, and for pages
+   * whose embedded state script is removed during hydration.
+   */
+  raw?: boolean;
 }): HtmlFetcher {
-  const { browser, queue, source, profile = source, check } = options;
+  const { browser, queue, source, profile = source, check, raw = false } = options;
   return (url) =>
     queue.run(source, async () => {
       const page = await browser.sessionPage(profile, async () => undefined);
       const { html, response } = await loadThroughChallenge(page, () =>
         page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 }),
       );
-      return verifyLoaded({ browser, source, profile, check }, html, response);
+      const content = await verifyLoaded({ browser, source, profile, check }, html, response);
+      if (!raw || !response) return content;
+      if (response.status() === 404) throw new SourceError('not_found', `${source}: ${url} not found`);
+      return response.text();
     });
 }
 

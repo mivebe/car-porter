@@ -8,6 +8,13 @@
       "when": 1789556240287,
       "tag": "0000_sad_jimmy_woo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1789567097376,
+      "tag": "0001_market_options",
+      "breakpoints": true
     }
   ]
 }

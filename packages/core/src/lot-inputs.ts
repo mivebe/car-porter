@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MARKET_SOURCES } from './settings.ts';
 import { normalizeVin } from './vin.ts';
 
 const cents = z.number().int().nonnegative().max(1_000_000_000);
@@ -15,6 +16,10 @@ export const lotInputsSchema = z.object({
   repairEstimateEurCents: cents,
   feesReduced: z.boolean(),
   includeSofiaToBg: z.boolean(),
+  /** Optional BG market match criteria (make/model/year/trim always apply). */
+  marketMatch: z.object({ mileage: z.boolean(), transmission: z.boolean(), fuel: z.boolean() }),
+  /** Marketplaces used for this lot; null = the defaults from settings. */
+  marketSources: z.record(z.enum(MARKET_SOURCES), z.boolean()).nullable(),
 });
 
 export type LotInputs = z.infer<typeof lotInputsSchema>;
@@ -28,4 +33,6 @@ export const DEFAULT_LOT_INPUTS: LotInputs = {
   repairEstimateEurCents: 0,
   feesReduced: false,
   includeSofiaToBg: true,
+  marketMatch: { mileage: false, transmission: false, fuel: false },
+  marketSources: null,
 };

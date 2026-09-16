@@ -36,6 +36,12 @@ export const lotInputs = sqliteTable('lot_inputs', {
   repairEstimateEurCents: integer('repair_estimate_eur_cents').notNull().default(0),
   feesReduced: integer('fees_reduced', { mode: 'boolean' }).notNull().default(false),
   includeSofiaToBg: integer('include_sofia_to_bg', { mode: 'boolean' }).notNull().default(true),
+  marketMatch: text('market_match', { mode: 'json' })
+    .$type<{ mileage: boolean; transmission: boolean; fuel: boolean }>()
+    .notNull()
+    .default({ mileage: false, transmission: false, fuel: false }),
+  /** null = marketplaces from settings */
+  marketSources: text('market_sources', { mode: 'json' }).$type<Record<string, boolean>>(),
   updatedAt: timestamp('updated_at').notNull().default(now),
 });
 
