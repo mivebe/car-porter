@@ -128,6 +128,8 @@ describe('normalizers', () => {
     expect(engineLiters('2.5L 4')).toBe(2.5);
     expect(engineLiters('V6 3.5')).toBe(3.5);
     expect(engineLiters('2,0 л')).toBe(2);
+    expect(engineLiters('2.0л, дизел')).toBe(2);
+    expect(engineLiters('1.6лв')).toBeNull();
     expect(engineLiters('1998 cc')).toBe(2);
     expect(engineLiters('I4')).toBeNull();
   });

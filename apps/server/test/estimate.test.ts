@@ -8,9 +8,9 @@ import { createLotsRepository } from '../src/repositories/lots-repository.ts';
 import { createSelectionsRepository } from '../src/repositories/selections-repository.ts';
 import { createSettingsRepository } from '../src/repositories/settings-repository.ts';
 import { SourceError } from '../src/scraping/errors.ts';
-import { bidfaxListingUrl } from '../src/sources/bidfax.ts';
+import { bidfaxListingUrl, parseBidfaxListing } from '../src/sources/bidfax.ts';
 import { mockBidfaxFetcher } from '../src/sources/mock-fetchers.ts';
-import { createEstimateService, pickBidfaxModel } from '../src/services/estimate-service.ts';
+import { createEstimateService, nextCoverage, pickBidfaxModel } from '../src/services/estimate-service.ts';
 
 const lot: Lot = {
   id: 'iaai:45973338',
@@ -54,6 +54,26 @@ describe('pickBidfaxModel', () => {
     expect(pickBidfaxModel(models, 'CAMRY HYBRID')?.slug).toBe('camry-hybrid');
     expect(pickBidfaxModel(models, 'CHR')?.slug).toBe('c-hr');
     expect(pickBidfaxModel(models, 'Supra')).toBeNull();
+  });
+});
+
+describe('nextCoverage', () => {
+  it('merges coverage only when a scan runs into the covered range', () => {
+    const covered = { newest: '2026-09-10', oldest: '2026-08-01', exhausted: true, limitedBy: null };
+    expect(nextCoverage(covered, ['2026-09-15', '2026-09-09'], 'reached_known')).toEqual({ ...covered, newest: '2026-09-15' });
+    expect(nextCoverage(null, ['2026-09-15', '2026-09-01'], 'max_pages')).toEqual({
+      newest: '2026-09-15',
+      oldest: '2026-09-01',
+      exhausted: false,
+      limitedBy: 'max_pages',
+    });
+    expect(nextCoverage({ ...covered, exhausted: false, limitedBy: 'max_matches' }, ['2026-09-15', '2026-07-01'], 'last_page')).toEqual({
+      newest: '2026-09-15',
+      oldest: '2026-07-01',
+      exhausted: true,
+      limitedBy: null,
+    });
+    expect(nextCoverage(null, [], 'no_results')).toEqual({ newest: null, oldest: null, exhausted: true, limitedBy: null });
   });
 });
 
@@ -155,8 +175,9 @@ describe('estimate service', () => {
   });
 
   it('keeps partial results and reports the error when a page is blocked', async () => {
+    let blockP2 = true;
     const service = await setup(async (url) => {
-      if (url === P2) throw new SourceError('blocked', 'bidfax: Cloudflare challenge did not clear');
+      if (url === P2 && blockP2) throw new SourceError('blocked', 'bidfax: Cloudflare challenge did not clear');
       return mockBidfaxFetcher(url);
     });
     const res = await service.run(lot.id);
@@ -166,7 +187,55 @@ describe('estimate service', () => {
 
     const again = await service.get(lot.id);
     expect(again.matches).toHaveLength(10);
+
+    // the retry must not stop at the page-1 records stored by the failed scan
+    blockP2 = false;
+    fetcher.mockClear();
+    const retry = await service.run(lot.id);
+    expect(fetcher.mock.calls.map((c) => c[0])).toEqual([P1, P2, P3]);
+    expect(retry.scan).toMatchObject({ stopReason: 'no_results' });
+    expect(retry.matches).toHaveLength(19);
   });
+
+  it('records stored by other paths (e.g. VIN history) do not stop a scan early', async () => {
+    const service = await setup();
+    const p1 = parseBidfaxListing(await mockBidfaxFetcher(P1), {
+      makeSlug: 'toyota',
+      modelSlug: 'camry',
+      makeName: 'Toyota',
+      modelName: 'Camry',
+    });
+    await createAuctionRecordsRepository(database.db).upsertMany(p1.records.slice(0, 1));
+
+    const res = await service.run(lot.id);
+    expect(fetcher.mock.calls.map((c) => c[0])).toEqual([MAKE, P1, P2, P3]);
+    expect(res.scan).toMatchObject({ stopReason: 'no_results', pagesScanned: 3 });
+  });
+
+  it("does not reuse another trim's match-limited scan when this lot still lacks matches", async () => {
+    const service = await setup();
+    await createSettingsRepository(database.db).update({ bidfax: { maxMatches: 3 } });
+    const lots = createLotsRepository(database.db);
+    await lots.upsertMany([{ ...lot, trim: 'SE' }, { ...lot, id: 'iaai:le', lotNumber: 'le', trim: 'LE' }]);
+
+    const se = await service.run(lot.id);
+    expect(se.scan).toMatchObject({ pagesScanned: 1, stopReason: 'max_matches' });
+    expect(se.matches).toHaveLength(3);
+
+    // page 1 has only two LE sales: continue past the covered page instead of reusing the scan
+    fetcher.mockClear();
+    const le = await service.run('iaai:le');
+    expect(fetcher.mock.calls.map((c) => c[0])).toEqual([P1, P2]);
+    expect(le.scan).toMatchObject({ pagesScanned: 2, stopReason: 'max_matches', newRecords: 10 });
+    expect(le.matches).toHaveLength(3);
+    expect(le.matches.every((m) => m.record.trim === 'Le')).toBe(true);
+
+    // SE already has enough → the fresh scan is reused
+    fetcher.mockClear();
+    await service.run(lot.id);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
+
 
   it('reports not_found for a model bidfax does not list', async () => {
     const service = await setup();

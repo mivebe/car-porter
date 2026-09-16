@@ -82,7 +82,8 @@ export function normalizeTransmission(value: string | null | undefined): Transmi
 /** Extracts engine displacement in liters from strings like "2.5L I4", "3.5 L", "1998 cc". */
 export function engineLiters(engine: string | null | undefined): number | null {
   if (!engine) return null;
-  const liters = engine.match(/(\d{1,2}[.,]\d)\s*(?:l\b|л\b|liter|litre|\s|$)/i);
+  // lookaheads instead of \b: JS word boundaries are ASCII-only, so "2.0л" would never match
+  const liters = engine.match(/(\d{1,2}[.,]\d)\s*(?:l(?![\p{L}\p{N}])|л(?![\p{L}\p{N}])|liter|litre|\s|$)/iu);
   if (liters) return Number(liters[1]!.replace(',', '.'));
   const cc = engine.match(/(\d{3,4})\s*(?:cc|cm3|куб)/i);
   if (cc) return Math.round(Number(cc[1]) / 100) / 10;
