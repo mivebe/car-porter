@@ -1,5 +1,5 @@
 import type { Lot, LotSearchFilters, LotSearchPage } from '@car-porter/core';
-import type { Page } from 'playwright';
+import type { Page } from 'patchright';
 import { z } from 'zod';
 import type { BrowserManager } from '../scraping/browser.ts';
 import { detectChallenge, SourceError } from '../scraping/errors.ts';

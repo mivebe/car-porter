@@ -1,3 +1,4 @@
+import type { EstimateResponse } from '@/features/lot/estimate-hooks';
 import type { AuctionSource, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
 
 export class ApiError extends Error {
@@ -81,6 +82,14 @@ export const api = {
   lotInputs: (id: string) => request<LotInputs>(`/api/lots/${encodeURIComponent(id)}/inputs`),
   updateLotInputs: (id: string, patch: LotInputsPatch) =>
     request<LotInputs>(`/api/lots/${encodeURIComponent(id)}/inputs`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  estimate: (id: string) => request<EstimateResponse>(`/api/lots/${encodeURIComponent(id)}/estimate`),
+  runEstimate: (id: string, refresh: boolean) =>
+    request<EstimateResponse>(`/api/lots/${encodeURIComponent(id)}/estimate`, { method: 'POST', body: JSON.stringify({ refresh }) }),
+  setEstimateSelection: (id: string, recordId: string, included: boolean) =>
+    request<{ excludedIds: string[] }>(`/api/lots/${encodeURIComponent(id)}/estimate/selection`, {
+      method: 'PUT',
+      body: JSON.stringify({ recordId, included }),
+    }),
   makes: () => request<CatalogResponse>('/api/catalog/makes'),
   models: (make: string) => request<CatalogResponse>(`/api/catalog/models?${query({ make })}`),
   searchLots: (params: LotSearchParams & { page: number; refresh?: boolean }) =>

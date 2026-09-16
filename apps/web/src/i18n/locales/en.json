@@ -153,5 +153,43 @@
       "sofiaToBg": "Sofia → anywhere in BG",
       "total": "Total landed cost"
     }
+  },
+  "estimate": {
+    "title": "Price estimate (bidfax)",
+    "run": "Estimate price",
+    "refresh": "Refresh",
+    "scanning": "Scanning bidfax for past sales of this exact model and year — this can take up to a minute…",
+    "requestFailed": "The estimate request failed. Is the local server running?",
+    "scanInfo": "Scanned {{pages}} page(s) {{when}} · {{reason}}",
+    "openSearch": "Open the search on bidfax",
+    "noMatches": "No past sales matched this lot (make, model, year, trim and engine) in the last 12 months.",
+    "average": "Average",
+    "median": "Median",
+    "range": "Range",
+    "included": "Included",
+    "allExcluded": "All matches are excluded — tick at least one to get an estimate.",
+    "include": "Include {{price}} sale from {{date}} in the average",
+    "unknown": "Not shown on bidfax: {{fields}}",
+    "status": {
+      "sold": "Sold",
+      "on_approval": "On approval"
+    },
+    "stopReasons": {
+      "no_results": "no more results",
+      "reached_known": "caught up with stored sales",
+      "older_than_window": "reached sales older than the time window",
+      "max_matches": "match limit reached",
+      "max_pages": "page limit reached",
+      "last_page": "last page",
+      "error": "stopped by an error"
+    },
+    "criteria": {
+      "make": "make",
+      "model": "model",
+      "year": "year",
+      "trim": "trim",
+      "engine": "engine",
+      "fuel": "fuel"
+    }
   }
 }

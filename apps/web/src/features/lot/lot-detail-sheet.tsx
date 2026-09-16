@@ -10,6 +10,8 @@ import { lotTitle } from '@/features/search/lot-title';
 import { SourceBadge } from '@/features/search/source-badge';
 import { formatDateTime, formatMoney, formatNumber, sentenceCase } from '@/lib/format';
 import { CostSection } from './cost-section';
+import { estimateSummary, useEstimate, useRunEstimate, useToggleEstimateRecord } from './estimate-hooks';
+import { EstimateSection } from './estimate-section';
 import { useFx, useLot, useLotInputs, useSettings, useUpdateLotInputs } from './hooks';
 import { MoneyInput } from './money-input';
 import { Section } from './section';
@@ -37,6 +39,9 @@ function LotDetail({ lotId }: { lotId: string }) {
   const settings = useSettings();
   const fx = useFx();
   const updateInputs = useUpdateLotInputs(lotId);
+  const estimate = useEstimate(lotId);
+  const runEstimate = useRunEstimate(lotId);
+  const toggleEstimate = useToggleEstimateRecord(lotId);
 
   if (lot.isError) {
     return (
@@ -104,13 +109,21 @@ function LotDetail({ lotId }: { lotId: string }) {
           </div>
         </div>
         <Separator />
+        <EstimateSection
+          data={estimate.data}
+          running={runEstimate.isPending}
+          runFailed={runEstimate.isError}
+          onRun={(refresh) => runEstimate.mutate(refresh)}
+          onToggle={(recordId, included) => toggleEstimate.mutate({ recordId, included })}
+        />
+        <Separator />
         <CostSection
           lot={data}
           inputs={inputs.data}
           settings={settings.data}
           fx={fx.data}
           fxError={fx.isError}
-          estimateUsdCents={null}
+          estimateUsdCents={estimateSummary(estimate.data)?.average ?? null}
           onChange={(patch) => updateInputs.mutate(patch)}
         />
       </div>

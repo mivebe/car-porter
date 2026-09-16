@@ -57,6 +57,8 @@ const record = (over: Partial<AuctionRecord>): AuctionRecord => ({
   finalPriceUsdCents: 600_000,
   odometerMiles: 60_000,
   damage: 'Rear end',
+  saleStatus: 'sold',
+  location: null,
   imageUrl: null,
   ...over,
 });

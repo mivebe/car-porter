@@ -64,6 +64,9 @@ export interface AuctionRecord {
   finalPriceUsdCents: number | null;
   odometerMiles: number | null;
   damage: string | null;
+  /** 'on_approval' = the seller had not yet accepted the high bid when the page was captured. */
+  saleStatus: 'sold' | 'on_approval' | null;
+  location: string | null;
   imageUrl: string | null;
 }
 

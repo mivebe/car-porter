@@ -1,6 +1,6 @@
 # Car Porter — US auction → Bulgaria import evaluator
 
-- **Status:** In progress (Phases 0–3 complete)
+- **Status:** In progress (Phases 0–4 complete)
 - **Created:** 2026-09-16
 - **Last updated:** 2026-09-16
 - **Owner:** mivebe
@@ -81,8 +81,13 @@ verdict.
   lot_inputs, tracked_lots, auction_records (bidfax matches and VIN history share one
   table), market_listings, market_price_snapshots, selections, scrape_cache. (Rejected: localStorage — fragile,
   no scrape cache; JSON files — no querying.)
-- **Scraping:** Playwright (Chromium) with a persistent browser profile directory
-  (git-ignored). Prefer intercepting the sites' own JSON/XHR responses over DOM parsing
+- **Scraping:** **Patchright** (Playwright fork without the CDP automation leaks) driving the
+  **installed Google Chrome** (`channel: 'chrome'`, so Chrome must be installed), headless, with a
+  normal desktop Chrome UA passed as `--user-agent` (matching the installed version). Persistent
+  browser profile per source (git-ignored). Verified 2026-09-16: stock Playwright loops on
+  bidfax's Cloudflare Turnstile even when a human clicks; Patchright passes it headless with no
+  interaction. No CAPTCHA solving. Approach cross-checked with the car-parts-backend crawler
+  (installed Chrome, AutomationControlled off, in-page fetch, halt on block pages). Prefer intercepting the sites' own JSON/XHR responses over DOM parsing
   where available. Each source is an adapter: `fetch` (network) separated from
   `parse` (pure function over HTML/JSON) so parsers are fixture-testable.
 - **Politeness:** per-source serial queue, randomized delay between page loads
@@ -140,6 +145,22 @@ verdict.
 - "Track" button saves the lot + all fetched results to the tracking list.
 
 ### Step 4: Bidfax price estimate
+- **Source decision (2026-09-16):** bidfax only. bid.cars was considered as a second source but its
+  archived (sold) results are not shown to guests, so it was dropped.
+- **bidfax specifics (verified live):** exact-year listing URL
+  `/{make}/{model}/f/from-year=Y/to-year=Y/[page/N/]`, newest sales first, ~10 cards per page.
+  Model slugs come from the make page's links (cached 30 days). Only page numbers that the
+  pagination links to are requested — guessing deep pages (e.g. 999) trips bidfax's own "429"
+  anti-bot trap. Cloudflare check usually clears in ~5 s; when it sticks, the fetcher reloads (up
+  to 3 × 20 s). Card text is Ukrainian or Russian; both label sets are parsed.
+- Cards have no fuel field: fuel is derived only from explicit title keywords (Hybrid, Plug-in,
+  Electric, Diesel/TDI), otherwise "unknown" — so hybrids don't pollute petrol averages.
+- "On approval" sales (seller hadn't accepted yet) are included by default with a status badge;
+  the user can untick them.
+- Scan stop reasons: empty page, reached an already-stored sale (incremental), whole page older
+  than the window, enough matches, page limit, last linked page. A successful scan is reused for
+  24 h (per make/model/year, shared by all lots of that model/year); failed scans keep the records
+  fetched so far and are not cached.
 - Match rules: same make + model + **exact year** + same engine/trim/fuel.
 - Limits: sold within last **12 months**, up to **20 matches**, scanning up to
   **20 pages** — stop at whichever limit is hit first. All three limits editable in
@@ -274,14 +295,14 @@ margin < 0       → Not worth (red)
   250 € toggle, 10/20/10 parts, FX rate/date); E2E. (depends on 9, 18, 19)
 
 ### Phase 4 — Price estimate (step 4)
-- [ ] 21. Bidfax adapter: search by make/model/year, paginate ≤20 pages, parse detail
+- [x] 21. Bidfax adapter: search by make/model/year, paginate ≤20 pages, parse detail
   fields (price, date, engine/trim/fuel, damage, odometer, link), fixtures + tests
   (incl. Cloudflare challenge page → `blocked`); manual verification. (depends on 6, 11)
-- [ ] 22. `/api/estimate` applying match rules + limits from settings; persists matches
+- [x] 22. `/api/estimate` applying match rules + limits from settings; persists matches
   permanently and scans incrementally (stop at first already-stored sale); tests for
   incremental stop + 12-month window.
   (depends on 21)
-- [ ] 23. UI: estimate section — matches list with links, include checkboxes, average +
+- [x] 23. UI: estimate section — matches list with links, include checkboxes, average +
   median, feeds bid default; E2E. (depends on 10, 18, 22)
 
 ### Phase 5 — Vehicle history (step 5)
@@ -334,13 +355,15 @@ margin < 0       → Not worth (red)
   → cost toggles → market with toggles → verdict → track → settings → language/theme.
 
 ## Open Questions / Assumptions
-- **Bidfax engine/trim/fuel availability:** assume bidfax listings expose engine/fuel and
-  some trim/series text; if a field is missing on a match, that criterion is treated as
-  "unknown" and the match is kept but flagged. Confirm in task 21.
-- **Copart/IAAI data access:** assume the sites' internal JSON search responses can be
-  intercepted via Playwright; fall back to DOM parsing otherwise. Confirm in tasks 14–15.
+- ~~Bidfax engine/trim/fuel availability~~ — resolved in task 21: trim + engine (liters, sometimes
+  cylinders) come from the card title; fuel only from title keywords, otherwise unknown.
+- ~~Copart/IAAI data access~~ — resolved in tasks 14–15 (see Step 1–2 decisions).
+- **Scan depth:** 20 pages ≈ 200 sales ≈ one week of sales for a popular model/year, so the
+  12-month window rarely binds; raise `bidfax.maxPages` in settings for rare trims (each page
+  ≈ 3–4 s).
 - **Rate of blocking:** assume a residential IP with delays + cache is enough; if a source
   keeps blocking, revisit (headed mode, slower queue, or paid API for that source).
-- **History sources beyond bidfax + stat.vin:** start with those two; add autoastat /
-  bid.cars later if coverage is poor.
+- **History sources:** stat.vin/autoastat/poctra showed the same Cloudflare challenge in stock
+  Playwright; re-test them with Patchright in task 24 before choosing. bid.cars needs an account
+  for archived results.
 - **Rounding of reduced fees (40%/3):** computed in cents, rounded half-up at the fee step.

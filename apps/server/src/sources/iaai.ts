@@ -1,6 +1,6 @@
 import type { Lot, LotSearchFilters, LotSearchPage } from '@car-porter/core';
 import * as cheerio from 'cheerio';
-import type { Page } from 'playwright';
+import type { Page } from 'patchright';
 import type { BrowserManager } from '../scraping/browser.ts';
 import { detectChallenge, SourceError } from '../scraping/errors.ts';
 import type { SourceQueue } from '../scraping/source-queue.ts';

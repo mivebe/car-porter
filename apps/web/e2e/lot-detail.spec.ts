@@ -6,13 +6,14 @@ test.describe('lot detail + import cost', () => {
   test('opens a lot, calculates cost with toggles, persists inputs', async ({ page }) => {
     await page.goto(SEARCH);
     await page.getByRole('tab', { name: 'IAAI' }).click();
-    await page.getByTestId('lot-row').first().click();
+    // 2018 LE: no stored bidfax sales for it, so the price starts empty
+    await page.getByTestId('lot-row').nth(1).click();
 
     const sheet = page.getByRole('dialog');
-    await expect(sheet.getByRole('heading', { name: /2019 Toyota Camry SE/ })).toBeVisible();
+    await expect(sheet.getByRole('heading', { name: /2018 Toyota Camry LE/ })).toBeVisible();
     await expect(sheet.getByRole('link', { name: /Open on IAAI/ })).toHaveAttribute('href', /iaai\.com\/VehicleDetail\//);
-    await expect(sheet.getByText('4T1B11HK7KU******').first()).toBeVisible();
-    await expect(page).toHaveURL(/lot=iaai%3A45973338|lot=iaai:45973338/);
+    await expect(sheet.getByText('4T1B11HK2JU******').first()).toBeVisible();
+    await expect(page).toHaveURL(/lot=iaai%3A45940294|lot=iaai:45940294/);
 
     // no bid for IAAI guests → enter a purchase price
     await expect(sheet.getByTestId('bid-source')).toHaveText('No price yet.');
@@ -49,7 +50,7 @@ test.describe('lot detail + import cost', () => {
     await expect(sheet).toBeHidden();
     await expect(page).not.toHaveURL(/lot=/);
 
-    await page.getByTestId('lot-row').first().click();
+    await page.getByTestId('lot-row').nth(1).click();
     await expect(sheet.getByTestId('cost-total')).toHaveText('€8,077.45');
     await expect(sheet.getByLabel('VIN from photos')).toHaveValue('1HGCM82633A004352');
     await expect(sheet.getByLabel('Repair estimate')).toHaveValue('1500');

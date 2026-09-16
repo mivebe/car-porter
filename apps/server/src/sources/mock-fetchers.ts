@@ -3,6 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { modelMatches, normalizeMake, type AuctionSource, type LotSearchFilters } from '@car-porter/core';
 import { AUCTION_PAGE_SIZE, type AuctionSearchAdapter } from './auction-adapter.ts';
+import type { HtmlFetcher } from './bidfax-client.ts';
+import { bidfaxListingUrl } from './bidfax.ts';
 import { parseCopartSearch } from './copart.ts';
 import { parseIaaiSearch } from './iaai.ts';
 import { makesUrl, modelsUrl, type JsonFetcher } from './nhtsa.ts';
@@ -10,6 +12,21 @@ import { makesUrl, modelsUrl, type JsonFetcher } from './nhtsa.ts';
 export const FIXTURES_DIR = fileURLToPath(new URL('../../test/fixtures/', import.meta.url));
 
 export const readFixture = (relative: string) => readFile(path.join(FIXTURES_DIR, relative), 'utf8');
+
+/**
+ * Recorded bidfax pages: the Toyota make page and 2019 Camry listing pages 1–2. Other listings are
+ * empty; other make pages have no model links (→ not_found).
+ */
+export const mockBidfaxFetcher: HtmlFetcher = async (url) => {
+  const routes: Record<string, string> = {
+    'https://bidfax.info/toyota/': 'bidfax/make-toyota.html',
+    [bidfaxListingUrl('toyota', 'camry', 2019, 1)]: 'bidfax/toyota-camry-2019-p1.html',
+    [bidfaxListingUrl('toyota', 'camry', 2019, 2)]: 'bidfax/toyota-camry-2019-p2.html',
+  };
+  const file = routes[url];
+  if (file) return readFixture(file);
+  return url.includes('/f/from-year=') ? '<html><body><div id="dle-content"></div></body></html>' : '<html></html>';
+};
 
 /** Recorded ECB daily reference rates (2026-09-15: 1 EUR = 1.1539 USD). */
 export const mockEcbFetcher = () => readFixture('ecb/eurofxref-daily.xml');

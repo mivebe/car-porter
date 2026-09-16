@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { chromium, type BrowserContext, type Page } from 'playwright';
+import { chromium, type BrowserContext, type Page } from 'patchright';
 
 export interface BrowserManagerOptions {
   /** Root dir; each profile gets its own persistent sub-directory (cookies, logins). */
@@ -10,23 +10,26 @@ export interface BrowserManagerOptions {
 let userAgentPromise: Promise<string> | undefined;
 
 /**
- * A regular desktop Chrome UA matching the bundled Chromium version. The default headless UA
- * contains "HeadlessChrome", which Copart's bot protection rejects.
+ * A regular desktop Chrome UA matching the installed Chrome version. Headless Chrome announces
+ * itself as "HeadlessChrome", which bidfax's nginx answers with 403 even after Cloudflare passes.
  */
 function realisticUserAgent(): Promise<string> {
-  userAgentPromise ??= chromium.launch({ channel: 'chromium' }).then(async (browser) => {
+  userAgentPromise ??= chromium.launch({ channel: 'chrome', headless: true }).then(async (browser) => {
     const major = browser.version().split('.')[0];
     await browser.close();
     return `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${major}.0.0.0 Safari/537.36`;
   });
+  userAgentPromise.catch(() => (userAgentPromise = undefined));
   return userAgentPromise;
 }
 
 /**
- * Lazily launches one persistent Chromium context per profile and reuses it. A persistent
- * profile keeps cookies, so bot-protection tokens and a manual Copart login survive restarts.
- * Uses the full Chromium "new headless" mode, which is much harder to fingerprint than the
- * headless shell.
+ * Lazily launches one persistent browser context per profile and reuses it.
+ *
+ * Uses Patchright (a Playwright fork without the CDP automation leaks) driving the installed
+ * Google Chrome. Verified 2026-09-16: bidfax.info's Cloudflare Turnstile passes headless with no
+ * interaction, while stock Playwright loops on the checkbox even when a human clicks it.
+ * Persistent profiles keep cookies (cf_clearance, Copart/Imperva tokens) across restarts.
  */
 export function createBrowserManager({ profilesDir, headless = true }: BrowserManagerOptions) {
   const contexts = new Map<string, Promise<BrowserContext>>();
@@ -38,12 +41,11 @@ export function createBrowserManager({ profilesDir, headless = true }: BrowserMa
       ctx = realisticUserAgent()
         .then((userAgent) =>
           chromium.launchPersistentContext(path.join(profilesDir, profile), {
-            channel: 'chromium',
+            channel: 'chrome',
             headless,
-            userAgent,
-            locale: 'en-US',
-            viewport: { width: 1366, height: 900 },
-            args: ['--disable-blink-features=AutomationControlled'],
+            // Patchright recommends no viewport/UA context overrides; set the UA on the process.
+            viewport: null,
+            args: [`--user-agent=${userAgent}`, '--lang=en-US'],
           }),
         )
         .then((context) => {
@@ -104,7 +106,7 @@ export function createBrowserManager({ profilesDir, headless = true }: BrowserMa
     const ctx = contexts.get(profile);
     contexts.delete(profile);
     sessionPages.delete(profile);
-    if (ctx) await (await ctx).close().catch(() => undefined);
+    if (ctx) await (await ctx.catch(() => null))?.close().catch(() => undefined);
   }
 
   async function closeAll() {
