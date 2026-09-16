@@ -1,0 +1,146 @@
+import { readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { SourceError } from '../src/scraping/errors.ts';
+import { buildCopartSearchBody, parseCopartLot, parseCopartSearch } from '../src/sources/copart.ts';
+import {
+  buildIaaiSearchBody,
+  parseIaaiSaleDate,
+  parseIaaiSearch,
+  parseIaaiTotal,
+  parseMoney,
+} from '../src/sources/iaai.ts';
+
+const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
+const filters = { make: 'Toyota', model: 'Camry', yearFrom: 2018, yearTo: 2020 };
+
+describe('copart', () => {
+  it('builds the search API body with make/model/year filters and 0-based paging', () => {
+    const body = buildCopartSearchBody(filters, 3);
+    expect(body.filter).toEqual({
+      MAKE: ['lot_make_desc:"TOYOTA"'],
+      MODL: ['lot_model_desc:"CAMRY"'],
+      YEAR: ['lot_year:[2018 TO 2020]'],
+    });
+    expect(body).toMatchObject({ page: 2, size: 100, start: 200, query: ['*'] });
+  });
+
+  it('parses a real recorded search response', () => {
+    const result = parseCopartSearch(fixture('copart/search-toyota-camry-2018-2020.json'), 1);
+    expect(result.total).toBe(1661);
+    expect(result.lots).toHaveLength(25);
+    for (const lot of result.lots) {
+      expect(lot.source).toBe('copart');
+      expect(lot.id).toBe(`copart:${lot.lotNumber}`);
+      expect(lot.make).toBe('TOYOTA');
+      expect(lot.model).toBe('CAMRY');
+      expect(lot.year).toBeGreaterThanOrEqual(2018);
+      expect(lot.year).toBeLessThanOrEqual(2020);
+      expect(lot.url).toMatch(/^https:\/\/www\.copart\.com\/lot\/\d+/);
+    }
+    const first = result.lots[0]!;
+    expect(first).toMatchObject({
+      lotNumber: '65095026',
+      vin: '4T1C11AK2LU******',
+      trim: 'LE',
+      engine: '2.5L 4',
+      fuel: 'GAS',
+      transmission: 'AUTOMATIC',
+      odometerMiles: 233120,
+      location: 'TX - HOUSTON EAST',
+    });
+    expect(first.imageUrls[0]).toMatch(/_hrs\.jpg$/);
+    expect(result.lots.some((l) => l.currentBidUsdCents !== null)).toBe(true);
+  });
+
+  it('maps optional numbers: 0 / -1 become null, dates become ISO', () => {
+    const lot = parseCopartLot({
+      ln: 1, lcy: 2019, mkn: 'TOYOTA', lm: 'CAMRY', hb: 0, bnp: 0, la: -1, ad: 1789660800000, orr: 0,
+    });
+    expect(lot).toMatchObject({
+      currentBidUsdCents: null,
+      buyNowUsdCents: null,
+      acvUsdCents: null,
+      odometerMiles: null,
+      saleDate: '2026-09-17T16:00:00.000Z',
+    });
+    expect(parseCopartLot({ ln: 'x' })).toBeNull();
+  });
+
+  it('detects block pages and bad payloads', () => {
+    expect(() => parseCopartSearch('<html><iframe src="/_Incapsula_Resource?x"></iframe></html>', 1)).toThrow(
+      expect.objectContaining({ code: 'blocked' }),
+    );
+    expect(() => parseCopartSearch('not json', 1)).toThrow(expect.objectContaining({ code: 'parse_failed' }));
+    expect(() => parseCopartSearch('{"returnCode":0}', 1)).toThrow(SourceError);
+  });
+});
+
+describe('iaai', () => {
+  it('builds the search body with keyword + year range and 1-based paging', () => {
+    const body = buildIaaiSearchBody(filters, 2);
+    expect(body.Searches[0]!.FullSearch).toBe('Toyota Camry');
+    expect(body.Searches[1]!.LongRanges).toEqual([{ From: 2018, Name: 'Year', To: 2020 }]);
+    expect(body).toMatchObject({ PageSize: 100, CurrentPage: 2 });
+  });
+
+  it('parses a real recorded results page', () => {
+    const result = parseIaaiSearch(fixture('iaai/search-toyota-camry-2018-2020-p1.html'), 1);
+    expect(result.total).toBe(1362);
+    expect(result.lots).toHaveLength(30); // fixture keeps 30 vehicle rows (+ a non-vehicle template row)
+    for (const lot of result.lots) {
+      expect(lot.source).toBe('iaai');
+      expect(lot.make).toBe('TOYOTA');
+      expect(lot.model).toMatch(/CAMRY/);
+      expect(lot.year).toBeGreaterThanOrEqual(2018);
+      expect(lot.year).toBeLessThanOrEqual(2020);
+      expect(lot.url).toMatch(/^https:\/\/www\.iaai\.com\/VehicleDetail\/\d+~US$/);
+      expect(lot.saleDate === null || !Number.isNaN(Date.parse(lot.saleDate))).toBe(true);
+    }
+    const first = result.lots[0]!;
+    expect(first).toMatchObject({
+      lotNumber: '45973338',
+      vin: '4T1B11HK7KU******',
+      year: 2019,
+      trim: 'SE',
+      fuel: 'Gasoline',
+      transmission: 'Automatic',
+      odometerMiles: 148715,
+      primaryDamage: 'Right Front',
+      titleType: 'Salvage',
+      acvUsdCents: 1_120_200,
+      saleDate: '2026-09-16T13:30:00.000Z',
+    });
+    expect(first.engine).toMatch(/^2\.5L/);
+    expect(first.imageUrls[0]).toMatch(/^https:\/\/vis\.iaai\.com\/resizer\?imageKeys=/);
+  });
+
+  it('parses page 2 and finds Buy Now prices on some rows', () => {
+    const p1 = parseIaaiSearch(fixture('iaai/search-toyota-camry-2018-2020-p1.html'), 1);
+    const p2 = parseIaaiSearch(fixture('iaai/search-toyota-camry-2018-2020-p2.html'), 2);
+    expect(p2.lots.length).toBeGreaterThan(0);
+    expect(new Set([...p1.lots, ...p2.lots].map((l) => l.id)).size).toBe(p1.lots.length + p2.lots.length);
+    expect([...p1.lots, ...p2.lots].some((l) => l.buyNowUsdCents !== null)).toBe(true);
+  });
+
+  it('helpers: sale date timezone, money, totals', () => {
+    expect(parseIaaiSaleDate('9/16/2026 8:30:00 AM +00:00', 'Wed Sep 16, 8:30am CDT')).toBe(
+      '2026-09-16T13:30:00.000Z',
+    );
+    expect(parseIaaiSaleDate('12/1/2026 1:05:00 PM +00:00', 'Tue Dec 1, 1:05pm PST')).toBe(
+      '2026-12-01T21:05:00.000Z',
+    );
+    expect(parseIaaiSaleDate(null, 'x')).toBeNull();
+    expect(parseMoney('Buy Now $6,400 USD')).toBe(640_000);
+    expect(parseMoney('n/a')).toBeNull();
+    expect(parseIaaiTotal('"Group":"Year","Facets":[{"Count":2,"Value":"2019"},{"Count":3,"Value":"2020"}]')).toBe(5);
+  });
+
+  it('detects block pages and unrecognized HTML', () => {
+    expect(() => parseIaaiSearch('<title>Just a moment...</title>', 1)).toThrow(
+      expect.objectContaining({ code: 'blocked' }),
+    );
+    expect(() => parseIaaiSearch('<html><body>hello</body></html>', 1)).toThrow(
+      expect.objectContaining({ code: 'parse_failed' }),
+    );
+  });
+});

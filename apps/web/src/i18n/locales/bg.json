@@ -1,0 +1,157 @@
+{
+  "app": {
+    "name": "Car Porter",
+    "tagline": "Оценка на внос от търгове в САЩ → България"
+  },
+  "nav": {
+    "search": "Търсене",
+    "tracking": "Следени",
+    "settings": "Настройки"
+  },
+  "header": {
+    "toggleTheme": "Смяна на темата",
+    "language": "Език"
+  },
+  "language": {
+    "en": "English",
+    "bg": "Български"
+  },
+  "pages": {
+    "search": {
+      "title": "Търсене на лотове",
+      "description": "Намерете автомобили в Copart и IAAI."
+    },
+    "tracking": {
+      "title": "Следени",
+      "description": "Лотове, които следите, с техните оценки и присъди."
+    },
+    "settings": {
+      "title": "Настройки",
+      "description": "Разходи, прагове, източници и предпочитания."
+    }
+  },
+  "sources": {
+    "copart": "Copart",
+    "iaai": "IAAI"
+  },
+  "sourceErrors": {
+    "blocked": "блокирано",
+    "login_required": "нужен е вход",
+    "parse_failed": "грешка при разчитане",
+    "timeout": "изтекло време",
+    "not_found": "не е намерено",
+    "network": "мрежова грешка",
+    "unknown": "грешка"
+  },
+  "sourceStatus": {
+    "fetched": "Изтеглено {{when}}",
+    "cached": "от кеша",
+    "stale": "показани са по-стари данни ({{error}})"
+  },
+  "search": {
+    "make": "Марка",
+    "model": "Модел",
+    "yearFrom": "Година от",
+    "yearTo": "Година до",
+    "submit": "Търси",
+    "selectMake": "Изберете марка",
+    "selectModel": "Изберете модел",
+    "selectMakeFirst": "Първо изберете марка",
+    "searchMake": "Търсене на марка…",
+    "searchModel": "Търсене на модел…",
+    "noOptions": "Няма резултати.",
+    "useCustom": "Използвай „{{value}}“",
+    "emptyState": "Изберете марка, модел и период от години, за да търсите в Copart и IAAI.",
+    "loading": "Зареждане на лотове",
+    "requestFailed": "Заявката за търсене е неуспешна. Работи ли локалният сървър?",
+    "noResults": "Няма лотове, отговарящи на филтрите.",
+    "loadedCount_one": "{{count}} зареден лот",
+    "loadedCount_other": "{{count}} заредени лота",
+    "allSources": "Всички",
+    "sortBy": "Подреди по",
+    "sort": {
+      "saleDate": "Дата на търга",
+      "price": "Цена",
+      "yearDesc": "Най-нова година",
+      "odometer": "Най-нисък пробег"
+    },
+    "refresh": "Обнови (без кеш)",
+    "loadMore": "Зареди още",
+    "errors": {
+      "makeRequired": "Изберете марка.",
+      "modelRequired": "Изберете модел.",
+      "yearInvalid": "Въведете валидна година.",
+      "yearOrder": "Трябва да е същата или по-късна от „Година от“."
+    }
+  },
+  "lot": {
+    "vehicle": "Автомобил",
+    "odometer": "Пробег",
+    "damage": "Щета / документ",
+    "location": "Местоположение",
+    "saleDate": "Дата на търга",
+    "price": "Цена",
+    "currentBid": "текуща оферта",
+    "buyNow": "купи сега",
+    "acv": "ACV (пазарна оценка)"
+  },
+  "lotDetail": {
+    "loading": "Зареждане на лота",
+    "notFound": "Лотът не е намерен",
+    "noSaleDate": "Все още няма дата на търга",
+    "openOn": "Отвори в {{source}}",
+    "noPhotos": "Няма снимки",
+    "details": "Детайли",
+    "vinOverride": "VIN от снимките",
+    "vinPlaceholder": "Поставете пълния VIN от 17 знака",
+    "vinInvalid": "Невалиден VIN ({{length}}/17 знака, без I, O и Q).",
+    "vinCheckDigit": "Форматът е валиден, но контролната цифра не съвпада (често при VIN извън САЩ).",
+    "vinValid": "Валиден VIN — използва се за историята.",
+    "vinUsingLot": "Използва се VIN от обявата.",
+    "vinMasked": "VIN в обявата е скрит — поставете го от снимките, за да търсите история.",
+    "repairEstimate": "Прогноза за ремонт",
+    "repairHint": "Включва се в изчислението на печалбата.",
+    "facts": {
+      "vin": "VIN",
+      "odometer": "Пробег",
+      "engine": "Двигател",
+      "fuel": "Гориво",
+      "transmission": "Скоростна кутия",
+      "drive": "Задвижване",
+      "primaryDamage": "Основна щета",
+      "secondaryDamage": "Допълнителна щета",
+      "titleType": "Документ",
+      "location": "Местоположение",
+      "currentBid": "Текуща оферта",
+      "buyNow": "Купи сега",
+      "acv": "ACV"
+    }
+  },
+  "cost": {
+    "title": "Разходи за внос в България",
+    "bid": "Покупна цена (оферта)",
+    "resetBid": "Върни цената по подразбиране",
+    "bidSource": {
+      "override": "Вашата цена.",
+      "estimate": "Средна цена от минали продажби в bidfax.",
+      "buyNow": "Цена „Купи сега“ — все още няма оценка.",
+      "currentBid": "Текуща оферта — все още няма оценка; крайната цена обикновено е по-висока.",
+      "none": "Все още няма цена."
+    },
+    "feesReduced": "Намалени такси (÷{{divisor}})",
+    "includeSofiaToBg": "София → до адрес в БГ ({{amount}})",
+    "fxUnavailable": "Няма валутен курс — задайте ръчен курс USD→EUR в Настройки.",
+    "enterBid": "Въведете покупна цена, за да изчислите разходите.",
+    "rows": {
+      "bid": "Оферта",
+      "feePart": "Такси {{percent}}%",
+      "shipping": "Транспорт САЩ → Ротердам",
+      "usdSubtotal": "Междинна сума (USD)",
+      "fxEcb": "В евро (ЕЦБ {{rate}}, {{date}})",
+      "fxOverride": "В евро (ръчен курс {{rate}})",
+      "rotterdamSofia": "Ротердам → София",
+      "sofiaToBg": "София → до адрес в БГ",
+      "total": "Обща цена с внос"
+    }
+  }
+}

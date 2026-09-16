@@ -1,0 +1,157 @@
+{
+  "app": {
+    "name": "Car Porter",
+    "tagline": "US auction → Bulgaria import evaluator"
+  },
+  "nav": {
+    "search": "Search",
+    "tracking": "Tracking",
+    "settings": "Settings"
+  },
+  "header": {
+    "toggleTheme": "Toggle theme",
+    "language": "Language"
+  },
+  "language": {
+    "en": "English",
+    "bg": "Български"
+  },
+  "pages": {
+    "search": {
+      "title": "Search lots",
+      "description": "Find vehicles on Copart and IAAI."
+    },
+    "tracking": {
+      "title": "Tracking",
+      "description": "Lots you are watching, with their estimates and verdicts."
+    },
+    "settings": {
+      "title": "Settings",
+      "description": "Costs, thresholds, sources and preferences."
+    }
+  },
+  "sources": {
+    "copart": "Copart",
+    "iaai": "IAAI"
+  },
+  "sourceErrors": {
+    "blocked": "blocked",
+    "login_required": "login required",
+    "parse_failed": "parsing failed",
+    "timeout": "timed out",
+    "not_found": "not found",
+    "network": "network error",
+    "unknown": "error"
+  },
+  "sourceStatus": {
+    "fetched": "Fetched {{when}}",
+    "cached": "from cache",
+    "stale": "showing older data ({{error}})"
+  },
+  "search": {
+    "make": "Manufacturer",
+    "model": "Model",
+    "yearFrom": "Year from",
+    "yearTo": "Year to",
+    "submit": "Search",
+    "selectMake": "Select manufacturer",
+    "selectModel": "Select model",
+    "selectMakeFirst": "Select a manufacturer first",
+    "searchMake": "Search manufacturers…",
+    "searchModel": "Search models…",
+    "noOptions": "Nothing found.",
+    "useCustom": "Use “{{value}}”",
+    "emptyState": "Choose a manufacturer, model and year range to search Copart and IAAI.",
+    "loading": "Loading lots",
+    "requestFailed": "The search request failed. Is the local server running?",
+    "noResults": "No lots match these filters.",
+    "loadedCount_one": "{{count}} lot loaded",
+    "loadedCount_other": "{{count}} lots loaded",
+    "allSources": "All",
+    "sortBy": "Sort by",
+    "sort": {
+      "saleDate": "Sale date",
+      "price": "Price",
+      "yearDesc": "Newest year",
+      "odometer": "Lowest mileage"
+    },
+    "refresh": "Refresh (ignore cache)",
+    "loadMore": "Load more",
+    "errors": {
+      "makeRequired": "Choose a manufacturer.",
+      "modelRequired": "Choose a model.",
+      "yearInvalid": "Enter a valid year.",
+      "yearOrder": "Must be the same or later than “Year from”."
+    }
+  },
+  "lot": {
+    "vehicle": "Vehicle",
+    "odometer": "Odometer",
+    "damage": "Damage / title",
+    "location": "Location",
+    "saleDate": "Sale date",
+    "price": "Price",
+    "currentBid": "current bid",
+    "buyNow": "buy now",
+    "acv": "ACV (est. value)"
+  },
+  "lotDetail": {
+    "loading": "Loading lot",
+    "notFound": "Lot not found",
+    "noSaleDate": "No sale date yet",
+    "openOn": "Open on {{source}}",
+    "noPhotos": "No photos",
+    "details": "Details",
+    "vinOverride": "VIN from photos",
+    "vinPlaceholder": "Paste the full 17-character VIN",
+    "vinInvalid": "Not a valid VIN ({{length}}/17 characters, no I, O or Q).",
+    "vinCheckDigit": "Valid format, but the check digit does not match (common for non-US VINs).",
+    "vinValid": "Valid VIN — used for history lookups.",
+    "vinUsingLot": "Using the VIN from the listing.",
+    "vinMasked": "The listing VIN is masked — paste it from the photos to enable VIN history.",
+    "repairEstimate": "Repair estimate",
+    "repairHint": "Included in the profit margin.",
+    "facts": {
+      "vin": "VIN",
+      "odometer": "Odometer",
+      "engine": "Engine",
+      "fuel": "Fuel",
+      "transmission": "Transmission",
+      "drive": "Drive",
+      "primaryDamage": "Primary damage",
+      "secondaryDamage": "Secondary damage",
+      "titleType": "Title",
+      "location": "Location",
+      "currentBid": "Current bid",
+      "buyNow": "Buy Now",
+      "acv": "ACV"
+    }
+  },
+  "cost": {
+    "title": "Import cost to Bulgaria",
+    "bid": "Purchase price (bid)",
+    "resetBid": "Reset to default price",
+    "bidSource": {
+      "override": "Your price.",
+      "estimate": "Average of past bidfax sales.",
+      "buyNow": "Buy Now price — no estimate yet.",
+      "currentBid": "Current bid — no estimate yet; the final price is usually higher.",
+      "none": "No price yet."
+    },
+    "feesReduced": "Reduced fees (÷{{divisor}})",
+    "includeSofiaToBg": "Sofia → anywhere in BG ({{amount}})",
+    "fxUnavailable": "Exchange rate unavailable — set a manual USD→EUR rate in Settings.",
+    "enterBid": "Enter a purchase price to calculate the cost.",
+    "rows": {
+      "bid": "Bid",
+      "feePart": "Fees {{percent}}%",
+      "shipping": "Shipping USA → Rotterdam",
+      "usdSubtotal": "Subtotal (USD)",
+      "fxEcb": "In EUR (ECB {{rate}}, {{date}})",
+      "fxOverride": "In EUR (manual rate {{rate}})",
+      "rotterdamSofia": "Rotterdam → Sofia",
+      "sofiaToBg": "Sofia → anywhere in BG",
+      "total": "Total landed cost"
+    }
+  }
+}
