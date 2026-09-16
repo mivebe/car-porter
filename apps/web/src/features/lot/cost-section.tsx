@@ -1,4 +1,4 @@
-import { calculateCost, resolveBid, type Lot, type LotInputs, type Settings } from '@car-porter/core';
+import type { LotEvaluation, LotInputs, Settings } from '@car-porter/core';
 import { Calculator, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -11,13 +11,11 @@ import { MoneyInput } from './money-input';
 import { Section } from './section';
 
 interface CostSectionProps {
-  lot: Lot;
   inputs: LotInputs;
   settings: Settings;
   fx: FxResponse | undefined;
   fxError: boolean;
-  /** Average of included bidfax matches, once estimated (task 23). */
-  estimateUsdCents: number | null;
+  evaluation: LotEvaluation;
   onChange: (patch: Partial<LotInputs>) => void;
 }
 
@@ -32,28 +30,14 @@ function Row({ label, value, muted, strong, testId }: { label: string; value: st
   );
 }
 
-export function CostSection({ lot, inputs, settings, fx, fxError, estimateUsdCents, onChange }: CostSectionProps) {
+export function CostSection({ inputs, settings, fx, fxError, evaluation, onChange }: CostSectionProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const usd = (c: number) => formatMoney(c, 'USD', lang, { decimals: true });
   const eur = (c: number) => formatMoney(c, 'EUR', lang, { decimals: true });
 
-  const bid = resolveBid({
-    overrideUsdCents: inputs.bidOverrideUsdCents,
-    estimateUsdCents,
-    buyNowUsdCents: lot.buyNowUsdCents,
-    currentBidUsdCents: lot.currentBidUsdCents,
-  });
-  const breakdown =
-    bid.bidUsdCents != null && fx
-      ? calculateCost({
-          bidUsdCents: bid.bidUsdCents,
-          usdToEur: fx.usdToEur,
-          feesReduced: inputs.feesReduced,
-          includeSofiaToBg: inputs.includeSofiaToBg,
-          cost: settings.cost,
-        })
-      : null;
+  const bid = { bidUsdCents: evaluation.bidUsdCents, source: evaluation.bidSource };
+  const breakdown = evaluation.cost;
 
   return (
     <Section icon={Calculator} title={t('cost.title')} testId="cost-section">

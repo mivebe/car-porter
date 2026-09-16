@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
 export type Theme = 'dark' | 'light';
 
@@ -17,7 +17,6 @@ function readStoredTheme(): Theme {
 interface ThemeContextValue {
   theme: Theme;
   setTheme: (theme: Theme) => void;
-  toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -34,9 +33,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [theme]);
 
-  const toggleTheme = useCallback(() => setTheme((t) => (t === 'dark' ? 'light' : 'dark')), []);
-
-  return <ThemeContext value={{ theme, setTheme, toggleTheme }}>{children}</ThemeContext>;
+  return <ThemeContext value={{ theme, setTheme }}>{children}</ThemeContext>;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components

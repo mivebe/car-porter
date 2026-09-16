@@ -1,7 +1,7 @@
 import { toCents } from './money.ts';
 
 export type VerdictStatus = 'worth' | 'borderline' | 'not_worth' | 'insufficient';
-export type VerdictMissing = 'bid' | 'marketAverage';
+export type VerdictMissing = 'bid' | 'fx' | 'marketAverage';
 
 export interface Verdict {
   status: VerdictStatus;

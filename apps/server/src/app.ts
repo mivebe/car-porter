@@ -8,29 +8,34 @@ import { createLotsRepository } from './repositories/lots-repository.ts';
 import { createMarketListingsRepository } from './repositories/market-listings-repository.ts';
 import { createSelectionsRepository } from './repositories/selections-repository.ts';
 import { createSettingsRepository } from './repositories/settings-repository.ts';
+import { createTrackedLotsRepository } from './repositories/tracked-lots-repository.ts';
 import { catalogRoutes } from './routes/catalog-routes.ts';
+import { copartRoutes } from './routes/copart-routes.ts';
 import { estimateRoutes } from './routes/estimate-routes.ts';
 import { historyRoutes } from './routes/history-routes.ts';
 import { fxRoutes } from './routes/fx-routes.ts';
 import { lotsRoutes } from './routes/lots-routes.ts';
 import { marketRoutes } from './routes/market-routes.ts';
 import { settingsRoutes } from './routes/settings-routes.ts';
+import { trackingRoutes } from './routes/tracking-routes.ts';
 import { createBrowserManager } from './scraping/browser.ts';
 import { createSourceQueue } from './scraping/source-queue.ts';
 import { createEstimateService } from './services/estimate-service.ts';
 import { createHistoryService } from './services/history-service.ts';
 import { createLotSearchService } from './services/lot-search-service.ts';
 import { createMarketService } from './services/market-service.ts';
+import { createTrackingService } from './services/tracking-service.ts';
 import type { AuctionSearchAdapter } from './sources/auction-adapter.ts';
 import { createAutoscout24Adapter, createAutoscout24Fetcher } from './sources/autoscout24.ts';
 import { createBidfaxFetcher, createBidfaxSearcher, type BidfaxSearcher, type HtmlFetcher } from './sources/bidfax-client.ts';
 import { createCarsBgAdapter, createCarsBgFetcher } from './sources/carsbg.ts';
-import { createCopartAdapter } from './sources/copart.ts';
+import { createCopartAdapter, createCopartLogin, type CopartLogin } from './sources/copart.ts';
 import { createFxService, httpTextFetcher, type TextFetcher } from './sources/ecb.ts';
 import { createIaaiAdapter } from './sources/iaai.ts';
 import type { MarketAdapter } from './sources/market-adapter.ts';
 import {
   createMockAuctionAdapters,
+  createMockCopartLogin,
   mockBidfaxFetcher,
   mockBidfaxSearcher,
   createMockMarketFetchers,
@@ -60,6 +65,7 @@ export interface AppOptions {
     statVinFetcher?: HtmlFetcher;
     marketAdapters?: MarketAdapter[];
     auctionAdapters?: AuctionSearchAdapter[];
+    copartLogin?: CopartLogin;
   };
 }
 
@@ -81,6 +87,7 @@ export async function buildApp({
     auctionRecords: createAuctionRecordsRepository(database.db),
     selections: createSelectionsRepository(database.db),
     marketListings: createMarketListingsRepository(database.db),
+    tracked: createTrackedLotsRepository(database.db),
   };
   await repos.settings.get();
 
@@ -115,30 +122,32 @@ export async function buildApp({
       overrides.nhtsaFetcher ?? (mockSources ? mockNhtsaFetcher : httpJsonFetcher),
     ),
   });
-  await app.register(fxRoutes, {
-    fx: createFxService({
-      cache: repos.cache,
-      settings: repos.settings,
-      fetchText: overrides.ecbFetcher ?? (mockSources ? mockEcbFetcher : httpTextFetcher),
-    }),
+  const fx = createFxService({
+    cache: repos.cache,
+    settings: repos.settings,
+    fetchText: overrides.ecbFetcher ?? (mockSources ? mockEcbFetcher : httpTextFetcher),
+  });
+  await app.register(fxRoutes, { fx });
+  await app.register(copartRoutes, {
+    login: overrides.copartLogin ?? (mockSources ? createMockCopartLogin() : createCopartLogin(browser, queue)),
   });
   await app.register(lotsRoutes, {
     search: createLotSearchService({ adapters: auctionAdapters, cache: repos.cache, lots: repos.lots }),
     lots: repos.lots,
     inputs: repos.lotInputs,
+    tracked: repos.tracked,
   });
 
-  await app.register(estimateRoutes, {
-    estimate: createEstimateService({
-      fetchHtml:
-        overrides.bidfaxFetcher ?? (mockSources ? mockBidfaxFetcher : createBidfaxFetcher(browser, queue)),
-      cache: repos.cache,
-      lots: repos.lots,
-      records: repos.auctionRecords,
-      selections: repos.selections,
-      settings: repos.settings,
-    }),
+  const estimate = createEstimateService({
+    fetchHtml:
+      overrides.bidfaxFetcher ?? (mockSources ? mockBidfaxFetcher : createBidfaxFetcher(browser, queue)),
+    cache: repos.cache,
+    lots: repos.lots,
+    records: repos.auctionRecords,
+    selections: repos.selections,
+    settings: repos.settings,
   });
+  await app.register(estimateRoutes, { estimate });
 
   await app.register(historyRoutes, {
     history: createHistoryService({
@@ -161,20 +170,31 @@ export async function buildApp({
         autoscout24: createAutoscout24Fetcher(browser, queue),
         olxBg: createOlxFetcher(browser, queue),
       };
-  await app.register(marketRoutes, {
-    market: createMarketService({
-      adapters: overrides.marketAdapters ?? [
-        createMobileBgAdapter(marketFetchers.mobileBg, repos.cache),
-        createCarsBgAdapter(marketFetchers.carsBg, repos.cache),
-        createAutoscout24Adapter(marketFetchers.autoscout24),
-        createOlxAdapter(marketFetchers.olxBg, repos.cache),
-      ],
-      cache: repos.cache,
+  const market = createMarketService({
+    adapters: overrides.marketAdapters ?? [
+      createMobileBgAdapter(marketFetchers.mobileBg, repos.cache),
+      createCarsBgAdapter(marketFetchers.carsBg, repos.cache),
+      createAutoscout24Adapter(marketFetchers.autoscout24),
+      createOlxAdapter(marketFetchers.olxBg, repos.cache),
+    ],
+    cache: repos.cache,
+    lots: repos.lots,
+    inputs: repos.lotInputs,
+    listings: repos.marketListings,
+    selections: repos.selections,
+    settings: repos.settings,
+  });
+  await app.register(marketRoutes, { market });
+
+  await app.register(trackingRoutes, {
+    tracking: createTrackingService({
+      tracked: repos.tracked,
       lots: repos.lots,
       inputs: repos.lotInputs,
-      listings: repos.marketListings,
-      selections: repos.selections,
       settings: repos.settings,
+      estimate,
+      market,
+      fx,
     }),
   });
 

@@ -8,12 +8,14 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { SUPPORTED_LANGUAGES } from '@/i18n';
+import { SUPPORTED_LANGUAGES, type Language } from '@/i18n';
+import { useUpdatePreferences } from '@/lib/preferences';
 import { useTheme } from '@/lib/theme';
 
 export function HeaderControls() {
   const { t, i18n } = useTranslation();
-  const { theme, toggleTheme } = useTheme();
+  const { theme } = useTheme();
+  const preferences = useUpdatePreferences();
 
   return (
     <div className="flex items-center gap-1">
@@ -27,7 +29,7 @@ export function HeaderControls() {
         <DropdownMenuContent align="end">
           <DropdownMenuRadioGroup
             value={i18n.language}
-            onValueChange={(lng) => void i18n.changeLanguage(lng)}
+            onValueChange={(lng) => preferences.setLanguage(lng as Language)}
           >
             {SUPPORTED_LANGUAGES.map((lng) => (
               <DropdownMenuRadioItem key={lng} value={lng}>
@@ -37,7 +39,7 @@ export function HeaderControls() {
           </DropdownMenuRadioGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-      <Button variant="ghost" size="icon" aria-label={t('header.toggleTheme')} onClick={toggleTheme}>
+      <Button variant="ghost" size="icon" aria-label={t('header.toggleTheme')} onClick={() => preferences.setTheme(theme === 'dark' ? 'light' : 'dark')}>
         {theme === 'dark' ? <Sun /> : <Moon />}
       </Button>
     </div>

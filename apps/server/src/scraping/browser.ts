@@ -35,14 +35,14 @@ export function createBrowserManager({ profilesDir, headless = true }: BrowserMa
   const contexts = new Map<string, Promise<BrowserContext>>();
   const sessionPages = new Map<string, Promise<Page>>();
 
-  function getContext(profile: string): Promise<BrowserContext> {
+  function getContext(profile: string, visible = false): Promise<BrowserContext> {
     let ctx = contexts.get(profile);
     if (!ctx) {
       ctx = realisticUserAgent()
         .then((userAgent) =>
           chromium.launchPersistentContext(path.join(profilesDir, profile), {
             channel: 'chrome',
-            headless,
+            headless: headless && !visible,
             // Patchright recommends no viewport/UA context overrides; set the UA on the process.
             viewport: null,
             args: [`--user-agent=${userAgent}`, '--lang=en-US'],
@@ -109,11 +109,29 @@ export function createBrowserManager({ profilesDir, headless = true }: BrowserMa
     if (ctx) await (await ctx.catch(() => null))?.close().catch(() => undefined);
   }
 
+  /**
+   * Reopens a profile in a visible window at `url` (e.g. to log in by hand). Scrapers share that
+   * window's context while it is open; once the user closes it, the next use relaunches headless.
+   * Resolves with a promise that settles when the window is closed.
+   */
+  async function openWindow(profile: string, url: string): Promise<{ closed: Promise<void> }> {
+    await closeProfile(profile);
+    const context = await getContext(profile, true);
+    const closed = new Promise<void>((resolve) => context.on('close', () => resolve()));
+    const page = context.pages()[0] ?? (await context.newPage());
+    page.on('close', () => {
+      // closing the last tab closes the window
+      if (context.pages().length === 0) void closeProfile(profile);
+    });
+    await page.goto(url, { waitUntil: 'domcontentloaded' }).catch(() => undefined);
+    return { closed };
+  }
+
   async function closeAll() {
     await Promise.all([...contexts.keys()].map(closeProfile));
   }
 
-  return { getContext, withPage, sessionPage, resetSession, closeProfile, closeAll };
+  return { getContext, withPage, sessionPage, resetSession, closeProfile, openWindow, closeAll };
 }
 
 export type BrowserManager = ReturnType<typeof createBrowserManager>;

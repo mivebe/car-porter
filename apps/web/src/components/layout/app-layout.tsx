@@ -1,6 +1,7 @@
 import { CarFront, ListChecks, Search, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet } from 'react-router';
+import { useSyncPreferences } from '@/lib/preferences';
 import { cn } from '@/lib/utils';
 import { HeaderControls } from './header-controls';
 
@@ -12,6 +13,7 @@ const NAV_ITEMS = [
 
 export function AppLayout() {
   const { t } = useTranslation();
+  useSyncPreferences();
 
   return (
     <div className="flex min-h-svh flex-col">

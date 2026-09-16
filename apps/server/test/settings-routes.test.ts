@@ -33,6 +33,17 @@ describe('/api/settings', () => {
     expect(after.json().cost).toEqual(DEFAULT_SETTINGS.cost);
   });
 
+  it('concurrent PATCHes of different keys are all kept', async () => {
+    await Promise.all([
+      app.inject({ method: 'PATCH', url: '/api/settings', payload: { ui: { theme: 'light' } } }),
+      app.inject({ method: 'PATCH', url: '/api/settings', payload: { ui: { language: 'bg' } } }),
+      app.inject({ method: 'PATCH', url: '/api/settings', payload: { verdict: { worthThresholdEur: 1 } } }),
+    ]);
+    const after = (await app.inject({ method: 'GET', url: '/api/settings' })).json();
+    expect(after.ui).toEqual({ language: 'bg', theme: 'light' });
+    expect(after.verdict.worthThresholdEur).toBe(1);
+  });
+
   it('PATCH with invalid values returns 400', async () => {
     const res = await app.inject({
       method: 'PATCH',

@@ -1,6 +1,7 @@
 import type { EstimateResponse } from '@/features/lot/estimate-hooks';
 import type { HistoryResponse } from '@/features/lot/history-hooks';
 import type { MarketResponse } from '@/features/lot/market-hooks';
+import type { TrackedLotsResponse } from '@/features/tracking/tracking-hooks';
 import type { AuctionSource, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
 
 export class ApiError extends Error {
@@ -76,6 +77,10 @@ export interface FxResponse {
   error?: SourceErrorInfo;
 }
 
+export interface CopartLoginStatus {
+  windowOpen: boolean;
+}
+
 export const api = {
   settings: () => request<Settings>('/api/settings'),
   updateSettings: (patch: SettingsPatch) =>
@@ -107,5 +112,12 @@ export const api = {
   models: (make: string) => request<CatalogResponse>(`/api/catalog/models?${query({ make })}`),
   searchLots: (params: LotSearchParams & { page: number; refresh?: boolean }) =>
     request<LotSearchResponse>(`/api/lots/search?${query({ ...params, refresh: params.refresh ? 1 : undefined })}`),
-  lot: (id: string) => request<{ lot: Lot; fetchedAt: string }>(`/api/lots/${encodeURIComponent(id)}`),
+  lot: (id: string) =>
+    request<{ lot: Lot; fetchedAt: string; trackedAt: string | null }>(`/api/lots/${encodeURIComponent(id)}`),
+  tracked: () => request<TrackedLotsResponse>('/api/tracked'),
+  copartLogin: () => request<CopartLoginStatus>('/api/copart/login'),
+  openCopartLogin: () => request<CopartLoginStatus>('/api/copart/login', { method: 'POST' }),
+  track: (id: string) =>
+    request<{ lotId: string; trackedAt: string }>(`/api/tracked/${encodeURIComponent(id)}`, { method: 'PUT' }),
+  untrack: (id: string) => request<null>(`/api/tracked/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 };

@@ -1,12 +1,11 @@
 import {
-  effectiveMarketSources,
   MARKET_SOURCES,
-  summarizeMarket,
   type Lot,
   type LotInputs,
   type MarketGroup,
   type MarketMatchToggles,
   type MarketSource,
+  type MarketSummary,
   type Settings,
 } from '@car-porter/core';
 import { AlertTriangle, ExternalLink, Loader2, RefreshCw, Search, Store } from 'lucide-react';
@@ -25,6 +24,9 @@ interface MarketSectionProps {
   inputs: LotInputs;
   settings: Settings;
   data: MarketResponse | undefined;
+  /** Marketplaces used for this lot. */
+  sites: MarketSource[];
+  summary: MarketSummary;
   running: boolean;
   runFailed: boolean;
   onRun: (refresh: boolean) => void;
@@ -32,19 +34,12 @@ interface MarketSectionProps {
   onChange: (patch: Pick<Partial<LotInputs>, 'marketMatch' | 'marketSources'>) => void;
 }
 
-export function MarketSection({ lot, inputs, settings, data, running, runFailed, onRun, onToggle, onChange }: MarketSectionProps) {
+export function MarketSection({ lot, inputs, settings, data, sites, summary, running, runFailed, onRun, onToggle, onChange }: MarketSectionProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const eur = (c: number | null | undefined) => formatMoney(c, 'EUR', lang);
 
-  const sites = effectiveMarketSources(inputs.marketSources, settings.market.enabledSources);
   const excluded = new Set(data?.excludedIds ?? []);
-  const summary = summarizeMarket(lot, data?.listings ?? [], {
-    sites,
-    toggles: inputs.marketMatch,
-    mileageRangeKm: settings.market.mileageRangeKm,
-    excludedIds: excluded,
-  });
   const status = (site: MarketSource) => data?.sites.find((s) => s.site === site);
   const hasRun = sites.some((site) => status(site)?.checkedAt || status(site)?.error);
   // refresh (bypassing the 24 h reuse) only once every chosen marketplace has been checked

@@ -264,5 +264,133 @@
     "openSearch": "Open the search",
     "include": "Include {{title}} ({{price}}) in the average",
     "previousPrice": "Previous price"
+  },
+  "verdict": {
+    "title": "Verdict",
+    "status": {
+      "worth": "Worth it",
+      "borderline": "Borderline",
+      "not_worth": "Not worth it",
+      "insufficient": "Not enough data"
+    },
+    "missing": {
+      "bid": "No purchase price — run the price estimate or enter a bid.",
+      "fx": "No USD→EUR exchange rate — set a manual rate in Settings.",
+      "marketAverage": "No BG market price — check the BG market (with at least one included listing)."
+    },
+    "rows": {
+      "marketAverage": "BG market average",
+      "total": "Total landed cost",
+      "repair": "Repair estimate",
+      "margin": "Margin"
+    },
+    "thresholdHint": "Worth it from a {{amount}} margin.",
+    "bidBasis": {
+      "buyNow": "Based on the Buy Now price (no estimate yet).",
+      "currentBid": "Based on the current bid (no estimate yet)."
+    }
+  },
+  "tracking": {
+    "track": "Track",
+    "tracked": "Tracked",
+    "requestFailed": "Could not load the tracked lots. Is the local server running?",
+    "empty": "No tracked lots yet. Open a lot from the search and press “Track” to follow its estimate and verdict here.",
+    "columns": {
+      "estimate": "Estimate",
+      "cost": "Landed cost",
+      "market": "BG market",
+      "margin": "Margin",
+      "verdict": "Verdict"
+    },
+    "sales_one": "{{count}} sale",
+    "sales_other": "{{count}} sales",
+    "listings_one": "{{count}} listing",
+    "listings_other": "{{count}} listings",
+    "bid": "bid {{amount}} ({{source}})",
+    "bidSource": {
+      "override": "yours",
+      "estimate": "estimate",
+      "buyNow": "Buy Now",
+      "currentBid": "current bid",
+      "none": "none"
+    },
+    "remove": "Stop tracking {{title}}"
+  },
+  "settings": {
+    "loadFailed": "Could not load the settings. Is the local server running?",
+    "save": "Save",
+    "discard": "Discard",
+    "resetDefaults": "Reset to defaults",
+    "unsaved": "Unsaved changes",
+    "fixErrors": "Fix the highlighted fields",
+    "saved": "Settings saved",
+    "saveFailed": "Saving the settings failed",
+    "errors": {
+      "invalid": "Enter a valid number.",
+      "delayOrder": "Must be at least the minimum delay."
+    },
+    "cost": {
+      "title": "Import costs",
+      "description": "Fees are percentages of the bid; shipping and transport are fixed amounts.",
+      "percentages": "Fees (% of the bid)",
+      "part": "Part {{n}}",
+      "removePart": "Remove fee part {{n}}",
+      "addPart": "Add part",
+      "totalPercent": "Total {{total}}% · reduced {{reduced}}%",
+      "reducedDivisor": "Reduced fees divisor",
+      "shippingUsaRotterdamUsd": "Shipping USA → Rotterdam",
+      "rotterdamSofiaEur": "Rotterdam → Sofia",
+      "sofiaToBgEur": "Sofia → anywhere in BG"
+    },
+    "verdict": {
+      "title": "Verdict",
+      "description": "Margin = BG market average − landed cost − repair estimate.",
+      "worthThresholdEur": "“Worth it” from a margin of"
+    },
+    "fx": {
+      "title": "Exchange rate",
+      "description": "USD → EUR rate for the landed cost.",
+      "override": "Manual USD → EUR rate",
+      "ecbRate": "Leave empty to use the ECB rate ({{rate}}, {{date}}).",
+      "ecbUnavailable": "Leave empty to use the ECB rate (currently unavailable)."
+    },
+    "bidfax": {
+      "title": "Price estimate (bidfax)",
+      "description": "Limits for scanning past sales; a scan stops at whichever is reached first.",
+      "maxMonths": "Sold within (months)",
+      "maxMatches": "Max matches",
+      "maxPages": "Max pages",
+      "hint": "Each page is about 10 sales and takes 3–4 seconds."
+    },
+    "market": {
+      "title": "BG market",
+      "description": "Defaults for new lots; each lot can change its own marketplaces.",
+      "mileageRangeKm": "Mileage match range (±)",
+      "maxPages": "Max pages per marketplace",
+      "defaultSources": "Default marketplaces"
+    },
+    "scraping": {
+      "title": "Scraping",
+      "description": "Random pause between page loads on the same site.",
+      "minDelayMs": "Minimum delay",
+      "maxDelayMs": "Maximum delay"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Applied immediately.",
+      "theme": "Theme",
+      "themes": {
+        "dark": "Dark",
+        "light": "Light"
+      }
+    },
+    "copart": {
+      "title": "Copart account",
+      "description": "Search works as a guest — logging in is optional. The login is kept in the Copart browser profile.",
+      "open": "Open Copart login window",
+      "windowOpen": "The login window is open — log in there, then close the window.",
+      "windowClosed": "No login window is open.",
+      "openFailed": "Could not open the browser window. Is Google Chrome installed?"
+    }
   }
 }

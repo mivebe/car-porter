@@ -189,3 +189,28 @@ export function createCopartAdapter(browser: BrowserManager, queue: SourceQueue)
       }),
   };
 }
+
+export const COPART_LOGIN_URL = `${ORIGIN}/login/`;
+
+export interface CopartLogin {
+  status: () => { windowOpen: boolean };
+  /** Opens copart.com's login page in a visible window on the Copart profile (login is optional). */
+  open: () => Promise<{ windowOpen: boolean }>;
+}
+
+export function createCopartLogin(browser: BrowserManager, queue: SourceQueue): CopartLogin {
+  let windowOpen = false;
+  return {
+    status: () => ({ windowOpen }),
+    open: () =>
+      // queued so it never closes the profile under a running search
+      queue.run('copart', async () => {
+        if (!windowOpen) {
+          const { closed } = await browser.openWindow(PROFILE, COPART_LOGIN_URL);
+          windowOpen = true;
+          void closed.then(() => (windowOpen = false));
+        }
+        return { windowOpen };
+      }),
+  };
+}

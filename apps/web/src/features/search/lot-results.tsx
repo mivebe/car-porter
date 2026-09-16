@@ -12,7 +12,7 @@ interface LotResultsProps {
   onSelect: (lot: Lot) => void;
 }
 
-function Thumbnail({ lot }: { lot: Lot }) {
+export function Thumbnail({ lot }: { lot: Lot }) {
   const src = lot.imageUrls.at(-1) ?? lot.imageUrls[0];
   return (
     <div className="flex h-14 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md bg-muted">

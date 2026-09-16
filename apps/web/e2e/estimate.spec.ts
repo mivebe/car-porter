@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './test';
 
 const LOT_URL = `/?make=Toyota&model=Camry&yearFrom=2018&yearTo=2020&lot=${encodeURIComponent('iaai:45973338')}`;
 

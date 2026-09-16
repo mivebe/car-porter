@@ -28,20 +28,27 @@ export function createSettingsRepository(db: Db) {
     return current;
   }
 
-  async function update(patch: SettingsPatch): Promise<Settings> {
-    const next = mergeSettings(await get(), patch);
-    const parsed = settingsSchema.safeParse(next);
-    if (!parsed.success) throw new InvalidSettingsError(parsed.error.issues);
+  /** Updates run one at a time so concurrent patches (e.g. theme then language) don't overwrite each other. */
+  let queue: Promise<unknown> = Promise.resolve();
 
-    await db
-      .insert(settings)
-      .values({ id: ROW_ID, data: parsed.data, updatedAt: new Date() })
-      .onConflictDoUpdate({
-        target: settings.id,
-        set: { data: parsed.data, updatedAt: new Date() },
-      });
-    current = parsed.data;
-    return current;
+  function update(patch: SettingsPatch): Promise<Settings> {
+    const run = queue.then(async () => {
+      const next = mergeSettings(await get(), patch);
+      const parsed = settingsSchema.safeParse(next);
+      if (!parsed.success) throw new InvalidSettingsError(parsed.error.issues);
+
+      await db
+        .insert(settings)
+        .values({ id: ROW_ID, data: parsed.data, updatedAt: new Date() })
+        .onConflictDoUpdate({
+          target: settings.id,
+          set: { data: parsed.data, updatedAt: new Date() },
+        });
+      current = parsed.data;
+      return current;
+    });
+    queue = run.catch(() => undefined);
+    return run;
   }
 
   return { get, update, cached: () => current };

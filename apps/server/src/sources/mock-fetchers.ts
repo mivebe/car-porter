@@ -5,7 +5,7 @@ import { modelMatches, normalizeMake, type AuctionSource, type LotSearchFilters 
 import { AUCTION_PAGE_SIZE, type AuctionSearchAdapter } from './auction-adapter.ts';
 import type { BidfaxSearcher, HtmlFetcher } from './bidfax-client.ts';
 import { bidfaxListingUrl } from './bidfax.ts';
-import { parseCopartSearch } from './copart.ts';
+import { parseCopartSearch, type CopartLogin } from './copart.ts';
 import { parseIaaiSearch } from './iaai.ts';
 import { statVinUrl } from './statvin.ts';
 import { autoscout24SearchUrl } from './autoscout24.ts';
@@ -141,4 +141,13 @@ export function createMockAuctionAdapters(): AuctionSearchAdapter[] {
       2: async () => parseIaaiSearch(await readFixture('iaai/search-toyota-camry-2018-2020-p2.html'), 2),
     }),
   ];
+}
+
+/** Pretends to open the Copart login window (never launches a browser). */
+export function createMockCopartLogin(): CopartLogin {
+  let windowOpen = false;
+  return {
+    status: () => ({ windowOpen }),
+    open: async () => ({ windowOpen: (windowOpen = true) }),
+  };
 }

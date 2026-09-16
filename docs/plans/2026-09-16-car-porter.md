@@ -1,6 +1,6 @@
 # Car Porter — US auction → Bulgaria import evaluator
 
-- **Status:** In progress (Phases 0–6 complete)
+- **Status:** In progress (Phases 0–7 complete)
 - **Created:** 2026-09-16
 - **Last updated:** 2026-09-16
 - **Owner:** mivebe
@@ -272,7 +272,32 @@ margin ≥ 3000 €  → Worth it (green)
 margin < 0       → Not worth (red)
 ```
 - Threshold editable in settings. If BG average or bid is missing → "Insufficient data"
-  state listing what's missing.
+  state listing what's missing (also a missing USD→EUR rate when a bid exists).
+- `evaluateLot` in `packages/core` (bid → landed cost → margin → verdict) is the single computation
+  used by the lot sheet (client) and the tracking list (server), so both always agree.
+- The verdict card sits at the end of the lot sheet: status, margin, BG average − landed cost − repair
+  breakdown, threshold hint, and a note when the bid is only Buy Now / current bid.
+
+### Tracking
+- "Track" toggle in the lot sheet header; tracked lots are a `tracked_lots` row (lots, bidfax records,
+  listings and inputs are already stored). `GET /api/tracked` recomputes estimate, landed cost, BG
+  average, margin and verdict per lot from stored data (no scraping; FX failure → verdict "missing fx").
+- The Tracking page lists them newest first; a row opens the same lot sheet (`/tracking?lot=`); closing
+  the sheet refreshes the list.
+
+### Settings page
+- One form for costs (editable fee parts), verdict threshold, FX override (empty = ECB), bidfax limits,
+  market mileage range / page limit / default marketplaces, scraping delays; validated with the core
+  `settingsSchema`, saved with an explicit Save (Discard / Reset to defaults).
+- Language and theme apply immediately (header or settings page) and are saved to the settings API;
+  localStorage gives the instant first paint and the server value wins on load. Server settings updates
+  are serialized so concurrent patches don't overwrite each other. E2E specs reset settings to the
+  defaults before each test (shared mock server).
+- **Copart login:** no automated login and no reliable logged-in detection without a real account to verify
+  against, so Settings offers "Open Copart login window": the `copart` profile is reopened in a visible
+  Chrome window at copart.com/login/ (queued behind running Copart searches); the user logs in by hand and
+  closes it, and the next search relaunches headless with the saved cookies. Status shows whether that
+  window is open. Login stays optional (search works as a guest).
 
 ### Testing
 - **Unit (Vitest):** everything in `packages/core` — cost calc (full & reduced, 250 € toggle,
@@ -380,13 +405,13 @@ margin < 0       → Not worth (red)
   average/median; E2E. (depends on 10, 18, 31)
 
 ### Phase 7 — Verdict, tracking, settings (step 9)
-- [ ] 33. UI: verdict card (Worth / Borderline / Not worth / Insufficient data with
+- [x] 33. UI: verdict card (Worth / Borderline / Not worth / Insufficient data with
   missing items, margin breakdown); E2E. (depends on 12, 20, 23, 32)
-- [ ] 34. Tracking: `/api/tracked` CRUD + UI list (lot, estimate, total cost, BG avg,
+- [x] 34. Tracking: `/api/tracked` CRUD + UI list (lot, estimate, total cost, BG avg,
   margin, verdict, links; open detail from list) + tests/E2E. (depends on 5, 33)
-- [ ] 35. Settings page: cost rates/amounts, reduced divisor, threshold, bidfax limits,
+- [x] 35. Settings page: cost rates/amounts, reduced divisor, threshold, bidfax limits,
   mileage range, market page limit, FX override, default market toggles, language, theme, Copart login
-  status/re-login button; tests/E2E. (depends on 5, 19)
+  window (open state only — see Settings page decisions); tests/E2E. (depends on 5, 19)
 
 ### Phase 8 — Hardening
 - [ ] 36. Full BG translation pass; check no hardcoded strings (lint rule or test).

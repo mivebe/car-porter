@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './test';
 
 test('API is reachable through the dev proxy in mock mode', async ({ request }) => {
   const res = await request.get('/api/health');

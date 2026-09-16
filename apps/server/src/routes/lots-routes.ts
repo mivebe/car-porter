@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { LotInputsRepository } from '../repositories/lot-inputs-repository.ts';
 import type { LotsRepository } from '../repositories/lots-repository.ts';
+import type { TrackedLotsRepository } from '../repositories/tracked-lots-repository.ts';
 import type { LotSearchService } from '../services/lot-search-service.ts';
 
 const maxYear = () => new Date().getFullYear() + 2;
@@ -24,7 +25,7 @@ const searchQuery = z
 
 export async function lotsRoutes(
   app: FastifyInstance,
-  opts: { search: LotSearchService; lots: LotsRepository; inputs: LotInputsRepository },
+  opts: { search: LotSearchService; lots: LotsRepository; inputs: LotInputsRepository; tracked: TrackedLotsRepository },
 ) {
   app.get('/api/lots/search', async (req, reply) => {
     const q = searchQuery.safeParse(req.query);
@@ -36,7 +37,12 @@ export async function lotsRoutes(
   app.get<{ Params: { id: string } }>('/api/lots/:id', async (req, reply) => {
     const found = await opts.lots.get(req.params.id);
     if (!found) return reply.code(404).send({ error: 'not_found' });
-    return { lot: found.lot, fetchedAt: found.fetchedAt.toISOString() };
+    const tracked = await opts.tracked.get(req.params.id);
+    return {
+      lot: found.lot,
+      fetchedAt: found.fetchedAt.toISOString(),
+      trackedAt: tracked?.createdAt.toISOString() ?? null,
+    };
   });
 
   app.get<{ Params: { id: string } }>('/api/lots/:id/inputs', async (req) => opts.inputs.get(req.params.id));

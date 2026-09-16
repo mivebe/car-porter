@@ -1,5 +1,5 @@
-import type { Lot } from '@car-porter/core';
-import { ExternalLink, ImageOff, Info, Wrench } from 'lucide-react';
+import { effectiveMarketSources, evaluateLot, summarizeMarket, type Lot } from '@car-porter/core';
+import { Bookmark, BookmarkCheck, ExternalLink, ImageOff, Info, Wrench } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { Skeleton } from '@/components/ui/skeleton';
 import { lotTitle } from '@/features/search/lot-title';
 import { SourceBadge } from '@/features/search/source-badge';
+import { useSetTracked } from '@/features/tracking/tracking-hooks';
 import { formatDateTime, formatMoney, formatNumber, sentenceCase } from '@/lib/format';
 import { CostSection } from './cost-section';
 import { estimateSummary, useEstimate, useRunEstimate, useToggleEstimateRecord } from './estimate-hooks';
@@ -19,6 +20,7 @@ import { MarketSection } from './market-section';
 import { useFx, useLot, useLotInputs, useSettings, useUpdateLotInputs } from './hooks';
 import { MoneyInput } from './money-input';
 import { Section } from './section';
+import { VerdictSection } from './verdict-section';
 import { VinField } from './vin-field';
 
 interface LotDetailSheetProps {
@@ -51,6 +53,7 @@ function LotDetail({ lotId }: { lotId: string }) {
   const market = useMarket(lotId);
   const runMarket = useRunMarket(lotId);
   const toggleMarket = useToggleMarketListing(lotId);
+  const setTracked = useSetTracked(lotId);
 
   if (lot.isError) {
     return (
@@ -73,10 +76,39 @@ function LotDetail({ lotId }: { lotId: string }) {
   }
 
   const data = lot.data.lot;
+  const tracked = setTracked.isPending ? setTracked.variables : !!lot.data.trackedAt;
+  const marketSites = effectiveMarketSources(inputs.data.marketSources, settings.data.market.enabledSources);
+  const marketSummary = summarizeMarket(data, market.data?.listings ?? [], {
+    sites: marketSites,
+    toggles: inputs.data.marketMatch,
+    mileageRangeKm: settings.data.market.mileageRangeKm,
+    excludedIds: new Set(market.data?.excludedIds ?? []),
+  });
+  const evaluation = evaluateLot({
+    lot: data,
+    inputs: inputs.data,
+    settings: settings.data,
+    usdToEur: fx.data?.usdToEur ?? null,
+    estimateUsdCents: estimateSummary(estimate.data)?.average ?? null,
+    marketAverageEurCents: marketSummary.overall?.average ?? null,
+  });
+
   return (
     <>
       <SheetHeader className="gap-2 border-b p-6 pr-12">
-        <SheetTitle className="text-xl">{lotTitle(data)}</SheetTitle>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <SheetTitle className="text-xl">{lotTitle(data)}</SheetTitle>
+          <Button
+            size="sm"
+            variant={tracked ? 'secondary' : 'outline'}
+            aria-pressed={tracked}
+            disabled={setTracked.isPending}
+            onClick={() => setTracked.mutate(!tracked)}
+          >
+            {tracked ? <BookmarkCheck /> : <Bookmark />}
+            {tracked ? t('tracking.tracked') : t('tracking.track')}
+          </Button>
+        </div>
         <SheetDescription asChild>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <SourceBadge source={data.source} />
@@ -135,12 +167,11 @@ function LotDetail({ lotId }: { lotId: string }) {
         />
         <Separator />
         <CostSection
-          lot={data}
           inputs={inputs.data}
           settings={settings.data}
           fx={fx.data}
           fxError={fx.isError}
-          estimateUsdCents={estimateSummary(estimate.data)?.average ?? null}
+          evaluation={evaluation}
           onChange={(patch) => updateInputs.mutate(patch)}
         />
         <Separator />
@@ -149,12 +180,16 @@ function LotDetail({ lotId }: { lotId: string }) {
           inputs={inputs.data}
           settings={settings.data}
           data={market.data}
+          sites={marketSites}
+          summary={marketSummary}
           running={runMarket.isPending}
           runFailed={runMarket.isError}
           onRun={(refresh) => runMarket.mutate(refresh)}
           onToggle={(listingId, included) => toggleMarket.mutate({ listingId, included })}
           onChange={(patch) => updateInputs.mutate(patch)}
         />
+        <Separator />
+        <VerdictSection evaluation={evaluation} worthThresholdEur={settings.data.verdict.worthThresholdEur} />
       </div>
     </>
   );

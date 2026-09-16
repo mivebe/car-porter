@@ -1,4 +1,5 @@
 export * from './cost.ts';
+export * from './evaluate.ts';
 export * from './history.ts';
 export * from './lot-inputs.ts';
 export * from './market.ts';
