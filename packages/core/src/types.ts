@@ -45,6 +45,9 @@ export interface LotSearchPage {
   pageSize: number;
 }
 
+export const SALE_STATUSES = ['sold', 'on_approval', 'not_sold', 'upcoming'] as const;
+export type SaleStatus = (typeof SALE_STATUSES)[number];
+
 /** A past (sold) auction appearance, from bidfax / stat.vin etc. */
 export interface AuctionRecord {
   /** `${site}:${externalId}` */
@@ -64,8 +67,11 @@ export interface AuctionRecord {
   finalPriceUsdCents: number | null;
   odometerMiles: number | null;
   damage: string | null;
-  /** 'on_approval' = the seller had not yet accepted the high bid when the page was captured. */
-  saleStatus: 'sold' | 'on_approval' | null;
+  /**
+   * 'on_approval' = the seller had not yet accepted the high bid when the page was captured;
+   * 'upcoming' = listed for a future sale (no final bid yet).
+   */
+  saleStatus: SaleStatus | null;
   location: string | null;
   imageUrl: string | null;
 }

@@ -10,6 +10,8 @@ import {
   parseBidfaxDate,
   parseBidfaxListing,
   parseBidfaxModels,
+  parseBidfaxRecordUrl,
+  parseBidfaxSearch,
   parseBidfaxTitle,
 } from '../src/sources/bidfax.ts';
 
@@ -136,5 +138,65 @@ describe('bidfax parsers (real recorded pages)', () => {
     expect(() => parseBidfaxListing(trap, camry)).toThrow(expect.objectContaining({ code: 'blocked' }));
     expect(() => parseBidfaxListing('<html><body>nothing</body></html>', camry)).toThrow(SourceError);
     expect(() => parseBidfaxModels('<html></html>', 'nope')).toThrow(expect.objectContaining({ code: 'not_found' }));
+  });
+
+  it('flags a Cloudflare challenge page as blocked', () => {
+    const challenge = '<html><head><title>Just a moment...</title></head><body></body></html>';
+    expect(() => parseBidfaxListing(challenge, camry)).toThrow(expect.objectContaining({ code: 'blocked' }));
+    expect(() => parseBidfaxSearch(challenge)).toThrow(expect.objectContaining({ code: 'blocked' }));
+  });
+});
+
+describe('bidfax search (real recorded pages)', () => {
+  it('parses a VIN search: make/model come from the card link', () => {
+    expect(parseBidfaxSearch(fixture('search-vin-4t1b11hk0ku821110.html'))).toEqual([
+      {
+        id: 'bidfax:39201230',
+        site: 'bidfax',
+        url: 'https://bidfax.info/toyota/camry/39201230-toyota-camry-se-2019-white-25l-vin-4t1b11hk0ku821110.html',
+        auction: 'iaai',
+        lotNumber: '46026832',
+        vin: '4T1B11HK0KU821110',
+        year: 2019,
+        make: 'toyota',
+        model: 'camry',
+        trim: 'Se',
+        engine: '2.5L',
+        fuel: null,
+        saleDate: '2026-09-15T00:00:00.000Z',
+        finalPriceUsdCents: 540_000,
+        odometerMiles: 78_003,
+        damage: 'Left Rear',
+        saleStatus: 'on_approval',
+        location: 'Fontana (CA)',
+        imageUrl: 'https://bidfax.info/uploads/posts/2026-09/16/toyota-camry-2019-4t1b11hk0ku821110-img01.jpg',
+      },
+    ]);
+  });
+
+  it('parses a lot-number search that also hits another vehicle with the same lot number', () => {
+    const records = parseBidfaxSearch(fixture('search-lot-46026832.html'));
+    expect(records.map((r) => [r.auction, r.lotNumber, r.vin, r.make, r.model, r.trim])).toEqual([
+      ['iaai', '46026832', '4T1B11HK0KU821110', 'toyota', 'camry', 'Se'],
+      ['copart', '46026832', '1FT8W3BT0BEB49246', 'ford', 'f350', 'Super Duty'],
+    ]);
+  });
+
+  it('returns no records for a search without results', () => {
+    expect(parseBidfaxSearch(fixture('search-none.html'))).toEqual([]);
+    expect(() => parseBidfaxSearch('<html><body>nothing</body></html>')).toThrow(expect.objectContaining({ code: 'parse_failed' }));
+  });
+
+  it('extracts slugs and ids from record URLs', () => {
+    expect(parseBidfaxRecordUrl('https://bidfax.info/land-rover/range-rover-sport/123-x.html')).toEqual({
+      makeSlug: 'land-rover',
+      modelSlug: 'range-rover-sport',
+      externalId: '123',
+    });
+    expect(parseBidfaxRecordUrl('https://bidfax.info/about.html')).toBeNull();
+  });
+
+  it('strips hyphenated slugs as spaced title prefixes', () => {
+    expect(parseBidfaxTitle('Land Rover Range Rover Sport Hse 2018 Black 3.0L vin: SALWR2RV0JA000000', ['land-rover range-rover-sport', 'land rover range rover sport'])?.trim).toBe('Hse');
   });
 });

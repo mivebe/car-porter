@@ -1,6 +1,6 @@
 # Car Porter — US auction → Bulgaria import evaluator
 
-- **Status:** In progress (Phases 0–4 complete)
+- **Status:** In progress (Phases 0–5 complete)
 - **Created:** 2026-09-16
 - **Last updated:** 2026-09-16
 - **Owner:** mivebe
@@ -161,6 +161,13 @@ verdict.
   than the window, enough matches, page limit, last linked page. A successful scan is reused for
   24 h (per make/model/year, shared by all lots of that model/year); failed scans keep the records
   fetched so far and are not cached.
+- **Scan coverage (fixed in phase 5 review):** the incremental stop only trusts a persistent
+  per-model/year *coverage* range (newest…oldest sale date read without gaps, plus whether the
+  listing end or which limit was reached). A stored record outside it (VIN-history search, a scan
+  that failed midway — which also clears coverage) never stops a scan. Reaching the covered range
+  stops only when coverage is enough for the lot (listing exhausted, beyond the window, page-limited,
+  or the lot already has `maxMatches`); otherwise the scan continues past it. A fresh 24 h scan that
+  stopped at `max_matches` is not reused for a lot (e.g. other trim) that still lacks matches.
 - Match rules: same make + model + **exact year** + same engine/trim/fuel.
 - Limits: sold within last **12 months**, up to **20 matches**, scanning up to
   **20 pages** — stop at whichever limit is hit first. All three limits editable in
@@ -174,6 +181,26 @@ verdict.
 - Sources: auction-history sites — bidfax VIN/lot search first, then stat.vin (more can be
   added as adapters). Not the paid Carfax product.
 - Searches by VIN and by lot number; results deduplicated by (auction, lot, date).
+- **bidfax search (verified live 2026-09-16):** the site form (`?do=search&subaction=search&story=`)
+  only returns results with the reCAPTCHA v3 token its script adds on submit — a fresh profile gets
+  the home page without it. So the searcher types into `#search` on the bidfax session page and
+  submits (reusing the page between searches). Results use the listing card markup; make/model
+  slugs come from the card URL. Lot numbers are reused across auctions (lot 46026832 = an IAAI
+  Camry and a Copart F350), so lot hits only count when the auction matches and the VIN doesn't
+  contradict the lot's masked VIN.
+- **stat.vin (verified live, Patchright passes its Cloudflare check):** `/cars/{VIN}` redirects to
+  the vehicle page; unknown VINs redirect to a VIN decoder page (no Vehicle JSON-LD → empty).
+  No lot-number lookup (`/cars/{lot}` → 404). Parsed from the "Sales History" modal table (auction,
+  date, lot #, final bid, status incl. Not sold / Active→upcoming) + Vehicle JSON-LD (contains raw
+  control characters, sanitized before `JSON.parse`); damage/odometer/location/photo describe the
+  page's current lot only.
+- Checks per lot: bidfax by VIN + stat.vin by VIN (when a full VIN is known) and bidfax by lot
+  number, each reused for 24 h (refresh bypasses), per-check status/error. Records go to
+  `auction_records` permanently. Merge: bidfax fields first; the most final status wins
+  (sold > not sold > on approval > upcoming).
+- A pasted VIN that contradicts the listing's masked VIN shows a warning (still used).
+- Manual live check: `pnpm --filter @car-porter/server exec tsx scripts/live-history.ts toyota camry 2019 [VIN]`;
+  fixtures: `scripts/record-history.ts`.
 - **VIN paste** input in the panel overrides the lot VIN (for VINs masked in listing but
   visible in photos); basic VIN validation (17 chars, no I/O/Q, check digit warning only).
 
@@ -306,11 +333,11 @@ margin < 0       → Not worth (red)
   median, feeds bid default; E2E. (depends on 10, 18, 22)
 
 ### Phase 5 — Vehicle history (step 5)
-- [ ] 24. Bidfax VIN/lot history adapter + stat.vin adapter, parsers + fixtures + tests;
+- [x] 24. Bidfax VIN/lot history adapter + stat.vin adapter, parsers + fixtures + tests;
   manual verification. (depends on 6)
-- [ ] 25. `/api/history` (VIN and/or lot, dedup, uses pasted VIN, entries stored
+- [x] 25. `/api/history` (VIN and/or lot, dedup, uses pasted VIN, entries stored
   permanently, re-check appends) + tests. (depends on 24)
-- [ ] 26. UI: history section (timeline of prior auctions with price/date/damage/photos
+- [x] 26. UI: history section (timeline of prior auctions with price/date/damage/photos
   link); E2E incl. VIN paste. (depends on 12, 18, 25)
 
 ### Phase 6 — BG market (step 7)
@@ -363,7 +390,8 @@ margin < 0       → Not worth (red)
   ≈ 3–4 s).
 - **Rate of blocking:** assume a residential IP with delays + cache is enough; if a source
   keeps blocking, revisit (headed mode, slower queue, or paid API for that source).
-- **History sources:** stat.vin/autoastat/poctra showed the same Cloudflare challenge in stock
-  Playwright; re-test them with Patchright in task 24 before choosing. bid.cars needs an account
-  for archived results.
+- ~~History sources~~ — resolved in task 24: bidfax (form search) + stat.vin both work with
+  Patchright. bid.cars needs an account for archived results.
+- **Sale dates** are stored as UTC midnight and formatted in local time, so a negative UTC offset
+  would show the previous day (fine in Bulgaria).
 - **Rounding of reduced fees (40%/3):** computed in cents, rounded half-up at the fee step.

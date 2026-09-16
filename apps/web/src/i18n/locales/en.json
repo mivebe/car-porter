@@ -106,6 +106,7 @@
     "vinPlaceholder": "Paste the full 17-character VIN",
     "vinInvalid": "Not a valid VIN ({{length}}/17 characters, no I, O or Q).",
     "vinCheckDigit": "Valid format, but the check digit does not match (common for non-US VINs).",
+    "vinMismatch": "Doesn't match the VIN shown in the listing — check that it's the same car.",
     "vinValid": "Valid VIN — used for history lookups.",
     "vinUsingLot": "Using the VIN from the listing.",
     "vinMasked": "The listing VIN is masked — paste it from the photos to enable VIN history.",
@@ -172,7 +173,9 @@
     "unknown": "Not shown on bidfax: {{fields}}",
     "status": {
       "sold": "Sold",
-      "on_approval": "On approval"
+      "on_approval": "On approval",
+      "not_sold": "Not sold",
+      "upcoming": "Upcoming"
     },
     "stopReasons": {
       "no_results": "no more results",
@@ -190,6 +193,37 @@
       "trim": "trim",
       "engine": "engine",
       "fuel": "fuel"
+    }
+  },
+  "history": {
+    "title": "Vehicle history",
+    "run": "Check history",
+    "refresh": "Refresh",
+    "checking": "Checking bidfax and stat.vin for earlier auctions of this vehicle…",
+    "requestFailed": "The history request failed. Is the local server running?",
+    "byPastedVin": "Searching by lot #{{lot}} and the pasted VIN",
+    "byLotVin": "Searching by lot #{{lot}} and VIN",
+    "lotOnly": "The VIN is masked, so only lot #{{lot}} is searched. Paste the VIN from the photos for the full history.",
+    "checkLabel": "{{site}} by {{query}}",
+    "checked_one": "{{count}} appearance found {{when}}",
+    "checked_other": "{{count}} appearances found {{when}}",
+    "notChecked": "not checked yet",
+    "empty": "No earlier auctions of this vehicle were found.",
+    "thisLot": "This lot",
+    "photo": "Photo from the {{date}} auction",
+    "sites": {
+      "bidfax": "bidfax",
+      "statvin": "stat.vin"
+    },
+    "queries": {
+      "vin": "VIN",
+      "lot": "lot number"
+    },
+    "status": {
+      "sold": "Sold",
+      "not_sold": "Not sold",
+      "on_approval": "On approval",
+      "upcoming": "Upcoming"
     }
   }
 }

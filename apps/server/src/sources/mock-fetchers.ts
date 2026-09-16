@@ -3,10 +3,11 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { modelMatches, normalizeMake, type AuctionSource, type LotSearchFilters } from '@car-porter/core';
 import { AUCTION_PAGE_SIZE, type AuctionSearchAdapter } from './auction-adapter.ts';
-import type { HtmlFetcher } from './bidfax-client.ts';
+import type { BidfaxSearcher, HtmlFetcher } from './bidfax-client.ts';
 import { bidfaxListingUrl } from './bidfax.ts';
 import { parseCopartSearch } from './copart.ts';
 import { parseIaaiSearch } from './iaai.ts';
+import { statVinUrl } from './statvin.ts';
 import { makesUrl, modelsUrl, type JsonFetcher } from './nhtsa.ts';
 
 export const FIXTURES_DIR = fileURLToPath(new URL('../../test/fixtures/', import.meta.url));
@@ -27,6 +28,20 @@ export const mockBidfaxFetcher: HtmlFetcher = async (url) => {
   if (file) return readFixture(file);
   return url.includes('/f/from-year=') ? '<html><body><div id="dle-content"></div></body></html>' : '<html></html>';
 };
+
+/** Recorded vehicle history: VIN 4T1B11HK0KU821110 (IAAI lot 46026832) is known, other searches are empty. */
+export const MOCK_HISTORY_VIN = '4T1B11HK0KU821110';
+
+export const mockBidfaxSearcher: BidfaxSearcher = async (query) => {
+  const routes: Record<string, string> = {
+    [MOCK_HISTORY_VIN]: 'bidfax/search-vin-4t1b11hk0ku821110.html',
+    '46026832': 'bidfax/search-lot-46026832.html',
+  };
+  return readFixture(routes[query.trim().toUpperCase()] ?? 'bidfax/search-none.html');
+};
+
+export const mockStatVinFetcher: HtmlFetcher = async (url) =>
+  readFixture(url === statVinUrl(MOCK_HISTORY_VIN) ? 'statvin/vin-4t1b11hk0ku821110.html' : 'statvin/vin-not-found.html');
 
 /** Recorded ECB daily reference rates (2026-09-15: 1 EUR = 1.1539 USD). */
 export const mockEcbFetcher = () => readFixture('ecb/eurofxref-daily.xml');

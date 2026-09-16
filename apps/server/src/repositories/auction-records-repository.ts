@@ -1,5 +1,5 @@
 import type { AuctionRecord } from '@car-porter/core';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import type { Db } from '../db/client.ts';
 import { auctionRecords } from '../db/schema.ts';
 
@@ -60,7 +60,20 @@ export function createAuctionRecordsRepository(db: Db) {
     return rows.map((r) => r.data as AuctionRecord);
   }
 
-  return { upsertMany, findByModelYear };
+  /** Records of any site with this VIN or lot number (callers filter lot-number hits). */
+  async function findByVinOrLot(vin: string | null, lotNumber: string | null): Promise<AuctionRecord[]> {
+    const conditions = [vin ? eq(auctionRecords.vin, vin) : undefined, lotNumber ? eq(auctionRecords.lotNumber, lotNumber) : undefined].filter(
+      (c) => c !== undefined,
+    );
+    if (conditions.length === 0) return [];
+    const rows = await db
+      .select({ data: auctionRecords.data })
+      .from(auctionRecords)
+      .where(or(...conditions));
+    return rows.map((r) => r.data as AuctionRecord);
+  }
+
+  return { upsertMany, findByModelYear, findByVinOrLot };
 }
 
 export type AuctionRecordsRepository = ReturnType<typeof createAuctionRecordsRepository>;

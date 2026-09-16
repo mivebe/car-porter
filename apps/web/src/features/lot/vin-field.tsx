@@ -1,4 +1,4 @@
-import { checkVin, effectiveVin } from '@car-porter/core';
+import { checkVin, effectiveVin, vinMatchesMask } from '@car-porter/core';
 import { AlertTriangle, CheckCircle2, ScanLine } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +18,7 @@ export function VinField({ lotVin, override, onCommit }: VinFieldProps) {
   const text = draft ?? override ?? '';
   const check = text ? checkVin(text) : null;
   const effective = effectiveVin(lotVin, draft ?? override);
+  const contradictsLot = !!check?.valid && !!lotVin && !vinMatchesMask(lotVin, check.normalized);
 
   const commit = () => {
     if (draft === null) return;
@@ -65,6 +66,12 @@ export function VinField({ lotVin, override, onCommit }: VinFieldProps) {
           <>
             <CheckCircle2 className="size-3.5 text-success" />
             {t('lotDetail.vinValid')}
+          </>
+        )}
+        {contradictsLot && (
+          <>
+            <AlertTriangle className="size-3.5 text-warning" />
+            {t('lotDetail.vinMismatch')}
           </>
         )}
         {!check && (effective ? t('lotDetail.vinUsingLot') : t('lotDetail.vinMasked'))}

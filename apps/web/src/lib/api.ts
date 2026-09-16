@@ -1,4 +1,5 @@
 import type { EstimateResponse } from '@/features/lot/estimate-hooks';
+import type { HistoryResponse } from '@/features/lot/history-hooks';
 import type { AuctionSource, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
 
 export class ApiError extends Error {
@@ -90,6 +91,9 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ recordId, included }),
     }),
+  history: (id: string) => request<HistoryResponse>(`/api/lots/${encodeURIComponent(id)}/history`),
+  runHistory: (id: string, refresh: boolean) =>
+    request<HistoryResponse>(`/api/lots/${encodeURIComponent(id)}/history`, { method: 'POST', body: JSON.stringify({ refresh }) }),
   makes: () => request<CatalogResponse>('/api/catalog/makes'),
   models: (make: string) => request<CatalogResponse>(`/api/catalog/models?${query({ make })}`),
   searchLots: (params: LotSearchParams & { page: number; refresh?: boolean }) =>

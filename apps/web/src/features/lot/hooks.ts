@@ -1,6 +1,7 @@
 import type { LotInputs, LotInputsPatch } from '@car-porter/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { historyKey } from './history-hooks';
 
 export const useSettings = () => useQuery({ queryKey: ['settings'], queryFn: api.settings, staleTime: 60_000 });
 
@@ -27,6 +28,10 @@ export function useUpdateLotInputs(id: string) {
     onError: (_err, _patch, context) => {
       if (context?.previous) queryClient.setQueryData(key, context.previous);
     },
-    onSuccess: (saved) => queryClient.setQueryData(key, saved),
+    onSuccess: (saved, patch) => {
+      queryClient.setQueryData(key, saved);
+      // history is searched by the pasted VIN
+      if ('vinOverride' in patch) void queryClient.invalidateQueries({ queryKey: historyKey(id) });
+    },
   });
 }

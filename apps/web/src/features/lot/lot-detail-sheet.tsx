@@ -12,6 +12,8 @@ import { formatDateTime, formatMoney, formatNumber, sentenceCase } from '@/lib/f
 import { CostSection } from './cost-section';
 import { estimateSummary, useEstimate, useRunEstimate, useToggleEstimateRecord } from './estimate-hooks';
 import { EstimateSection } from './estimate-section';
+import { useHistory, useRunHistory } from './history-hooks';
+import { HistorySection } from './history-section';
 import { useFx, useLot, useLotInputs, useSettings, useUpdateLotInputs } from './hooks';
 import { MoneyInput } from './money-input';
 import { Section } from './section';
@@ -42,6 +44,8 @@ function LotDetail({ lotId }: { lotId: string }) {
   const estimate = useEstimate(lotId);
   const runEstimate = useRunEstimate(lotId);
   const toggleEstimate = useToggleEstimateRecord(lotId);
+  const history = useHistory(lotId);
+  const runHistory = useRunHistory(lotId);
 
   if (lot.isError) {
     return (
@@ -115,6 +119,14 @@ function LotDetail({ lotId }: { lotId: string }) {
           runFailed={runEstimate.isError}
           onRun={(refresh) => runEstimate.mutate(refresh)}
           onToggle={(recordId, included) => toggleEstimate.mutate({ recordId, included })}
+        />
+        <Separator />
+        <HistorySection
+          lot={data}
+          data={history.data}
+          running={runHistory.isPending}
+          runFailed={runHistory.isError}
+          onRun={(refresh) => runHistory.mutate(refresh)}
         />
         <Separator />
         <CostSection

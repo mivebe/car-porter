@@ -1,6 +1,6 @@
 import type { AuctionRecord } from '@car-porter/core';
 import * as cheerio from 'cheerio';
-import { SourceError } from '../scraping/errors.ts';
+import { assertNotChallenged, SourceError } from '../scraping/errors.ts';
 import { BIDFAX_ORIGIN, isForbiddenPage } from './bidfax-client.ts';
 
 export interface BidfaxModelLink {
@@ -34,6 +34,7 @@ export function isRateLimitPage(html: string): boolean {
 }
 
 function assertUsable(html: string) {
+  assertNotChallenged(html, 'bidfax');
   if (isRateLimitPage(html)) throw new SourceError('blocked', 'bidfax: 429 rate-limit page');
   if (isForbiddenPage(html)) throw new SourceError('blocked', 'bidfax: 403 Forbidden');
 }
@@ -65,7 +66,7 @@ const LABELS = {
  * Card title: "Toyota Camry Se 2019 White 2.5L vin: 4T1B11HK0KU821110".
  * `prefix` is the "Make Model" part to strip to get the trim.
  */
-export function parseBidfaxTitle(title: string, prefix: string) {
+export function parseBidfaxTitle(title: string, prefix: string | string[]) {
   // engine is "2.5L" or "2.5L 4" (liters + cylinders)
   const m = title.match(
     /^(.*?)\s+((?:19|20)\d{2})\s+(.*?)\s*(?:(\d{1,2}\.\d)\s*L(?:\s+(\d{1,2}))?)?\s*vin:\s*([A-Z0-9*]+)\s*$/i,
@@ -73,8 +74,8 @@ export function parseBidfaxTitle(title: string, prefix: string) {
   if (!m) return null;
   const [, head, year, color, liters, cylinders, vin] = m;
   const lowerHead = head!.toLowerCase();
-  const lowerPrefix = prefix.toLowerCase();
-  const trim = lowerHead.startsWith(lowerPrefix) ? head!.slice(prefix.length).trim() : null;
+  const matched = [prefix].flat().find((p) => lowerHead === p.toLowerCase() || lowerHead.startsWith(`${p.toLowerCase()} `));
+  const trim = matched ? head!.slice(matched.length).trim() : null;
   return {
     year: Number(year),
     trim: trim || null,
@@ -104,13 +105,21 @@ export function parseBidfaxDate(text: string): string | null {
   return Number.isNaN(Date.parse(iso)) ? null : iso;
 }
 
-export function parseBidfaxListing(
-  html: string,
-  context: { makeSlug: string; modelSlug: string; makeName: string; modelName: string },
-): BidfaxListingPage {
-  assertUsable(html);
-  const $ = cheerio.load(html);
-  const prefix = `${context.makeName} ${context.modelName}`;
+/** "/toyota/camry/39201230-toyota-camry-se-2019-....html" → make/model slugs and the record id. */
+export function parseBidfaxRecordUrl(url: string) {
+  const m = url.match(/\/([a-z0-9-]+)\/([a-z0-9-]+)\/(\d+)-[^/]+\.html$/);
+  return m ? { makeSlug: m[1]!, modelSlug: m[2]!, externalId: m[3]! } : null;
+}
+
+/** Title prefixes a slug can appear as: "land-rover" → "land rover" / "land-rover". */
+const slugPrefixes = (makeSlug: string, modelSlug: string) =>
+  [`${makeSlug} ${modelSlug}`, `${makeSlug.replace(/-/g, ' ')} ${modelSlug.replace(/-/g, ' ')}`];
+
+/**
+ * Sale cards (`.thumbnail.offer`), shared by listing and search pages. Make/model are the slugs
+ * from the card link; `prefixes` are the "Make Model" title prefixes stripped to get the trim.
+ */
+function parseCards($: cheerio.CheerioAPI, prefixes?: string[]): AuctionRecord[] {
   const records: AuctionRecord[] = [];
 
   $('.thumbnail.offer').each((_, el) => {
@@ -118,10 +127,10 @@ export function parseBidfaxListing(
     const link = card.find('.caption a[href$=".html"]').first();
     const url = link.attr('href');
     const title = card.find('h2').first().text().replace(/\s+/g, ' ').trim();
-    const externalId = url?.match(/\/(\d+)-[^/]+\.html$/)?.[1];
-    if (!url || !title || !externalId) return; // ad placeholders
+    const parsedUrl = url ? parseBidfaxRecordUrl(url) : null;
+    if (!url || !title || !parsedUrl) return; // ad placeholders
 
-    const parsedTitle = parseBidfaxTitle(title, prefix);
+    const parsedTitle = parseBidfaxTitle(title, [...(prefixes ?? []), ...slugPrefixes(parsedUrl.makeSlug, parsedUrl.modelSlug)]);
     const fields = new Map<keyof typeof LABELS, string>();
     card.find('p').each((_, p) => {
       const text = $(p).text().replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
@@ -136,15 +145,15 @@ export function parseBidfaxListing(
     const image = card.find('img.xfieldimage').attr('src');
 
     records.push({
-      id: `bidfax:${externalId}`,
+      id: `bidfax:${parsedUrl.externalId}`,
       site: 'bidfax',
       url,
       auction: card.find('span.copart').length ? 'copart' : card.find('span.iaai').length ? 'iaai' : null,
       lotNumber: fields.get('lot')?.match(/\d+/)?.[0] ?? null,
       vin: parsedTitle?.vin ?? null,
       year: parsedTitle?.year ?? null,
-      make: context.makeSlug,
-      model: context.modelSlug,
+      make: parsedUrl.makeSlug,
+      model: parsedUrl.modelSlug,
       trim: parsedTitle?.trim ?? null,
       engine: parsedTitle?.engine ?? null,
       fuel: fuelFromTitle(title.replace(/vin:.*$/i, '')),
@@ -152,11 +161,28 @@ export function parseBidfaxListing(
       finalPriceUsdCents: priceText ? Number(priceText) * 100 : null,
       odometerMiles: mileage ? Number(mileage) : null,
       damage: fields.get('damage') || null,
-      saleStatus: /sold/i.test(statusIcon) ? 'sold' : /onapproval/i.test(statusIcon) ? 'on_approval' : null,
+      saleStatus: /not_?sold/i.test(statusIcon)
+        ? 'not_sold'
+        : /sold/i.test(statusIcon)
+          ? 'sold'
+          : /onapproval/i.test(statusIcon)
+            ? 'on_approval'
+            : null,
       location: card.find('.short-storyup .blackfont').first().text().trim() || null,
       imageUrl: image ? new URL(image, BIDFAX_ORIGIN).toString() : null,
     });
   });
+
+  return records;
+}
+
+export function parseBidfaxListing(
+  html: string,
+  context: { makeSlug: string; modelSlug: string; makeName: string; modelName: string },
+): BidfaxListingPage {
+  assertUsable(html);
+  const $ = cheerio.load(html);
+  const records = parseCards($, [`${context.makeName} ${context.modelName}`]);
 
   const linkedPages = [
     ...new Set(
@@ -171,4 +197,18 @@ export function parseBidfaxListing(
     throw new SourceError('parse_failed', 'bidfax: listing markup not recognized');
   }
   return { records, linkedPages };
+}
+
+/**
+ * Site search results for a VIN or lot number. A lot number can match vehicles from both auctions
+ * (numbers are reused), so callers filter the records.
+ */
+export function parseBidfaxSearch(html: string): AuctionRecord[] {
+  assertUsable(html);
+  const $ = cheerio.load(html);
+  const records = parseCards($);
+  if (records.length === 0 && $('#dle-content').length === 0) {
+    throw new SourceError('parse_failed', 'bidfax: search markup not recognized');
+  }
+  return records;
 }

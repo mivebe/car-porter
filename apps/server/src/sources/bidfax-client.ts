@@ -1,61 +1,61 @@
-import type { Page } from 'patchright';
+import type { Response } from 'patchright';
 import type { BrowserManager } from '../scraping/browser.ts';
-import { detectChallenge, SourceError } from '../scraping/errors.ts';
+import { SourceError } from '../scraping/errors.ts';
+import { createPageFetcher, loadThroughChallenge, verifyLoaded, type HtmlFetcher } from '../scraping/page-fetcher.ts';
 import type { SourceQueue } from '../scraping/source-queue.ts';
+
+export type { HtmlFetcher } from '../scraping/page-fetcher.ts';
 
 export const BIDFAX_ORIGIN = 'https://bidfax.info';
 const PROFILE = 'bidfax';
-/** Per attempt. The check normally clears in ~5 s; when it sticks, a reload clears it. */
-const CHALLENGE_WAIT_MS = 20_000;
-const CHALLENGE_ATTEMPTS = 3;
 
-/** Loads a bidfax page and returns its HTML. */
-export type HtmlFetcher = (url: string) => Promise<string>;
+/** Runs bidfax's site search for a VIN or lot number and returns the results page HTML. */
+export type BidfaxSearcher = (query: string) => Promise<string>;
 
 /** nginx "403 Forbidden" bidfax serves to clients it rejects (e.g. a HeadlessChrome UA). */
 export function isForbiddenPage(html: string): boolean {
   return html.length < 5000 && /<title>\s*403 Forbidden\s*<\/title>/i.test(html);
 }
 
-/** Waits until the page holds real content; '' (read during a Cloudflare reload) counts as pending. */
-async function waitForContent(page: Page, timeoutMs: number): Promise<string | null> {
-  const started = Date.now();
-  for (;;) {
-    const html = await page.content().catch(() => '');
-    if (html && !detectChallenge(html)) return html;
-    if (Date.now() - started >= timeoutMs) return null;
-    await page.waitForTimeout(1000);
+function checkPage(html: string, response: Response | null) {
+  // don't trust response.status(): the Cloudflare challenge response itself is a 403
+  if (isForbiddenPage(html)) throw new SourceError('blocked', 'bidfax: 403 Forbidden');
+  if (response && response.status() >= 500 && !html.includes('thumbnail')) {
+    throw new SourceError('network', `bidfax: HTTP ${response.status()}`);
   }
 }
 
-/**
- * Navigates a long-lived bidfax page (so cf_clearance is reused) and waits for Cloudflare's
- * non-interactive check. Pages are plain server-rendered HTML.
- */
+/** Loads bidfax pages (plain server-rendered HTML) behind Cloudflare's non-interactive check. */
 export function createBidfaxFetcher(browser: BrowserManager, queue: SourceQueue): HtmlFetcher {
-  return (url) =>
+  return createPageFetcher({ browser, queue, source: 'bidfax', profile: PROFILE, check: checkPage });
+}
+
+/**
+ * Searches through the site's own form: the search URL only answers with results when it carries
+ * the reCAPTCHA v3 token the page's script adds on submit (verified 2026-09-16; a fresh profile
+ * gets the home page without it). The form is on every page, so the session page is reused.
+ */
+export function createBidfaxSearcher(browser: BrowserManager, queue: SourceQueue): BidfaxSearcher {
+  return (query) =>
     queue.run('bidfax', async () => {
       const page = await browser.sessionPage(PROFILE, async () => undefined);
-      let response = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+      const options = { browser, source: 'bidfax', profile: PROFILE, check: checkPage };
 
-      let html: string | null = null;
-      for (let attempt = 1; attempt <= CHALLENGE_ATTEMPTS && html === null; attempt++) {
-        if (attempt > 1) response = await page.reload({ waitUntil: 'domcontentloaded', timeout: 60_000 });
-        html = await waitForContent(page, CHALLENGE_WAIT_MS);
+      if (!page.url().startsWith(BIDFAX_ORIGIN) || (await page.locator('#search').count()) === 0) {
+        const home = await loadThroughChallenge(page, () =>
+          page.goto(`${BIDFAX_ORIGIN}/`, { waitUntil: 'domcontentloaded', timeout: 60_000 }),
+        );
+        await verifyLoaded(options, home.html, home.response);
       }
 
-      if (html === null) {
-        await browser.resetSession(PROFILE);
-        throw new SourceError('blocked', 'bidfax: Cloudflare challenge did not clear');
-      }
-      // don't trust response.status(): the Cloudflare challenge response itself is a 403
-      if (isForbiddenPage(html)) {
-        await browser.resetSession(PROFILE);
-        throw new SourceError('blocked', 'bidfax: 403 Forbidden');
-      }
-      if (response && response.status() >= 500 && !html.includes('thumbnail')) {
-        throw new SourceError('network', `bidfax: HTTP ${response.status()}`);
-      }
-      return html;
+      await page.locator('#search').fill(query);
+      const { html, response } = await loadThroughChallenge(page, async () => {
+        const [navigation] = await Promise.all([
+          page.waitForNavigation({ url: /[?&]do=search/, waitUntil: 'domcontentloaded', timeout: 60_000 }),
+          page.locator('#submit').click(),
+        ]);
+        return navigation;
+      });
+      return verifyLoaded(options, html, response);
     });
 }
