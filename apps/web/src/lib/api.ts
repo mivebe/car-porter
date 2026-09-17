@@ -95,8 +95,8 @@ export interface AliasEntry {
   lastSeenAt: string;
   /** nonCarMake: the NHTSA motorcycle/trailer/bus make it was recognised as */
   auto: { targets: string[]; match: AliasAutoMatch | null; nonCarMake: string | null };
-  /** null = not assigned by the user; targets [] = ignored */
-  manual: { targets: string[] } | null;
+  /** null = no decision by the user */
+  manual: { state: 'assigned' | 'ignored' | 'unassigned'; targets: string[] } | null;
   status: AliasStatus;
 }
 
@@ -105,7 +105,10 @@ export interface AliasListParams {
   source?: AuctionSource;
   make?: string;
   status?: AliasStatus;
+  /** only site names searched as this make/model */
+  target?: string;
   q?: string;
+  limit?: number;
 }
 
 export interface AliasListResponse {
@@ -115,6 +118,17 @@ export interface AliasListResponse {
 }
 
 export type AliasKey = Pick<AliasEntry, 'source' | 'kind' | 'externalName'> & { make?: string };
+
+/** A user decision for one site name ('assign' with no targets unassigns it). */
+export type AliasChange = AliasKey &
+  ({ action: 'assign'; targets: string[] } | { action: 'ignore' } | { action: 'unassign' } | { action: 'reset' });
+
+/** One of our makes (or models of a make) with how many site names are searched as it. */
+export interface CanonicalItem {
+  name: string;
+  siteNames: number;
+  lots: number;
+}
 
 export interface AliasScanSource {
   source: AuctionSource;
@@ -171,11 +185,13 @@ export const api = {
   makes: () => request<CatalogResponse>('/api/catalog/makes'),
   models: (make: string) => request<CatalogResponse>(`/api/catalog/models?${query({ make })}`),
   aliases: (params: AliasListParams) => request<AliasListResponse>(`/api/aliases?${query({ ...params })}`),
-  aliasMakes: () => request<{ items: string[] }>('/api/aliases/makes'),
+  aliasMakes: (source?: AuctionSource) =>
+    request<{ items: { name: string; unassigned: number }[] }>(`/api/aliases/makes?${query({ source })}`),
+  aliasCanonical: (params: { kind: AliasKind; make?: string; source?: AuctionSource }) =>
+    request<{ items: CanonicalItem[] }>(`/api/aliases/canonical?${query({ ...params })}`),
   aliasSummary: () => request<{ unassigned: Record<AliasKind, number> }>('/api/aliases/summary'),
-  /** `targets`: [] = ignore, null = back to automatic matching */
-  assignAliases: (items: AliasKey[], targets: string[] | null) =>
-    request<{ updated: number }>('/api/aliases/assignment', { method: 'PUT', body: JSON.stringify({ items, targets }) }),
+  changeAliases: (changes: AliasChange[]) =>
+    request<{ updated: number }>('/api/aliases/assignment', { method: 'PUT', body: JSON.stringify({ changes }) }),
   aliasScan: () => request<AliasScanStatus>('/api/aliases/scan'),
   startAliasScan: (make?: string) =>
     request<AliasScanStatus>('/api/aliases/scan', { method: 'POST', body: JSON.stringify({ make: make ?? null }) }),

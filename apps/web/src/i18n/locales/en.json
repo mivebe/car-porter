@@ -424,6 +424,12 @@
       "rule": "Automatic · rule",
       "fuzzy": "Automatic · typo"
     },
+    "matchShort": {
+      "exact": "exact",
+      "rule": "by rule",
+      "fuzzy": "typo",
+      "non_car": "not a car"
+    },
     "filters": {
       "status": "Status",
       "allStatuses": "All statuses",
@@ -431,44 +437,7 @@
       "allSites": "All sites",
       "make": "Make",
       "allMakes": "All makes",
-      "search": "Search names"
-    },
-    "columns": {
-      "site": "Site",
-      "siteName": "Name on site",
-      "make": "Make",
-      "lots": "Lots",
-      "mapsTo": "Searched as",
-      "lastSeen": "Last seen",
-      "actions": "Actions"
-    },
-    "actions": {
-      "assign": "Assign",
-      "reassign": "Reassign",
-      "ignore": "Ignore",
-      "reset": "Reset to automatic"
-    },
-    "bulk": {
-      "selected_one": "{{count}} selected",
-      "selected_other": "{{count}} selected",
-      "clear": "Clear selection",
-      "selectAll": "Select all",
-      "select": "Select {{name}}",
-      "differentMakes": "Select models of one make to assign them together"
-    },
-    "assign": {
-      "titleMake": "Assign make",
-      "titleModel": "Assign model",
-      "descriptionMake": "Searches for the chosen make will include these site names.",
-      "descriptionModel": "Searches for any chosen {{make}} model will include these site names.",
-      "make": "Make",
-      "models": "Models",
-      "createNew": "Create \"{{value}}\"",
-      "noneSelected": "No model selected",
-      "remove": "Remove {{name}}",
-      "suggestion": "Automatic match: {{targets}}",
-      "save": "Save",
-      "cancel": "Cancel"
+      "search": "Search site names"
     },
     "scan": {
       "title": "Check the sites for new names",
@@ -496,11 +465,53 @@
     },
     "unassignedCount_one": "{{count}} unassigned name",
     "unassignedCount_other": "{{count}} unassigned names",
-    "empty": "No names match these filters.",
-    "emptyUnassigned": "Nothing to assign. Run a scan to check the sites for new names.",
-    "truncated": "Showing {{shown}} of {{total}}. Narrow the filters to see the rest.",
     "requestFailed": "Could not load aliases.",
-    "loading": "Loading…",
-    "nonCarMake": "NHTSA motorcycle/trailer/bus make: {{make}}"
+    "nonCarMake": "NHTSA motorcycle/trailer/bus make: {{make}}",
+    "details": {
+      "make": "Listed under",
+      "lots": "Lots",
+      "status": "Status",
+      "searchedAs": "Searched as",
+      "automatic": "Automatic match",
+      "yours": "Your decision",
+      "lastSeen": "Last seen",
+      "none": "none",
+      "unassign": "Unassign",
+      "ignore": "Ignore",
+      "reset": "Reset to automatic"
+    },
+    "board": {
+      "hint": "Drag site names between the columns. Drop on one of our makes/models to assign or move them, into the middle to assign to the selected one, or to the right to unassign. Ctrl/Cmd-click selects several; hold Alt while dropping a model to also keep its current model. Hover a card or click it for details.",
+      "ourMakes": "Our makes",
+      "ourModels": "{{make}} models",
+      "findMake": "Find or create a make",
+      "findModel": "Find or create a model",
+      "create": "Create \"{{name}}\"",
+      "withoutSiteNames_one": "{{count}} without site names",
+      "withoutSiteNames_other": "{{count}} without site names",
+      "noMatches": "Nothing found.",
+      "siteNames_one": "{{count}} site name",
+      "siteNames_other": "{{count}} site names",
+      "assignedTitle": "Searched as {{name}}",
+      "assignedNone": "Assigned site names",
+      "selectHint": "Select one of our makes or models on the left to see the site names searched as it.",
+      "assignedEmpty": "Nothing assigned yet. Drag site names here.",
+      "poolEmpty": "No site names here.",
+      "poolEmptyUnassigned": "Nothing waiting for assignment. Run a scan to check the sites for new names.",
+      "truncated": "Showing {{shown}} of {{total}}. Narrow the filters to see the rest.",
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "clearSelection": "Clear",
+      "chooseMake": "Choose a make",
+      "noModelMakes": "No models recorded yet. Search or scan a make first.",
+      "saveFailed": "Could not save the change.",
+      "drop": {
+        "assign": "Assign to {{name}}",
+        "move": "Move to {{name}}",
+        "add": "Also assign to {{name}}",
+        "unassign": "Unassign",
+        "needs-selection": "Select a make or model on the left first"
+      }
+    }
   }
 }

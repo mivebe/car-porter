@@ -13,6 +13,7 @@ import type {
   AliasKey,
   AliasKind,
   AutoMatch,
+  ManualState,
   VehicleAlias,
   VehicleAliasesRepository,
 } from '../repositories/vehicle-aliases-repository.ts';
@@ -45,9 +46,27 @@ export interface AliasEntry {
   lastSeenAt: string;
   /** nonCarMake: the NHTSA motorcycle/trailer/bus make it was recognised as */
   auto: { targets: string[]; match: AutoMatch | null; nonCarMake: string | null };
-  /** null = not assigned by the user; targets [] = ignored */
-  manual: { targets: string[] } | null;
+  /** null = no decision by the user */
+  manual: { state: ManualState; targets: string[] } | null;
   status: AliasStatus;
+}
+
+/** What a site name is searched as right now: the user's targets, else the automatic ones. */
+export const effectiveTargets = (e: AliasEntry) => (e.manual ? e.manual.targets : e.auto.targets);
+
+/** A user decision for one site name. */
+export type AliasChange =
+  | { action: 'assign'; targets: string[] }
+  | { action: 'ignore' }
+  | { action: 'unassign' }
+  /** back to automatic matching */
+  | { action: 'reset' };
+
+/** One of our makes (or models of a make) with how many site names are searched as it. */
+export interface CanonicalItem {
+  name: string;
+  siteNames: number;
+  lots: number;
 }
 
 export interface AliasEntryFilter {
@@ -55,6 +74,8 @@ export interface AliasEntryFilter {
   source?: AuctionSource;
   make?: string;
   status?: AliasStatus;
+  /** only site names searched as this make/model */
+  target?: string;
   q?: string;
   limit?: number;
 }
@@ -198,7 +219,7 @@ export function createVehicleAliasService(deps: {
       '',
       rows
         .filter((r) => r.origin === 'auto')
-        .map((r) => ({ external: r.externalName, canonical: r.canonicalMake || null, match: r.match === 'non_car' ? null : r.match })),
+        .map((r) => ({ external: r.externalName, canonical: r.canonicalMake || null, match: r.match === 'non_car' || r.match === 'unassigned' ? null : r.match })),
     );
     return mappings.filter((m) => m.canonical && normalizeMake(m.canonical) === normalizeMake(make)).map((m) => m.external);
   }
@@ -249,16 +270,19 @@ export function createVehicleAliasService(deps: {
       groups.set(key, [...(groups.get(key) ?? []), r]);
     }
 
-    const target = (r: VehicleAlias) => (r.kind === 'make' ? r.canonicalMake : r.canonical);
+    const targetOf = (r: VehicleAlias) => (r.kind === 'make' ? r.canonicalMake : r.canonical);
     const all: AliasEntry[] = [...groups.values()].map((group) => {
       const first = group[0]!;
       const auto = group.filter((r) => r.origin === 'auto');
       const manual = group.filter((r) => r.origin === 'manual');
       const nonCar = auto.find((r) => r.match === 'non_car');
-      const autoTargets = auto.filter((r) => r !== nonCar).map(target).filter(Boolean);
-      const manualTargets = manual.map(target).filter(Boolean);
-      const status: AliasStatus = manual.length
-        ? manualTargets.length ? 'manual' : 'ignored'
+      const autoTargets = auto.filter((r) => r !== nonCar).map(targetOf).filter(Boolean);
+      const manualTargets = manual.map(targetOf).filter(Boolean);
+      const manualState: ManualState | null = manual.length
+        ? manualTargets.length ? 'assigned' : manual.some((r) => r.match === 'unassigned') ? 'unassigned' : 'ignored'
+        : null;
+      const status: AliasStatus = manualState
+        ? manualState === 'assigned' ? 'manual' : manualState
         : autoTargets.length ? 'auto' : nonCar ? 'non_car' : 'unassigned';
       const newest = group.reduce((a, b) => (b.lastSeenAt > a.lastSeenAt ? b : a));
       return {
@@ -268,16 +292,19 @@ export function createVehicleAliasService(deps: {
         make: first.kind === 'model' ? first.canonicalMake : '',
         lotCount: auto[0]?.lotCount ?? manual[0]?.lotCount ?? null,
         lastSeenAt: newest.lastSeenAt.toISOString(),
-        auto: { targets: autoTargets, match: auto.find((r) => r.match)?.match ?? null, nonCarMake: nonCar?.canonical ?? null },
-        manual: manual.length ? { targets: manualTargets } : null,
+        auto: { targets: autoTargets, match: (auto.find((r) => r.match)?.match ?? null) as AutoMatch | null, nonCarMake: nonCar?.canonical ?? null },
+        manual: manualState ? { state: manualState, targets: manualTargets } : null,
         status,
       };
     });
 
     const q = filter.q ? normalizeText(filter.q) : '';
+    const target = filter.target ? normalizeText(filter.target) : '';
     const matchesQuery = (e: AliasEntry) =>
       !q || [e.externalName, e.make, ...e.auto.targets, ...(e.manual?.targets ?? [])].some((s) => normalizeText(s).includes(q));
-    const searched = all.filter(matchesQuery);
+    const searched = all.filter(
+      (e) => matchesQuery(e) && (!target || effectiveTargets(e).some((t) => normalizeText(t) === target)),
+    );
     const counts = Object.fromEntries(ALIAS_STATUSES.map((s) => [s, searched.filter((e) => e.status === s).length])) as Record<
       AliasStatus,
       number
@@ -288,12 +315,57 @@ export function createVehicleAliasService(deps: {
     return { items: filtered.slice(0, filter.limit ?? 500), total: filtered.length, counts };
   }
 
-  /** Assigns a site name (targets [] = ignore) or, with null, returns it to automatic matching. */
-  async function assign(key: AliasKey, targets: string[] | null) {
-    if (targets === null) await deps.aliases.clearManual(key);
-    else await deps.aliases.setManual(key, targets.map((t) => t.trim()).filter(Boolean));
+  /** Applies the user's decisions for site names. */
+  async function assign(changes: (AliasKey & AliasChange)[]) {
+    for (const change of changes) {
+      if (change.action === 'reset') await deps.aliases.clearManual(change);
+      else if (change.action === 'assign') {
+        const targets = change.targets.map((t) => t.trim()).filter(Boolean);
+        await deps.aliases.setManual(change, targets.length ? 'assigned' : 'unassigned', targets);
+      } else await deps.aliases.setManual(change, change.action === 'ignore' ? 'ignored' : 'unassigned');
+    }
     // cached searches were expanded with the old names
-    await deps.cache.removeByPrefix(LOT_SEARCH_CACHE_PREFIX);
+    if (changes.length) await deps.cache.removeByPrefix(LOT_SEARCH_CACHE_PREFIX);
+  }
+
+  /**
+   * Our makes (catalog + user-made), or the models of a make, with the number of site names and
+   * lots searched as each, for the column site names are dragged onto.
+   */
+  async function canonicalItems(filter: { kind: AliasKind; make?: string; source?: AuctionSource }): Promise<CanonicalItem[]> {
+    const make = filter.make ? await canonicalMakeName(filter.make) : '';
+    if (filter.kind === 'model' && !make) return [];
+    const names =
+      filter.kind === 'make'
+        ? await canonicalMakes()
+        : [...(await catalogModels(make)), ...(await deps.aliases.manualTargets('model', make))];
+    const { items } = await entries({ kind: filter.kind, source: filter.source, make: filter.kind === 'model' ? make : undefined, limit: Infinity });
+
+    const byKey = new Map<string, CanonicalItem>();
+    const add = (name: string) => {
+      const key = normalizeText(name);
+      if (!byKey.has(key)) byKey.set(key, { name, siteNames: 0, lots: 0 });
+      return byKey.get(key)!;
+    };
+    for (const name of names) add(name);
+    for (const e of items) {
+      for (const t of effectiveTargets(e)) {
+        const item = add(t);
+        item.siteNames++;
+        item.lots += e.lotCount ?? 0;
+      }
+    }
+    return [...byKey.values()].sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+  }
+
+  /** Makes that have site models recorded under them, with their unassigned model counts. */
+  async function modelMakes(source?: AuctionSource): Promise<{ name: string; unassigned: number }[]> {
+    const { items } = await entries({ kind: 'model', source, limit: Infinity });
+    const byMake = new Map<string, number>();
+    for (const e of items) byMake.set(e.make, (byMake.get(e.make) ?? 0) + (e.status === 'unassigned' ? 1 : 0));
+    return [...byMake]
+      .map(([name, unassigned]) => ({ name, unassigned }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
   }
 
   /** Unassigned site names per kind, across sites and makes. */
@@ -306,6 +378,8 @@ export function createVehicleAliasService(deps: {
     resolve,
     entries,
     assign,
+    canonicalItems,
+    modelMakes,
     unassignedCounts,
     applyMakeFacets,
     applyModelFacets,

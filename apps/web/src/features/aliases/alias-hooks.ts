@@ -1,15 +1,31 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, type AliasEntry, type AliasKey, type AliasListParams } from '@/lib/api';
+import type { AuctionSource } from '@car-porter/core';
+import { api, type AliasChange, type AliasEntry, type AliasKind, type AliasListParams } from '@/lib/api';
 
 export const ALIASES_KEY = ['aliases'];
 
-/** What a site name currently maps to: the user's assignment, else the automatic match. */
-export const effectiveTargets = (entry: AliasEntry) => entry.manual?.targets ?? entry.auto.targets;
+/** What a site name is searched as right now: the user's targets, else the automatic ones. */
+export const effectiveTargets = (entry: AliasEntry) => (entry.manual ? entry.manual.targets : entry.auto.targets);
 
-export const useAliases = (params: AliasListParams) =>
-  useQuery({ queryKey: [...ALIASES_KEY, 'list', params], queryFn: () => api.aliases(params), placeholderData: keepPreviousData });
+export const useAliases = (params: AliasListParams, enabled = true) =>
+  useQuery({
+    queryKey: [...ALIASES_KEY, 'list', params],
+    queryFn: () => api.aliases(params),
+    placeholderData: keepPreviousData,
+    enabled,
+  });
 
-export const useAliasMakes = () => useQuery({ queryKey: [...ALIASES_KEY, 'makes'], queryFn: api.aliasMakes });
+export const useAliasMakes = (source?: AuctionSource) =>
+  useQuery({ queryKey: [...ALIASES_KEY, 'makes', source], queryFn: () => api.aliasMakes(source) });
+
+/** Our makes, or the models of a make, with their site name counts. */
+export const useCanonicalItems = (params: { kind: AliasKind; make?: string; source?: AuctionSource }) =>
+  useQuery({
+    queryKey: [...ALIASES_KEY, 'canonical', params],
+    queryFn: () => api.aliasCanonical(params),
+    enabled: params.kind === 'make' || !!params.make,
+    placeholderData: keepPreviousData,
+  });
 
 /** Unassigned counts for the nav badge and tabs. */
 export const useAliasSummary = () =>
@@ -26,12 +42,10 @@ function useInvalidateAliases() {
     ]);
 }
 
-export function useAssignAliases() {
+/** Applies alias changes; resolves once the lists have been refetched. */
+export function useChangeAliases() {
   const invalidate = useInvalidateAliases();
-  return useMutation({
-    mutationFn: ({ items, targets }: { items: AliasKey[]; targets: string[] | null }) => api.assignAliases(items, targets),
-    onSettled: invalidate,
-  });
+  return useMutation({ mutationFn: (changes: AliasChange[]) => api.changeAliases(changes), onSettled: invalidate });
 }
 
 /** Polls the background scan while it runs and refreshes the lists once it finishes. */

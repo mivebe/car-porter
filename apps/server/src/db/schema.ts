@@ -146,7 +146,8 @@ export const scrapeCache = sqliteTable('scrape_cache', {
  *   it maps to ('' if none). One site model can map to several models (330I → 330i, 3 Series).
  * `origin` 'auto' rows are recomputed from the sites' search facets (`match` says how); 'manual'
  * rows are the user's assignments and replace all auto rows of the same site name. A manual row
- * mapping to '' means "ignored". Auto rows are kept under manual ones so a reset can restore them.
+ * mapping to '' means "ignored", or "unassigned by the user" when its `match` is 'unassigned'.
+ * Auto rows are kept under manual ones so a reset can restore them.
  */
 export const vehicleAliases = sqliteTable(
   'vehicle_aliases',
@@ -158,7 +159,7 @@ export const vehicleAliases = sqliteTable(
     canonical: text('canonical').notNull(),
     origin: text('origin', { enum: ['auto', 'manual'] }).notNull(),
     /** 'non_car': an NHTSA motorcycle/trailer/bus make, stored in `canonical` and never searched */
-    match: text('match', { enum: ['exact', 'rule', 'fuzzy', 'non_car'] }),
+    match: text('match', { enum: ['exact', 'rule', 'fuzzy', 'non_car', 'unassigned'] }),
     lotCount: integer('lot_count'),
     lastSeenAt: timestamp('last_seen_at').notNull().default(now),
   },

@@ -6,6 +6,8 @@ import { vehicleAliases } from '../db/schema.ts';
 export type AliasKind = 'make' | 'model';
 export type AliasOrigin = 'auto' | 'manual';
 export type AutoMatch = 'exact' | 'rule' | 'fuzzy' | 'non_car';
+/** What a manual row records: assigned targets, ignored, or explicitly taken off every target. */
+export type ManualState = 'assigned' | 'ignored' | 'unassigned';
 
 export interface VehicleAlias {
   source: AuctionSource;
@@ -16,7 +18,8 @@ export interface VehicleAlias {
   /** model rows: the model it maps to ('' = none); '' for make rows */
   canonical: string;
   origin: AliasOrigin;
-  match: AutoMatch | null;
+  /** auto rows: how it matched; manual rows: 'unassigned' or null */
+  match: AutoMatch | 'unassigned' | null;
   lotCount: number | null;
   lastSeenAt: Date;
 }
@@ -67,19 +70,20 @@ export function createVehicleAliasesRepository(db: Db) {
     }
   }
 
-  /** The user's assignment of a site name; `targets` empty = ignored. Replaces an earlier one. */
-  async function setManual(key: AliasKey, targets: string[]) {
+  /** The user's decision for a site name; replaces an earlier one. `targets` only count for 'assigned'. */
+  async function setManual(key: AliasKey, state: ManualState, targets: string[] = []) {
     const now = new Date();
     const auto = await db.select().from(vehicleAliases).where(keyWhere(key, 'auto'));
     const lotCount = auto.reduce<number | null>((max, r) => (r.lotCount == null ? max : Math.max(max ?? 0, r.lotCount)), null);
-    const values = (targets.length ? [...new Set(targets)] : ['']).map((target) => ({
+    const assigned = state === 'assigned' ? [...new Set(targets)] : [];
+    const values = (assigned.length ? assigned : ['']).map((target) => ({
       source: key.source,
       kind: key.kind,
       externalName: key.externalName,
       canonicalMake: key.kind === 'make' ? target : (key.make ?? ''),
       canonical: key.kind === 'make' ? '' : target,
       origin: 'manual' as const,
-      match: null,
+      match: state === 'unassigned' ? ('unassigned' as const) : null,
       lotCount,
       lastSeenAt: auto[0]?.lastSeenAt ?? now,
     }));

@@ -132,7 +132,7 @@ export async function buildApp({
     aliasScan.cancel();
     await aliasScan.idle();
   });
-  await app.register(aliasRoutes, { aliases, repository: repos.vehicleAliases, scan: aliasScan });
+  await app.register(aliasRoutes, { aliases, scan: aliasScan });
   const fx = createFxService({
     cache: repos.cache,
     settings: repos.settings,

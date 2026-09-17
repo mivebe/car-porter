@@ -1,68 +1,98 @@
+import type { Locator, Page } from '@playwright/test';
 import { expect, test } from './test';
 
-test('aliases: scan the sites, ignore unassigned makes, reassign a model to a new one and reset it', async ({ page }) => {
+/** Drags with real mouse moves (dnd-kit starts a drag after a few pixels); `during` runs before the drop. */
+async function drag(page: Page, from: Locator, to: Locator, during?: () => Promise<void>) {
+  const a = (await from.boundingBox())!;
+  const b = (await to.boundingBox())!;
+  await page.mouse.move(a.x + a.width / 2, a.y + a.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(a.x + a.width / 2 + 12, a.y + a.height / 2 + 12, { steps: 4 });
+  await page.mouse.move(b.x + b.width / 2, b.y + Math.min(b.height / 2, 40), { steps: 12 });
+  await during?.();
+  await page.mouse.up();
+}
+
+const card = (column: Locator, name: string, source: 'copart' | 'iaai') =>
+  column.locator(`[data-testid="alias-card"][data-name="${name}"][data-source="${source}"]`);
+
+test('aliases: drag site names between our makes/models, the assigned column and the unassigned pool', async ({ page }) => {
   await page.goto('/aliases');
   await expect(page.getByRole('heading', { name: 'Make & model aliases' })).toBeVisible();
 
   const scan = page.getByTestId('alias-scan');
   await scan.getByRole('button', { name: 'Scan all' }).click();
   await expect(scan.getByText(/Last scan finished/)).toBeVisible();
-  await expect(scan.getByTestId('alias-scan-copart')).toContainText('Done');
-  await expect(scan.getByTestId('alias-scan-iaai')).toContainText('Done');
 
-  // unassigned makes, one row per site
-  const rows = page.getByTestId('alias-row');
-  await expect(rows).toHaveCount(2);
-  await expect(rows.nth(0)).toContainText('Copart');
-  await expect(rows.nth(1)).toContainText('IAAI');
-  await expect(rows.first()).toContainText('GREAT DANE TRAILERS');
-  await expect(rows.first().getByTestId('alias-status')).toHaveText('Unassigned');
-  await expect(page.getByTestId('nav-unassigned')).toHaveText('2');
+  const left = page.getByTestId('alias-canonical');
+  const middle = page.getByTestId('alias-assigned');
+  const pool = page.getByTestId('alias-pool');
 
-  await page.getByRole('checkbox', { name: 'Select all' }).click();
-  await page.getByTestId('alias-bulk').getByRole('button', { name: 'Ignore' }).click();
-  await expect(page.getByTestId('aliases-empty')).toContainText('Nothing to assign');
-  await expect(page.getByTestId('nav-unassigned')).toBeHidden();
+  // unassigned site names wait on the right; motorcycle makes are recognised as not a car
+  await expect(card(pool, 'GREAT DANE TRAILERS', 'copart')).toBeVisible();
+  await expect(card(pool, 'GREAT DANE TRAILERS', 'iaai')).toBeVisible();
+  await expect(pool.locator('[data-name="HARLEY-DAVIDSON"]')).toHaveCount(0);
+  await expect(middle).toContainText('Select one of our makes');
 
-  // models of one make, all statuses
+  // dropping in the middle with nothing selected sends the card back
+  await drag(page, card(pool, 'GREAT DANE TRAILERS', 'copart'), middle, async () => {
+    await expect(page.getByTestId('alias-drop-label')).toHaveText('Select a make or model on the left first');
+  });
+  await expect(page.getByText('Select a make or model on the left first').last()).toBeVisible();
+  await expect(card(pool, 'GREAT DANE TRAILERS', 'copart')).toBeVisible();
+
+  // create a make of our own and assign into the middle
+  await left.getByPlaceholder('Find or create a make').fill('Great Dane');
+  await left.getByRole('button', { name: 'Create "Great Dane"' }).click();
+  await expect(middle.getByRole('heading')).toHaveText('Searched as Great Dane');
+  await drag(page, card(pool, 'GREAT DANE TRAILERS', 'copart'), middle, async () => {
+    await expect(page.getByTestId('alias-drop-label')).toHaveText('Assign to Great Dane');
+  });
+  await expect(card(middle, 'GREAT DANE TRAILERS', 'copart')).toBeVisible();
+  await expect(card(pool, 'GREAT DANE TRAILERS', 'copart')).toHaveCount(0);
+
+  // dropping onto one of our makes on the left assigns there
+  const greatDane = left.locator('[data-testid="alias-canonical-item"][data-name="Great Dane"]');
+  await drag(page, card(pool, 'GREAT DANE TRAILERS', 'iaai'), greatDane, async () => {
+    await expect(page.getByTestId('alias-drop-label')).toHaveText('Assign to Great Dane');
+  });
+  await expect(card(middle, 'GREAT DANE TRAILERS', 'iaai')).toBeVisible();
+  await expect(greatDane).toContainText('2');
+
+  // dragging back out to the right unassigns
+  await drag(page, card(middle, 'GREAT DANE TRAILERS', 'copart'), pool, async () => {
+    await expect(page.getByTestId('alias-drop-label')).toHaveText('Unassign');
+  });
+  await expect(card(pool, 'GREAT DANE TRAILERS', 'copart')).toBeVisible();
+  await expect(card(middle, 'GREAT DANE TRAILERS', 'copart')).toHaveCount(0);
+
+  // models of a make: move a site model from C-Class to E-Class
   await page.getByRole('tab', { name: 'Models' }).click();
-  await page.getByRole('combobox', { name: 'Status' }).click();
-  await page.getByRole('option', { name: 'All statuses' }).click();
-  await page.getByRole('combobox', { name: 'Make' }).click();
-  await page.getByRole('option', { name: 'Mercedes-Benz', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Site' }).click();
-  await page.getByRole('option', { name: 'IAAI' }).click();
-  await expect(rows.filter({ hasText: 'Copart' })).toHaveCount(0);
+  await left.locator('[data-testid="alias-make-pick"]', { hasText: 'Mercedes-Benz' }).click();
+  await left.locator('[data-testid="alias-canonical-item"][data-name="C-Class"]').click();
+  await expect(card(middle, 'AMG C 63', 'iaai')).toBeVisible();
+  await expect(card(middle, 'C', 'copart')).toBeVisible();
 
-  const c63 = rows.filter({ hasText: 'AMG C 63' });
-  await expect(c63.getByTestId('alias-target')).toContainText('C-Class');
-  await expect(c63.getByTestId('alias-status')).toHaveText('Automatic · rule');
+  await left.getByPlaceholder('Find or create a model').fill('E-Class');
+  const eClass = left.locator('[data-testid="alias-canonical-item"][data-name="E-Class"]');
+  await drag(page, card(middle, 'AMG C 63', 'iaai'), eClass, async () => {
+    await expect(page.getByTestId('alias-drop-label')).toHaveText('Move to E-Class');
+  });
+  await expect(card(middle, 'AMG C 63', 'iaai')).toHaveCount(0);
+  await expect(card(middle, 'AMG C 63', 'copart')).toBeVisible();
+  await eClass.click();
+  await expect(middle.getByRole('heading')).toHaveText('Searched as E-Class');
+  const moved = card(middle, 'AMG C 63', 'iaai');
+  await expect(moved).toBeVisible();
 
-  await c63.getByRole('button', { name: 'Reassign' }).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog.getByTestId('assign-entries')).toContainText('AMG C 63');
-  await expect(dialog.getByTestId('assign-selected')).toContainText('C-Class');
-  await dialog.getByPlaceholder('Search models').fill('C 63 AMG');
-  await dialog.getByRole('option', { name: 'Create "C 63 AMG"' }).click();
-  await dialog.getByRole('button', { name: 'Save' }).click();
-  await expect(dialog).toBeHidden();
-
-  await expect(c63.getByTestId('alias-status')).toHaveText('Assigned by you');
-  await expect(c63.getByTestId('alias-target')).toContainText('C 63 AMG');
-  await expect(c63.getByTestId('alias-target')).toContainText('C-Class');
-
-  // the new model is offered in the search form
-  await page.getByRole('link', { name: 'Search' }).click();
-  await page.getByRole('combobox', { name: 'Manufacturer' }).click();
-  await page.getByPlaceholder(/Search manufacturers/).fill('merc');
-  await page.getByRole('option', { name: 'Mercedes-Benz', exact: true }).click();
-  await page.getByRole('combobox', { name: 'Model' }).click();
-  await page.getByPlaceholder(/Search models/).fill('c 63');
-  await expect(page.getByRole('option', { name: 'C 63 AMG', exact: true })).toBeVisible();
-  await page.keyboard.press('Escape');
-
-  await page.goBack();
-  await expect(c63.getByTestId('alias-status')).toHaveText('Assigned by you');
-  await c63.getByRole('button', { name: 'Reset to automatic' }).click();
-  await expect(c63.getByTestId('alias-status')).toHaveText('Automatic · rule');
+  // details on hover, actions on click
+  await moved.hover();
+  const details = page.getByTestId('alias-details');
+  await expect(details).toContainText('Searched as');
+  await expect(details).toContainText('E-Class');
+  await expect(details.getByRole('button', { name: 'Ignore' })).toHaveCount(0);
+  await page.mouse.move(0, 0);
+  await moved.click();
+  await details.getByRole('button', { name: 'Reset to automatic' }).click();
+  await expect(moved).toHaveCount(0);
 });

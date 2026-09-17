@@ -1,7 +1,6 @@
 import { AUCTION_SOURCES } from '@car-porter/core';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import type { VehicleAliasesRepository } from '../repositories/vehicle-aliases-repository.ts';
 import { ScanRunningError, type AliasScanService } from '../services/alias-scan-service.ts';
 import { ALIAS_STATUSES, type AliasStatus, type VehicleAliasService } from '../services/vehicle-alias-service.ts';
 
@@ -11,6 +10,7 @@ const listQuery = z.object({
   source: z.enum(AUCTION_SOURCES).optional(),
   make: z.string().trim().optional(),
   status: z.enum(ALIAS_STATUSES as [AliasStatus, ...AliasStatus[]]).optional(),
+  target: z.string().trim().min(1).optional(),
   q: z.string().trim().optional(),
   limit: z.coerce.number().int().min(1).max(2000).default(500),
 });
@@ -22,16 +22,31 @@ const aliasKey = z
     make: z.string().trim().optional(),
   })
   .refine((k) => k.kind === 'make' || !!k.make, { message: 'make is required for models', path: ['make'] });
+const change = z.discriminatedUnion('action', [
+  z.object({ action: z.literal('assign'), targets: z.array(z.string().trim().min(1)).max(50) }),
+  z.object({ action: z.literal('ignore') }),
+  z.object({ action: z.literal('unassign') }),
+  z.object({ action: z.literal('reset') }),
+]);
 const assignmentBody = z.object({
-  items: z.array(aliasKey).min(1).max(1000),
-  /** [] = ignore, null = back to automatic */
-  targets: z.array(z.string().trim().min(1)).max(50).nullable(),
+  changes: z
+    .array(z.intersection(aliasKey, change))
+    .min(1)
+    .max(1000)
+    .refine((cs) => cs.every((c) => c.kind === 'model' || c.action !== 'assign' || c.targets.length <= 1), {
+      message: 'a make maps to one make',
+    }),
+});
+const canonicalQuery = z.object({
+  kind,
+  make: z.string().trim().optional(),
+  source: z.enum(AUCTION_SOURCES).optional(),
 });
 const scanBody = z.object({ make: z.string().trim().min(1).nullish() });
 
 export async function aliasRoutes(
   app: FastifyInstance,
-  opts: { aliases: VehicleAliasService; repository: VehicleAliasesRepository; scan: AliasScanService },
+  opts: { aliases: VehicleAliasService; scan: AliasScanService },
 ) {
   app.get('/api/aliases', async (req, reply) => {
     const query = listQuery.safeParse(req.query);
@@ -39,10 +54,17 @@ export async function aliasRoutes(
     return opts.aliases.entries(query.data);
   });
 
-  /** Makes that have site models recorded under them (for the models filter). */
-  app.get('/api/aliases/makes', async () => {
-    const rows = await opts.repository.list({ kind: 'model' });
-    return { items: [...new Set(rows.map((r) => r.canonicalMake))].sort((a, b) => a.localeCompare(b)) };
+  /** Makes that have site models recorded under them, with unassigned counts (for the models filter). */
+  app.get('/api/aliases/makes', async (req) => {
+    const source = z.enum(AUCTION_SOURCES).optional().safeParse((req.query as { source?: string }).source);
+    return { items: await opts.aliases.modelMakes(source.success ? source.data : undefined) };
+  });
+
+  /** Our makes, or the models of a make, with how many site names are searched as each. */
+  app.get('/api/aliases/canonical', async (req, reply) => {
+    const query = canonicalQuery.safeParse(req.query);
+    if (!query.success) return reply.code(400).send({ error: 'invalid_query', issues: query.error.issues });
+    return { items: await opts.aliases.canonicalItems(query.data) };
   });
 
   app.get('/api/aliases/summary', async () => ({ unassigned: await opts.aliases.unassignedCounts() }));
@@ -50,12 +72,8 @@ export async function aliasRoutes(
   app.put('/api/aliases/assignment', async (req, reply) => {
     const body = assignmentBody.safeParse(req.body);
     if (!body.success) return reply.code(400).send({ error: 'invalid_assignment', issues: body.error.issues });
-    const { items, targets } = body.data;
-    if (targets && targets.length > 1 && items.some((i) => i.kind === 'make')) {
-      return reply.code(400).send({ error: 'invalid_assignment', message: 'a make maps to one make' });
-    }
-    for (const item of items) await opts.aliases.assign(item, targets);
-    return { updated: items.length };
+    await opts.aliases.assign(body.data.changes);
+    return { updated: body.data.changes.length };
   });
 
   app.get('/api/aliases/scan', async () => opts.scan.status());

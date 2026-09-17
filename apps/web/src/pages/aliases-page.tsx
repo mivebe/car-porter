@@ -1,76 +1,43 @@
-import { Ban, Pencil, RotateCcw, Search } from 'lucide-react';
-import { useState } from 'react';
+import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/layout/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { effectiveTargets, useAliasMakes, useAliases, useAliasSummary, useAssignAliases } from '@/features/aliases/alias-hooks';
-import { AssignDialog } from '@/features/aliases/assign-dialog';
+import { AliasBoard } from '@/features/aliases/alias-board';
+import { useAliasMakes, useAliasSummary } from '@/features/aliases/alias-hooks';
 import { ScanPanel } from '@/features/aliases/scan-panel';
 import { Combobox } from '@/features/search/combobox';
-import { SourceBadge } from '@/features/search/source-badge';
-import type { AliasEntry, AliasKey, AliasKind, AliasStatus } from '@/lib/api';
-import { formatNumber, formatRelative } from '@/lib/format';
+import type { AliasKind, AliasStatus } from '@/lib/api';
 
 const STATUSES: AliasStatus[] = ['unassigned', 'auto', 'non_car', 'manual', 'ignored'];
 const ALL = 'all';
 
-const entryId = (e: AliasEntry) => `${e.source}|${e.make}|${e.externalName}`;
-const keyOf = (e: AliasEntry): AliasKey => ({
-  source: e.source,
-  kind: e.kind,
-  externalName: e.externalName,
-  ...(e.kind === 'model' ? { make: e.make } : {}),
-});
-
 export function AliasesPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
   const kind: AliasKind = params.get('kind') === 'model' ? 'model' : 'make';
   const statusParam = params.get('status');
-  const status = statusParam === ALL ? undefined : ((STATUSES.find((s) => s === statusParam) ?? 'unassigned') as AliasStatus);
+  const status = statusParam === ALL ? undefined : (STATUSES.find((s) => s === statusParam) ?? 'unassigned');
   const source = (['copart', 'iaai'] as const).find((s) => s === params.get('source'));
   const make = kind === 'model' ? (params.get('make') ?? '') : '';
   const q = params.get('q') ?? '';
+  const active = params.get('sel');
 
-  const update = (patch: Record<string, string | undefined>) => {
+  const update = (patch: Record<string, string | null | undefined>) => {
     const next = new URLSearchParams(params);
     for (const [k, v] of Object.entries(patch)) {
       if (v) next.set(k, v);
       else next.delete(k);
     }
     setParams(next, { replace: true });
-    setSelected(new Set());
   };
 
-  const list = useAliases({ kind, source, make: make || undefined, status, q: q || undefined });
   const summary = useAliasSummary();
   const aliasMakes = useAliasMakes();
-  const assign = useAssignAliases();
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [editing, setEditing] = useState<AliasEntry[]>([]);
-
-  const items = list.data?.items ?? [];
-  const selectedEntries = items.filter((e) => selected.has(entryId(e)));
-  const sameMake = new Set(selectedEntries.map((e) => e.make)).size <= 1;
-  const save = (entries: AliasEntry[], targets: string[] | null) =>
-    assign.mutateAsync({ items: entries.map(keyOf), targets }).then(() => setSelected(new Set()));
-
-  const toggleAll = (checked: boolean) => setSelected(checked ? new Set(items.map(entryId)) : new Set());
-  const toggle = (e: AliasEntry, checked: boolean) =>
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(entryId(e));
-      else next.delete(entryId(e));
-      return next;
-    });
 
   return (
     <div className="flex flex-col gap-4">
@@ -78,7 +45,7 @@ export function AliasesPage() {
       <ScanPanel make={make || null} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <Tabs value={kind} onValueChange={(v) => update({ kind: v === 'model' ? 'model' : undefined, make: undefined })}>
+        <Tabs value={kind} onValueChange={(v) => update({ kind: v === 'model' ? 'model' : null, make: null, sel: null })}>
           <TabsList>
             {(['make', 'model'] as const).map((k) => (
               <TabsTrigger key={k} value={k} className="gap-1.5">
@@ -93,22 +60,21 @@ export function AliasesPage() {
           </TabsList>
         </Tabs>
 
-        <Select value={status ?? ALL} onValueChange={(v) => update({ status: v === 'unassigned' ? undefined : v })}>
-          <SelectTrigger className="w-52" aria-label={t('aliases.filters.status')}>
+        <Select value={status ?? ALL} onValueChange={(v) => update({ status: v === 'unassigned' ? null : v })}>
+          <SelectTrigger className="w-44" aria-label={t('aliases.filters.status')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {STATUSES.map((s) => (
               <SelectItem key={s} value={s}>
                 {t(`aliases.status.${s}`)}
-                {list.data && ` (${formatNumber(list.data.counts[s], i18n.language)})`}
               </SelectItem>
             ))}
             <SelectItem value={ALL}>{t('aliases.filters.allStatuses')}</SelectItem>
           </SelectContent>
         </Select>
 
-        <Select value={source ?? ALL} onValueChange={(v) => update({ source: v === ALL ? undefined : v })}>
+        <Select value={source ?? ALL} onValueChange={(v) => update({ source: v === ALL ? null : v })}>
           <SelectTrigger className="w-36" aria-label={t('aliases.filters.site')}>
             <SelectValue />
           </SelectTrigger>
@@ -120,207 +86,54 @@ export function AliasesPage() {
         </Select>
 
         {kind === 'model' && (
-          <div className="w-56">
-            <Combobox
-              ariaLabel={t('aliases.filters.make')}
-              value={make}
-              onChange={(m) => update({ make: m })}
-              options={aliasMakes.data?.items ?? []}
-              loading={aliasMakes.isLoading}
-              placeholder={t('aliases.filters.allMakes')}
-              searchPlaceholder={t('search.searchMake')}
-              emptyText={t('search.noOptions')}
-            />
+          <div className="flex items-center gap-1">
+            <div className="w-56">
+              <Combobox
+                ariaLabel={t('aliases.filters.make')}
+                value={make}
+                onChange={(m) => update({ make: m, sel: null })}
+                options={(aliasMakes.data?.items ?? []).map((m) => m.name)}
+                loading={aliasMakes.isLoading}
+                placeholder={t('aliases.filters.allMakes')}
+                searchPlaceholder={t('search.searchMake')}
+                emptyText={t('search.noOptions')}
+              />
+            </div>
+            {make && (
+              <Button variant="ghost" size="sm" onClick={() => update({ make: null, sel: null })}>
+                {t('aliases.filters.allMakes')}
+              </Button>
+            )}
           </div>
-        )}
-        {kind === 'model' && make && (
-          <Button variant="ghost" size="sm" onClick={() => update({ make: undefined })}>
-            {t('aliases.filters.allMakes')}
-          </Button>
         )}
 
         <div className="relative ml-auto w-full sm:w-64">
           <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
+            key={`${kind}|${make}`}
             className="pl-8"
             placeholder={t('aliases.filters.search')}
             aria-label={t('aliases.filters.search')}
             defaultValue={q}
-            onChange={(e) => update({ q: e.target.value.trim() || undefined })}
+            onChange={(e) => update({ q: e.target.value.trim() || null })}
           />
         </div>
       </div>
 
-      {selectedEntries.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-md border bg-muted/40 px-3 py-2 text-sm" data-testid="alias-bulk">
-          <span>{t('aliases.bulk.selected', { count: selectedEntries.length })}</span>
-          <Button size="sm" onClick={() => setEditing(selectedEntries)} disabled={!sameMake}>
-            <Pencil />
-            {t('aliases.actions.assign')}
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => void save(selectedEntries, [])} disabled={assign.isPending}>
-            <Ban />
-            {t('aliases.actions.ignore')}
-          </Button>
-          <Button size="sm" variant="outline" onClick={() => void save(selectedEntries, null)} disabled={assign.isPending}>
-            <RotateCcw />
-            {t('aliases.actions.reset')}
-          </Button>
-          {!sameMake && <span className="text-xs text-muted-foreground">{t('aliases.bulk.differentMakes')}</span>}
-          <Button size="sm" variant="ghost" className="ml-auto" onClick={() => setSelected(new Set())}>
-            {t('aliases.bulk.clear')}
-          </Button>
-        </div>
-      )}
+      <p className="text-xs text-muted-foreground">{t('aliases.board.hint')}</p>
 
-      {list.isPending && (
-        <div className="flex flex-col gap-2" aria-busy="true">
-          {Array.from({ length: 5 }, (_, i) => (
-            <Skeleton key={i} className="h-10 w-full" />
-          ))}
-        </div>
-      )}
-      {list.isError && (
-        <div role="alert" className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive">
-          {t('aliases.requestFailed')}
-        </div>
-      )}
-      {list.data && items.length === 0 && (
-        <div className="rounded-lg border border-dashed py-12 text-center text-sm text-muted-foreground" data-testid="aliases-empty">
-          {status === 'unassigned' && !q ? t('aliases.emptyUnassigned') : t('aliases.empty')}
-        </div>
-      )}
-      {list.data && items.length > 0 && (
-        <>
-          <AliasTable
-            entries={items}
-            showMake={kind === 'model' && !make}
-            selected={selected}
-            onToggle={toggle}
-            onToggleAll={toggleAll}
-            onAssign={(e) => setEditing([e])}
-            onIgnore={(e) => void save([e], [])}
-            onReset={(e) => void save([e], null)}
-            busy={assign.isPending}
-          />
-          {list.data.total > items.length && (
-            <p className="text-center text-xs text-muted-foreground">
-              {t('aliases.truncated', { shown: items.length, total: list.data.total })}
-            </p>
-          )}
-        </>
-      )}
-
-      <AssignDialog
-        entries={editing}
-        onClose={() => setEditing([])}
-        onSave={(targets) => save(editing, targets)}
-        saving={assign.isPending}
+      <AliasBoard
+        // a new make/model list starts with a fresh search and no locally created names
+        key={`${kind}|${make}`}
+        kind={kind}
+        make={make}
+        source={source}
+        status={status}
+        q={q}
+        active={active}
+        onActiveChange={(name) => update({ sel: name })}
+        onMakeChange={(m) => update({ make: m, sel: null })}
       />
     </div>
-  );
-}
-
-interface AliasTableProps {
-  entries: AliasEntry[];
-  showMake: boolean;
-  selected: Set<string>;
-  onToggle: (entry: AliasEntry, checked: boolean) => void;
-  onToggleAll: (checked: boolean) => void;
-  onAssign: (entry: AliasEntry) => void;
-  onIgnore: (entry: AliasEntry) => void;
-  onReset: (entry: AliasEntry) => void;
-  busy: boolean;
-}
-
-function AliasTable({ entries, showMake, selected, onToggle, onToggleAll, onAssign, onIgnore, onReset, busy }: AliasTableProps) {
-  const { t, i18n } = useTranslation();
-  const allSelected = entries.every((e) => selected.has(entryId(e)));
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="w-8">
-            <Checkbox
-              aria-label={t('aliases.bulk.selectAll')}
-              checked={allSelected ? true : selected.size > 0 ? 'indeterminate' : false}
-              onCheckedChange={(c) => onToggleAll(c === true)}
-            />
-          </TableHead>
-          <TableHead>{t('aliases.columns.site')}</TableHead>
-          <TableHead>{t('aliases.columns.siteName')}</TableHead>
-          {showMake && <TableHead>{t('aliases.columns.make')}</TableHead>}
-          <TableHead className="text-right">{t('aliases.columns.lots')}</TableHead>
-          <TableHead>{t('aliases.columns.mapsTo')}</TableHead>
-          <TableHead>{t('aliases.columns.lastSeen')}</TableHead>
-          <TableHead className="text-right">{t('aliases.columns.actions')}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {entries.map((e) => (
-          <TableRow key={entryId(e)} data-testid="alias-row" data-state={selected.has(entryId(e)) ? 'selected' : undefined}>
-            <TableCell>
-              <Checkbox
-                aria-label={t('aliases.bulk.select', { name: e.externalName })}
-                checked={selected.has(entryId(e))}
-                onCheckedChange={(c) => onToggle(e, c === true)}
-              />
-            </TableCell>
-            <TableCell>
-              <SourceBadge source={e.source} />
-            </TableCell>
-            <TableCell className="font-mono">{e.externalName}</TableCell>
-            {showMake && <TableCell>{e.make}</TableCell>}
-            <TableCell className="text-right tabular-nums">{e.lotCount == null ? '—' : formatNumber(e.lotCount, i18n.language)}</TableCell>
-            <TableCell>
-              <div className="flex flex-wrap items-center gap-1.5" data-testid="alias-target">
-                {effectiveTargets(e).map((target) => (
-                  <Badge key={target} variant="outline">
-                    {target}
-                  </Badge>
-                ))}
-                {e.status === 'non_car' && e.auto.nonCarMake && (
-                  <span className="text-xs text-muted-foreground">{t('aliases.nonCarMake', { make: e.auto.nonCarMake })}</span>
-                )}
-                <StatusBadge entry={e} />
-              </div>
-            </TableCell>
-            <TableCell className="text-xs text-muted-foreground">{formatRelative(e.lastSeenAt, i18n.language)}</TableCell>
-            <TableCell>
-              <div className="flex justify-end gap-1">
-                <Button size="sm" variant="outline" onClick={() => onAssign(e)}>
-                  <Pencil />
-                  {t(e.status === 'unassigned' ? 'aliases.actions.assign' : 'aliases.actions.reassign')}
-                </Button>
-                {e.status !== 'ignored' && (
-                  <Button size="icon" variant="ghost" aria-label={t('aliases.actions.ignore')} title={t('aliases.actions.ignore')} onClick={() => onIgnore(e)} disabled={busy}>
-                    <Ban />
-                  </Button>
-                )}
-                {e.manual && (
-                  <Button size="icon" variant="ghost" aria-label={t('aliases.actions.reset')} title={t('aliases.actions.reset')} onClick={() => onReset(e)} disabled={busy}>
-                    <RotateCcw />
-                  </Button>
-                )}
-              </div>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
-function StatusBadge({ entry }: { entry: AliasEntry }) {
-  const { t } = useTranslation();
-  const label =
-    entry.status === 'auto' && entry.auto.match && entry.auto.match !== 'non_car'
-      ? t(`aliases.match.${entry.auto.match}`)
-      : t(`aliases.status.${entry.status}`);
-  const variant = entry.status === 'unassigned' ? 'destructive' : entry.status === 'manual' ? 'default' : 'secondary';
-  return (
-    <Badge variant={variant} className="text-[10px]" data-testid="alias-status">
-      {label}
-    </Badge>
   );
 }
