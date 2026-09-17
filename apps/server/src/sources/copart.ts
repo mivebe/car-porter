@@ -1,4 +1,4 @@
-import type { Lot, LotSearchFilters, LotSearchPage } from '@car-porter/core';
+import type { Lot, LotSearchPage } from '@car-porter/core';
 import type { Page } from 'patchright';
 import { z } from 'zod';
 import type { BrowserManager } from '../scraping/browser.ts';
@@ -8,7 +8,10 @@ import {
   AUCTION_PAGE_SIZE,
   dollarsToCents,
   emptyToNull,
+  type AuctionQuery,
   type AuctionSearchAdapter,
+  type ExternalFacet,
+  type YearRange,
 } from './auction-adapter.ts';
 
 const ORIGIN = 'https://www.copart.com';
@@ -16,15 +19,25 @@ const PROFILE = 'copart';
 
 const quote = (value: string) => `"${value.trim().toUpperCase().replace(/"/g, '')}"`;
 
+/**
+ * Filter map for the search API. Values under one key are OR'ed, keys are AND'ed. Facets are
+ * computed "multi-select" style: a key's own facet ignores that key's filter.
+ */
+export function copartFilter(query: Partial<Pick<AuctionQuery, 'makes' | 'models'>> & YearRange) {
+  return {
+    ...(query.makes?.length ? { MAKE: query.makes.map((m) => `lot_make_desc:${quote(m)}`) } : {}),
+    ...(query.models?.length
+      ? { MODL: query.models.map((m) => `lot_model_desc:${quote(m)}`) }
+      : {}),
+    YEAR: [`lot_year:[${query.yearFrom} TO ${query.yearTo}]`],
+  };
+}
+
 /** Request body for Copart's internal `POST /public/lots/search-results` API. */
-export function buildCopartSearchBody(filters: LotSearchFilters, page: number, size = AUCTION_PAGE_SIZE) {
+export function buildCopartSearchBody(query: AuctionQuery, page: number, size = AUCTION_PAGE_SIZE) {
   return {
     query: ['*'],
-    filter: {
-      MAKE: [`lot_make_desc:${quote(filters.make)}`],
-      MODL: [`lot_model_desc:${quote(filters.model)}`],
-      YEAR: [`lot_year:[${filters.yearFrom} TO ${filters.yearTo}]`],
-    },
+    filter: copartFilter(query),
     sort: ['auction_date_utc asc'],
     page: page - 1,
     size,
@@ -117,8 +130,7 @@ export function parseCopartLot(raw: unknown): Lot | null {
   };
 }
 
-/** Parses the JSON text returned by the search API. */
-export function parseCopartSearch(text: string, page: number): LotSearchPage {
+function parseResponse(text: string) {
   const challenge = detectChallenge(text);
   if (challenge) throw new SourceError('blocked', `copart: blocked by ${challenge}`);
 
@@ -132,7 +144,32 @@ export function parseCopartSearch(text: string, page: number): LotSearchPage {
   if (!parsed.success || parsed.data.returnCode !== 1) {
     throw new SourceError('parse_failed', 'copart: unexpected search response');
   }
-  const { totalElements, content } = parsed.data.data.results;
+  return parsed.data.data.results;
+}
+
+const facetFields = z.array(
+  z.looseObject({
+    quickPickCode: z.string(),
+    facetCounts: z.array(z.looseObject({ count: z.number(), query: z.string() })),
+  }),
+);
+
+/**
+ * Facet values of one filter key ("MAKE", "MODL") in the site's exact spelling, taken from the
+ * facet query (`lot_make_desc:"MERCEDES-BENZ"`) rather than the prettified display name.
+ * Copart only returns the highest-count values of a facet (100–125 seen), so callers narrow by years.
+ */
+export function parseCopartFacets(text: string, code: 'MAKE' | 'MODL'): ExternalFacet[] {
+  const fields = facetFields.safeParse(parseResponse(text).facetFields);
+  if (!fields.success) throw new SourceError('parse_failed', 'copart: unexpected facet fields');
+  return (fields.data.find((f) => f.quickPickCode === code)?.facetCounts ?? [])
+    .map((c) => ({ name: c.query.match(/^[a-z_]+:"(.*)"$/)?.[1] ?? '', count: c.count }))
+    .filter((f) => f.name);
+}
+
+/** Parses the JSON text returned by the search API. */
+export function parseCopartSearch(text: string, page: number): LotSearchPage {
+  const { totalElements, content } = parseResponse(text);
   return {
     lots: content.map(parseCopartLot).filter((l): l is Lot => l !== null),
     total: totalElements,
@@ -168,25 +205,38 @@ async function postFromPage(page: Page, body: unknown) {
   }, body);
 }
 
-export function createCopartAdapter(browser: BrowserManager, queue: SourceQueue): AuctionSearchAdapter {
+export function createCopartAdapter(
+  browser: BrowserManager,
+  queue: SourceQueue,
+): AuctionSearchAdapter {
+  const post = <T>(body: unknown, parse: (text: string) => T) =>
+    queue.run('copart', async () => {
+      for (let attempt = 1; ; attempt++) {
+        const sessionPage = await browser.sessionPage(PROFILE, bootstrap);
+        const res = await postFromPage(sessionPage, body);
+        try {
+          if (res.status === 403) throw new SourceError('blocked', 'copart: 403 from search API');
+          return parse(res.text);
+        } catch (err) {
+          // tokens can expire; re-bootstrap once
+          if (attempt >= 2 || !(err instanceof SourceError) || err.code !== 'blocked') throw err;
+          await browser.resetSession(PROFILE);
+        }
+      }
+    });
+  const facetBody = (filter: ReturnType<typeof copartFilter>) => ({
+    ...buildCopartSearchBody({ makes: [], models: [], yearFrom: 0, yearTo: 0 }, 1, 1),
+    filter,
+  });
+
   return {
     source: 'copart',
-    search: (filters, page) =>
-      queue.run('copart', async () => {
-        const body = buildCopartSearchBody(filters, page);
-        for (let attempt = 1; ; attempt++) {
-          const sessionPage = await browser.sessionPage(PROFILE, bootstrap);
-          const res = await postFromPage(sessionPage, body);
-          try {
-            if (res.status === 403) throw new SourceError('blocked', 'copart: 403 from search API');
-            return parseCopartSearch(res.text, page);
-          } catch (err) {
-            // tokens can expire; re-bootstrap once
-            if (attempt >= 2 || !(err instanceof SourceError) || err.code !== 'blocked') throw err;
-            await browser.resetSession(PROFILE);
-          }
-        }
-      }),
+    makeFacets: (years) =>
+      post(facetBody(copartFilter(years)), (text) => parseCopartFacets(text, 'MAKE')),
+    modelFacets: (makes, years) =>
+      post(facetBody(copartFilter({ makes, ...years })), (text) => parseCopartFacets(text, 'MODL')),
+    search: (query, page) =>
+      post(buildCopartSearchBody(query, page), (text) => parseCopartSearch(text, page)),
   };
 }
 

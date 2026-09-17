@@ -50,6 +50,8 @@ export type LotSourceResult =
       total: number;
       count: number;
       hasMore: boolean;
+      /** The site's own make/model names the search ran with (absent on older cached results). */
+      matched?: { makes: string[]; models: string[] };
       fetchedAt: string;
       fromCache: boolean;
       stale: boolean;

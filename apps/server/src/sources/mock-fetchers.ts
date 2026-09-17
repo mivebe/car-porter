@@ -1,8 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { modelMatches, normalizeMake, type AuctionSource, type LotSearchFilters } from '@car-porter/core';
-import { AUCTION_PAGE_SIZE, type AuctionSearchAdapter } from './auction-adapter.ts';
+import type { AuctionSource } from '@car-porter/core';
+import { AUCTION_PAGE_SIZE, type AuctionQuery, type AuctionSearchAdapter, type ExternalFacet } from './auction-adapter.ts';
 import type { BidfaxSearcher, HtmlFetcher } from './bidfax-client.ts';
 import { bidfaxListingUrl } from './bidfax.ts';
 import { parseCopartSearch, type CopartLogin } from './copart.ts';
@@ -127,20 +127,46 @@ export const mockNhtsaFetcher: JsonFetcher = async (url) => {
   return file ? JSON.parse(await readFixture(file)) : { Count: 0, Results: [] };
 };
 
-const isErrorSearch = (f: LotSearchFilters) => normalizeMake(f.make) === 'toyota' && modelMatches(f.model, MOCK_ERROR_MODEL);
+/** Site spellings served as facets, including variants the alias table has to fold together. */
+const MOCK_MAKES: ExternalFacet[] = [
+  { name: 'TOYOTA', count: 3000 },
+  { name: 'TOYO', count: 2 },
+  { name: 'MERCEDES-BENZ', count: 700 },
+  { name: 'MERCEDES BENZ', count: 6 },
+];
+const MOCK_MODELS: Record<string, ExternalFacet[]> = {
+  TOYOTA: [
+    { name: 'CAMRY', count: 1600 },
+    { name: 'CAMARY', count: 3 },
+    { name: 'COROLLA', count: 900 },
+    { name: 'RAV4', count: 700 },
+  ],
+  'MERCEDES-BENZ': [
+    { name: 'C', count: 200 },
+    { name: 'AMG C 63', count: 7 },
+    { name: 'CLA', count: 40 },
+  ],
+};
 
-const isRecordedSearch = (f: LotSearchFilters) =>
-  normalizeMake(f.make) === 'toyota' && modelMatches(f.model, 'camry') && f.yearFrom <= 2020 && f.yearTo >= 2018;
+const isErrorSearch = (q: AuctionQuery) => q.makes.includes('TOYOTA') && q.models.includes(MOCK_ERROR_MODEL.toUpperCase());
+
+const isRecordedSearch = (q: AuctionQuery) =>
+  q.makes.includes('TOYOTA') && q.models.includes('CAMRY') && q.yearFrom <= 2020 && q.yearTo >= 2018;
 
 /**
  * Fixture-backed auction adapters: Toyota Camry searches overlapping 2018–2020 return the
  * recorded pages (filtered to the requested years); Toyota Corolla fails (see MOCK_ERROR_MODEL);
- * everything else returns no results.
+ * everything else returns no results. Facets come from MOCK_MAKES / MOCK_MODELS.
  */
 export function createMockAuctionAdapters(): AuctionSearchAdapter[] {
-  const make = (source: AuctionSource, pages: Record<number, () => Promise<ReturnType<typeof parseCopartSearch>>>) => ({
+  const make = (
+    source: AuctionSource,
+    pages: Record<number, () => Promise<ReturnType<typeof parseCopartSearch>>>,
+  ): AuctionSearchAdapter => ({
     source,
-    async search(filters: LotSearchFilters, page: number) {
+    makeFacets: async () => MOCK_MAKES,
+    modelFacets: async (makes) => makes.flatMap((m) => MOCK_MODELS[m] ?? []),
+    async search(filters, page) {
       if (isErrorSearch(filters)) {
         return source === 'copart' ? parseCopartSearch(CHALLENGE_PAGE, page) : parseIaaiSearch(UNRECOGNIZED_PAGE, page);
       }

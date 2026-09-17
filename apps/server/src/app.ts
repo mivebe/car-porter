@@ -9,6 +9,7 @@ import { createMarketListingsRepository } from './repositories/market-listings-r
 import { createSelectionsRepository } from './repositories/selections-repository.ts';
 import { createSettingsRepository } from './repositories/settings-repository.ts';
 import { createTrackedLotsRepository } from './repositories/tracked-lots-repository.ts';
+import { createVehicleAliasesRepository } from './repositories/vehicle-aliases-repository.ts';
 import { catalogRoutes } from './routes/catalog-routes.ts';
 import { copartRoutes } from './routes/copart-routes.ts';
 import { estimateRoutes } from './routes/estimate-routes.ts';
@@ -25,6 +26,7 @@ import { createHistoryService } from './services/history-service.ts';
 import { createLotSearchService } from './services/lot-search-service.ts';
 import { createMarketService } from './services/market-service.ts';
 import { createTrackingService } from './services/tracking-service.ts';
+import { createVehicleAliasService } from './services/vehicle-alias-service.ts';
 import type { AuctionSearchAdapter } from './sources/auction-adapter.ts';
 import { createAutoscout24Adapter, createAutoscout24Fetcher } from './sources/autoscout24.ts';
 import { createBidfaxFetcher, createBidfaxSearcher, type BidfaxSearcher, type HtmlFetcher } from './sources/bidfax-client.ts';
@@ -88,6 +90,7 @@ export async function buildApp({
     selections: createSelectionsRepository(database.db),
     marketListings: createMarketListingsRepository(database.db),
     tracked: createTrackedLotsRepository(database.db),
+    vehicleAliases: createVehicleAliasesRepository(database.db),
   };
   await repos.settings.get();
 
@@ -116,12 +119,11 @@ export async function buildApp({
 
   app.get('/api/health', async () => ({ status: 'ok', sources: mockSources ? 'mock' : 'live' }));
   await app.register(settingsRoutes, { settings: repos.settings });
-  await app.register(catalogRoutes, {
-    catalog: createCatalogService(
-      repos.cache,
-      overrides.nhtsaFetcher ?? (mockSources ? mockNhtsaFetcher : httpJsonFetcher),
-    ),
-  });
+  const catalog = createCatalogService(
+    repos.cache,
+    overrides.nhtsaFetcher ?? (mockSources ? mockNhtsaFetcher : httpJsonFetcher),
+  );
+  await app.register(catalogRoutes, { catalog, aliases: repos.vehicleAliases });
   const fx = createFxService({
     cache: repos.cache,
     settings: repos.settings,
@@ -132,7 +134,12 @@ export async function buildApp({
     login: overrides.copartLogin ?? (mockSources ? createMockCopartLogin() : createCopartLogin(browser, queue)),
   });
   await app.register(lotsRoutes, {
-    search: createLotSearchService({ adapters: auctionAdapters, cache: repos.cache, lots: repos.lots }),
+    search: createLotSearchService({
+      adapters: auctionAdapters,
+      aliases: createVehicleAliasService({ catalog, cache: repos.cache, aliases: repos.vehicleAliases }),
+      cache: repos.cache,
+      lots: repos.lots,
+    }),
     lots: repos.lots,
     inputs: repos.lotInputs,
     tracked: repos.tracked,

@@ -138,3 +138,30 @@ export const scrapeCache = sqliteTable('scrape_cache', {
   fetchedAt: timestamp('fetched_at').notNull(),
   expiresAt: timestamp('expires_at'),
 });
+
+/**
+ * Conversion table between auction-site make/model names and our canonical (NHTSA) catalog,
+ * refreshed from each site's search facets.
+ * - make rows: `canonicalMake` = matched make ('' if none), `canonical` = ''
+ * - model rows: `canonicalMake` = the make whose model list was read, `canonical` = matched model
+ *   ('' if none). One external model can map to several canonical models (330I → 330i, 3 Series).
+ * Unmatched rows are kept so unmapped site names stay visible. `match` = 'manual' rows are user
+ * overrides and replace computed ones for the same external name.
+ */
+export const vehicleAliases = sqliteTable(
+  'vehicle_aliases',
+  {
+    source: text('source', { enum: ['copart', 'iaai'] }).notNull(),
+    kind: text('kind', { enum: ['make', 'model'] }).notNull(),
+    externalName: text('external_name').notNull(),
+    canonicalMake: text('canonical_make').notNull(),
+    canonical: text('canonical').notNull(),
+    match: text('match', { enum: ['exact', 'rule', 'fuzzy', 'manual'] }),
+    lotCount: integer('lot_count'),
+    lastSeenAt: timestamp('last_seen_at').notNull().default(now),
+  },
+  (t) => [
+    primaryKey({ columns: [t.source, t.kind, t.externalName, t.canonicalMake, t.canonical] }),
+    index('vehicle_aliases_canonical_idx').on(t.canonicalMake, t.canonical),
+  ],
+);

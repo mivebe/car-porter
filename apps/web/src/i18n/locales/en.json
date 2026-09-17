@@ -46,7 +46,9 @@
   "sourceStatus": {
     "fetched": "Fetched {{when}}",
     "cached": "from cache",
-    "stale": "showing older data ({{error}})"
+    "stale": "showing older data ({{error}})",
+    "matched": "Searched as {{makes}} · {{models}}",
+    "noMatch": "This site lists no vehicles under this make/model"
   },
   "search": {
     "make": "Manufacturer",

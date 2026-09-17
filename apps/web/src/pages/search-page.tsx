@@ -119,7 +119,9 @@ export function SearchPage() {
                   label={t(`sources.${s.source}`)}
                   ok={s.ok}
                   error={s.error}
-                  {...(s.ok ? { total: s.total, fetchedAt: s.fetchedAt, fromCache: s.fromCache, stale: s.stale } : {})}
+                  {...(s.ok
+                    ? { total: s.total, matched: s.matched, fetchedAt: s.fetchedAt, fromCache: s.fromCache, stale: s.stale }
+                    : {})}
                 />
               ))}
               <span className="text-xs text-muted-foreground">{t('search.loadedCount', { count: totalLoaded })}</span>

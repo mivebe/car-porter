@@ -1,9 +1,11 @@
 import { readFileSync } from 'node:fs';
+import { externalNamesFor, mapMakes, mapModels } from '@car-porter/core';
 import { describe, expect, it } from 'vitest';
 import { SourceError } from '../src/scraping/errors.ts';
-import { buildCopartSearchBody, parseCopartLot, parseCopartSearch } from '../src/sources/copart.ts';
+import { buildCopartSearchBody, parseCopartFacets, parseCopartLot, parseCopartSearch } from '../src/sources/copart.ts';
 import {
   buildIaaiSearchBody,
+  parseIaaiFacets,
   parseIaaiSaleDate,
   parseIaaiSearch,
   parseIaaiTotal,
@@ -11,14 +13,14 @@ import {
 } from '../src/sources/iaai.ts';
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/${name}`, import.meta.url), 'utf8');
-const filters = { make: 'Toyota', model: 'Camry', yearFrom: 2018, yearTo: 2020 };
+const filters = { makes: ['TOYOTA'], models: ['CAMRY', 'CAMARY'], yearFrom: 2018, yearTo: 2020 };
 
 describe('copart', () => {
   it('builds the search API body with make/model/year filters and 0-based paging', () => {
     const body = buildCopartSearchBody(filters, 3);
     expect(body.filter).toEqual({
       MAKE: ['lot_make_desc:"TOYOTA"'],
-      MODL: ['lot_model_desc:"CAMRY"'],
+      MODL: ['lot_model_desc:"CAMRY"', 'lot_model_desc:"CAMARY"'],
       YEAR: ['lot_year:[2018 TO 2020]'],
     });
     expect(body).toMatchObject({ page: 2, size: 100, start: 200, query: ['*'] });
@@ -78,8 +80,18 @@ describe('copart', () => {
 describe('iaai', () => {
   it('builds the search body with keyword + year range and 1-based paging', () => {
     const body = buildIaaiSearchBody(filters, 2);
-    expect(body.Searches[0]!.FullSearch).toBe('Toyota Camry');
-    expect(body.Searches[1]!.LongRanges).toEqual([{ From: 2018, Name: 'Year', To: 2020 }]);
+    expect(body.Searches).toEqual([
+      { Facets: [{ Group: 'Make', Value: 'TOYOTA' }], FullSearch: null, LongRanges: null },
+      {
+        Facets: [
+          { Group: 'Model', Value: 'CAMRY' },
+          { Group: 'Model', Value: 'CAMARY' },
+        ],
+        FullSearch: null,
+        LongRanges: null,
+      },
+      { Facets: null, FullSearch: null, LongRanges: [{ From: 2018, Name: 'Year', To: 2020 }] },
+    ]);
     expect(body).toMatchObject({ PageSize: 100, CurrentPage: 2 });
   });
 
@@ -142,5 +154,38 @@ describe('iaai', () => {
     expect(() => parseIaaiSearch('<html><body>hello</body></html>', 1)).toThrow(
       expect.objectContaining({ code: 'parse_failed' }),
     );
+  });
+});
+
+describe('site facets → canonical names (recorded 2026-09-17)', () => {
+  const nhtsaMercedes = (JSON.parse(fixture('nhtsa/models-mercedes-benz.json')) as { Results: { Model_Name: string }[] }).Results.map(
+    (r) => r.Model_Name,
+  );
+
+  it('reads Copart make/model facets in exact site spelling', () => {
+    const text = fixture('copart/facets-mercedes-benz-2017.json');
+    const makes = parseCopartFacets(text, 'MAKE');
+    expect(makes).toContainEqual({ name: 'MERCEDES-BENZ', count: 761 });
+    const models = parseCopartFacets(text, 'MODL');
+    expect(models).toContainEqual({ name: 'GLC COUPE', count: 14 });
+    expect(externalNamesFor(mapModels('Mercedes-Benz', nhtsaMercedes, models.map((m) => m.name)), 'C-Class')).toEqual(['C']);
+  });
+
+  it('reads IAAI make/model facets and maps every C-Class spelling', () => {
+    const html = fixture('iaai/facets-mercedes.html');
+    const makes = parseIaaiFacets(html, 'Make');
+    expect(externalNamesFor(mapMakes(['Mercedes-Benz', 'Mercury'], makes.map((m) => m.name)), 'Mercedes-Benz')).toEqual([
+      'MERCEDES',
+      'MERCEDES BENZ',
+      'MERCEDES-BENZ',
+    ]);
+    const models = parseIaaiFacets(html, 'Model').map((m) => m.name);
+    const cClass = externalNamesFor(mapModels('Mercedes-Benz', nhtsaMercedes, models), 'C-Class');
+    expect(cClass).toEqual(expect.arrayContaining(['AMG C 43', 'AMG C 63', 'C 300', 'C 63 AMG', 'C-CLASS', 'C300 4MATIC']));
+    expect(cClass.filter((m) => /^(AMG )?(CLA|CLS|CLK|CLE|CL)\b/.test(m))).toEqual([]);
+  });
+
+  it('treats a page without facet groups as a parse failure', () => {
+    expect(() => parseIaaiFacets('<html><body>nothing</body></html>', 'Make')).toThrow(SourceError);
   });
 });

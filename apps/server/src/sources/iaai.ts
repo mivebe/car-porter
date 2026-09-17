@@ -1,4 +1,4 @@
-import type { Lot, LotSearchFilters, LotSearchPage } from '@car-porter/core';
+import type { Lot, LotSearchPage } from '@car-porter/core';
 import * as cheerio from 'cheerio';
 import type { Page } from 'patchright';
 import type { BrowserManager } from '../scraping/browser.ts';
@@ -8,21 +8,38 @@ import {
   AUCTION_PAGE_SIZE,
   dollarsToCents,
   emptyToNull,
+  type AuctionQuery,
   type AuctionSearchAdapter,
+  type ExternalFacet,
+  type YearRange,
 } from './auction-adapter.ts';
 
 const ORIGIN = 'https://www.iaai.com';
 const PROFILE = 'iaai';
 
-/** Request body for IAAI's `POST /Search?c=<ts>` endpoint (returns an HTML results page). */
-export function buildIaaiSearchBody(filters: LotSearchFilters, page: number, size = AUCTION_PAGE_SIZE) {
+const facetSearch = (group: string, values: string[]) => ({
+  Facets: values.map((Value) => ({ Group: group, Value })),
+  FullSearch: null,
+  LongRanges: null,
+});
+
+/**
+ * Request body for IAAI's `POST /Search?c=<ts>` endpoint (returns an HTML results page).
+ * Facets inside one `Searches` entry are OR'ed, separate entries are AND'ed.
+ */
+export function buildIaaiSearchBody(
+  query: Partial<Pick<AuctionQuery, 'makes' | 'models'>> & YearRange,
+  page: number,
+  size = AUCTION_PAGE_SIZE,
+) {
   return {
     Searches: [
-      { Facets: null, FullSearch: `${filters.make} ${filters.model}`.trim(), LongRanges: null },
+      ...(query.makes?.length ? [facetSearch('Make', query.makes)] : []),
+      ...(query.models?.length ? [facetSearch('Model', query.models)] : []),
       {
         Facets: null,
         FullSearch: null,
-        LongRanges: [{ From: filters.yearFrom, Name: 'Year', To: filters.yearTo }],
+        LongRanges: [{ From: query.yearFrom, Name: 'Year', To: query.yearTo }],
       },
     ],
     ZipCode: '',
@@ -63,15 +80,31 @@ export function parseMoney(text: string | null | undefined): number | null {
   return m ? dollarsToCents(Number(m[1]!.replace(/,/g, ''))) : null;
 }
 
-/** Sum of the Year facet counts embedded in the page = total results for the search. */
-export function parseIaaiTotal(html: string): number | null {
-  const m = html.match(/"Group":"Year","Facets":(\[[^\]]*\])/);
+/** A facet group embedded in the page, e.g. `"Group":"Make","Facets":[{"Count":437,"Value":"MERCEDES-BENZ"}]`. */
+function facetGroup(html: string, group: string): { Count: number; Value: string }[] | null {
+  const m = html.match(new RegExp(`"Group":"${group}","Facets":(\\[[^\\]]*\\])`));
   if (!m) return null;
   try {
-    return (JSON.parse(m[1]!) as { Count: number }[]).reduce((sum, f) => sum + f.Count, 0);
+    return JSON.parse(m[1]!) as { Count: number; Value: string }[];
   } catch {
     return null;
   }
+}
+
+/** Sum of the Year facet counts embedded in the page = total results for the search. */
+export function parseIaaiTotal(html: string): number | null {
+  return facetGroup(html, 'Year')?.reduce((sum, f) => sum + f.Count, 0) ?? null;
+}
+
+/** Make or Model values in IAAI's own spelling for the current search. */
+export function parseIaaiFacets(html: string, group: 'Make' | 'Model'): ExternalFacet[] {
+  const challenge = detectChallenge(html);
+  if (challenge) throw new SourceError('blocked', `iaai: blocked by ${challenge}`);
+  const facets = facetGroup(html, group);
+  if (facets) return facets.map((f) => ({ name: f.Value, count: f.Count })).filter((f) => f.name);
+  // an empty search has no facet groups at all
+  if (facetGroup(html, 'Year') || /table-body/.test(html)) return [];
+  throw new SourceError('parse_failed', `iaai: no ${group} facets found`);
 }
 
 function splitQuotedArgs(call: string): string[] {
@@ -157,33 +190,37 @@ async function bootstrap(page: Page) {
 }
 
 export function createIaaiAdapter(browser: BrowserManager, queue: SourceQueue): AuctionSearchAdapter {
+  const post = <T>(body: unknown, parse: (html: string) => T) =>
+    queue.run('iaai', async () => {
+      for (let attempt = 1; ; attempt++) {
+        const sessionPage = await browser.sessionPage(PROFILE, bootstrap);
+        const res = await sessionPage.evaluate(async (payload) => {
+          const r = await fetch(`/Search?c=${Date.now()}`, {
+            method: 'POST',
+            headers: {
+              accept: '*/*',
+              'content-type': 'application/json; charset=UTF-8',
+              'x-requested-with': 'XMLHttpRequest',
+            },
+            body: JSON.stringify(payload),
+          });
+          return { status: r.status, text: await r.text() };
+        }, body);
+        try {
+          if (res.status === 403) throw new SourceError('blocked', 'iaai: 403 from search');
+          return parse(res.text);
+        } catch (err) {
+          if (attempt >= 2 || !(err instanceof SourceError) || err.code !== 'blocked') throw err;
+          await browser.resetSession(PROFILE);
+        }
+      }
+    });
+
   return {
     source: 'iaai',
-    search: (filters, page) =>
-      queue.run('iaai', async () => {
-        const body = buildIaaiSearchBody(filters, page);
-        for (let attempt = 1; ; attempt++) {
-          const sessionPage = await browser.sessionPage(PROFILE, bootstrap);
-          const res = await sessionPage.evaluate(async (payload) => {
-            const r = await fetch(`/Search?c=${Date.now()}`, {
-              method: 'POST',
-              headers: {
-                accept: '*/*',
-                'content-type': 'application/json; charset=UTF-8',
-                'x-requested-with': 'XMLHttpRequest',
-              },
-              body: JSON.stringify(payload),
-            });
-            return { status: r.status, text: await r.text() };
-          }, body);
-          try {
-            if (res.status === 403) throw new SourceError('blocked', 'iaai: 403 from search');
-            return parseIaaiSearch(res.text, page);
-          } catch (err) {
-            if (attempt >= 2 || !(err instanceof SourceError) || err.code !== 'blocked') throw err;
-            await browser.resetSession(PROFILE);
-          }
-        }
-      }),
+    makeFacets: (years) => post(buildIaaiSearchBody(years, 1, 1), (html) => parseIaaiFacets(html, 'Make')),
+    modelFacets: (makes, years) =>
+      post(buildIaaiSearchBody({ makes, ...years }, 1, 1), (html) => parseIaaiFacets(html, 'Model')),
+    search: (query, page) => post(buildIaaiSearchBody(query, page), (html) => parseIaaiSearch(html, page)),
   };
 }

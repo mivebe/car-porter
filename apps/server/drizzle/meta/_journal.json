@@ -15,6 +15,13 @@
       "when": 1789567097376,
       "tag": "0001_market_options",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1789628676795,
+      "tag": "0002_vehicle_aliases",
+      "breakpoints": true
     }
   ]
 }
