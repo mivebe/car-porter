@@ -7,6 +7,12 @@ async function pick(page: Page, label: string, search: string, option: string) {
   await page.getByRole('option', { name: option, exact: true }).click();
 }
 
+async function pickYear(page: Page, label: string, year: string) {
+  await page.getByRole('combobox', { name: label }).click();
+  await page.getByRole('listbox', { name: label }).getByRole('option', { name: year, exact: true }).click();
+  await expect(page.getByRole('listbox', { name: label })).toHaveCount(0);
+}
+
 // One pass through the whole app with the UI only. Scans are shared per model/year, so a section's
 // button may already read "Refresh" when other specs ran first.
 test('happy path: search → lot → estimate → history → cost → market → verdict → track → settings → language', async ({
@@ -15,8 +21,8 @@ test('happy path: search → lot → estimate → history → cost → market �
   await page.goto('/');
   await pick(page, 'Manufacturer', 'toyo', 'Toyota');
   await pick(page, 'Model', 'cam', 'Camry');
-  await page.getByLabel('Year from').fill('2018');
-  await page.getByLabel('Year to').fill('2020');
+  await pickYear(page, 'Year from', '2018');
+  await pickYear(page, 'Year to', '2020');
   await page.getByRole('button', { name: 'Search', exact: true }).click();
 
   await page.getByRole('tab', { name: 'IAAI' }).click();

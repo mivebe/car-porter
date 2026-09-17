@@ -1,7 +1,7 @@
 import type { LotSearchParams } from '@/lib/api';
 
-const MIN_YEAR = 1950;
-const maxYear = () => new Date().getFullYear() + 1;
+export const MIN_YEAR = 1950;
+export const MAX_YEAR = () => new Date().getFullYear() + 1;
 
 export type FilterErrors = Partial<Record<'make' | 'model' | 'yearFrom' | 'yearTo', string>>;
 
@@ -19,7 +19,7 @@ export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | 
   if (!draft.model.trim()) errors.model = 'search.errors.modelRequired';
   const from = Number(draft.yearFrom);
   const to = Number(draft.yearTo);
-  const validYear = (y: number) => Number.isInteger(y) && y >= MIN_YEAR && y <= maxYear();
+  const validYear = (y: number) => Number.isInteger(y) && y >= MIN_YEAR && y <= MAX_YEAR();
   if (!draft.yearFrom || !validYear(from)) errors.yearFrom = 'search.errors.yearInvalid';
   if (!draft.yearTo || !validYear(to)) errors.yearTo = 'search.errors.yearInvalid';
   if (!errors.yearFrom && !errors.yearTo && from > to) errors.yearTo = 'search.errors.yearOrder';

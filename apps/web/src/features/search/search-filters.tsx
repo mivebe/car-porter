@@ -4,11 +4,11 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api, type LotSearchParams } from '@/lib/api';
 import { validateFilters, type FilterDraft, type FilterErrors } from './validate-filters';
 import { Combobox } from './combobox';
+import { YearPicker } from './year-picker';
 
 interface SearchFiltersProps {
   initial: Partial<LotSearchParams>;
@@ -96,25 +96,29 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="filter-year-from">{t('search.yearFrom')}</Label>
-            <Input
+            <YearPicker
               id="filter-year-from"
-              inputMode="numeric"
+              ariaLabel={t('search.yearFrom')}
               placeholder="2018"
               value={draft.yearFrom}
-              aria-invalid={!!errors.yearFrom}
-              onChange={(e) => update({ yearFrom: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+              invalid={!!errors.yearFrom}
+              onChange={(yearFrom) =>
+                // keep the range valid: "to" follows "from" when it would end up earlier
+                update(draft.yearTo && Number(draft.yearTo) < Number(yearFrom) ? { yearFrom, yearTo: yearFrom } : { yearFrom })
+              }
             />
             {fieldError('yearFrom')}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="filter-year-to">{t('search.yearTo')}</Label>
-            <Input
+            <YearPicker
               id="filter-year-to"
-              inputMode="numeric"
+              ariaLabel={t('search.yearTo')}
               placeholder="2020"
               value={draft.yearTo}
-              aria-invalid={!!errors.yearTo}
-              onChange={(e) => update({ yearTo: e.target.value.replace(/\D/g, '').slice(0, 4) })}
+              min={draft.yearFrom ? Number(draft.yearFrom) : undefined}
+              invalid={!!errors.yearTo}
+              onChange={(yearTo) => update({ yearTo })}
             />
             {fieldError('yearTo')}
           </div>

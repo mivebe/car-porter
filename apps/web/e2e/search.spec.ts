@@ -7,6 +7,12 @@ async function pick(page: Page, label: string, search: string, option: string) {
   await page.getByRole('option', { name: option, exact: true }).click();
 }
 
+async function pickYear(page: Page, label: string, year: string) {
+  await page.getByRole('combobox', { name: label }).click();
+  await page.getByRole('listbox', { name: label }).getByRole('option', { name: year, exact: true }).click();
+  await expect(page.getByRole('listbox', { name: label })).toHaveCount(0);
+}
+
 test.describe('lot search', () => {
   test('validates required filters', async ({ page }) => {
     await page.goto('/');
@@ -15,10 +21,16 @@ test.describe('lot search', () => {
     await expect(page.getByText('Choose a model.')).toBeVisible();
     await expect(page.getByText('Enter a valid year.')).toHaveCount(2);
 
-    await page.getByLabel('Year from').fill('2021');
-    await page.getByLabel('Year to').fill('2019');
-    await page.getByRole('button', { name: 'Search', exact: true }).click();
-    await expect(page.getByText('Must be the same or later than “Year from”.')).toBeVisible();
+    // "to" can't be earlier than "from", and follows it when "from" moves past it
+    await pickYear(page, 'Year to', '2019');
+    await pickYear(page, 'Year from', '2021');
+    await expect(page.getByRole('combobox', { name: 'Year to' })).toHaveText('2021');
+    await page.getByRole('combobox', { name: 'Year to' }).click();
+    await expect(page.getByRole('listbox', { name: 'Year to' }).getByRole('option', { name: '2020', exact: true })).toBeDisabled();
+    await page.getByLabel('Type a year').fill('2023');
+    await page.getByLabel('Type a year').press('Enter');
+    await expect(page.getByRole('combobox', { name: 'Year to' })).toHaveText('2023');
+    await expect(page.getByText('Enter a valid year.')).toHaveCount(0);
   });
 
   test('searches Copart + IAAI, filters by source, sorts and loads more', async ({ page }) => {
@@ -27,8 +39,8 @@ test.describe('lot search', () => {
 
     await pick(page, 'Manufacturer', 'toyo', 'Toyota');
     await pick(page, 'Model', 'cam', 'Camry');
-    await page.getByLabel('Year from').fill('2018');
-    await page.getByLabel('Year to').fill('2020');
+    await pickYear(page, 'Year from', '2018');
+    await pickYear(page, 'Year to', '2020');
     await page.getByRole('button', { name: 'Search', exact: true }).click();
 
     await expect(page).toHaveURL(/make=Toyota&model=Camry&yearFrom=2018&yearTo=2020/);

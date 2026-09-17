@@ -56,6 +56,7 @@
     "model": "Модел",
     "yearFrom": "Година от",
     "yearTo": "Година до",
+    "typeYear": "Въведете година",
     "submit": "Търси",
     "selectMake": "Изберете марка",
     "selectModel": "Изберете модел",
