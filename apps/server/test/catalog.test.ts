@@ -22,14 +22,19 @@ describe('nhtsa parsers (real recorded responses)', () => {
     expect(names.filter((n) => n === 'Toyota')).toHaveLength(1);
   });
 
-  it('parses and dedupes models', () => {
-    const models = parseModels(fixture('models-toyota.json')).map((m) => m.name);
-    expect(models).toEqual(expect.arrayContaining(['Camry', 'Corolla', 'RAV4']));
+  it('merges models across vehicle types and dedupes', () => {
+    const models = parseModels([
+      fixture('models-toyota-car.json'),
+      fixture('models-toyota-mpv.json'),
+      fixture('models-toyota-truck.json'),
+    ]).map((m) => m.name);
+    // car, MPV and truck models of the same make end up in one list
+    expect(models).toEqual(expect.arrayContaining(['Camry', 'RAV4', 'Tacoma']));
     expect(new Set(models.map((m) => m.toLowerCase())).size).toBe(models.length);
   });
 
   it('throws parse_failed on unexpected payloads', () => {
-    expect(() => parseModels({ nope: true })).toThrow(SourceError);
+    expect(() => parseModels([{ nope: true }])).toThrow(SourceError);
     expect(() => parseMakes([{ Results: 'x' }])).toThrow(/unexpected makes/);
   });
 
@@ -65,7 +70,7 @@ describe('/api/catalog', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json().items.map((m: { name: string }) => m.name)).toContain('Camry');
     await app.inject({ method: 'GET', url: '/api/catalog/models?make=TOYOTA' });
-    expect(fetcher).toHaveBeenCalledTimes(1);
+    expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
   it('validates the make parameter', async () => {

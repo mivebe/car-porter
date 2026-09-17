@@ -58,22 +58,29 @@ export function parseMakes(responses: unknown[]): CatalogItem[] {
   return sortByName([...byId.values()]);
 }
 
-export function parseModels(response: unknown): CatalogItem[] {
-  const parsed = modelsResponse.safeParse(response);
-  if (!parsed.success) throw new SourceError('parse_failed', 'nhtsa: unexpected models response');
+export function parseModels(responses: unknown[]): CatalogItem[] {
   const byName = new Map<string, CatalogItem>();
-  for (const r of parsed.data.Results) {
-    const name = r.Model_Name.trim();
-    const key = name.toLowerCase();
-    if (!byName.has(key)) byName.set(key, { id: r.Model_ID, name });
+  for (const response of responses) {
+    const parsed = modelsResponse.safeParse(response);
+    if (!parsed.success) throw new SourceError('parse_failed', 'nhtsa: unexpected models response');
+    for (const r of parsed.data.Results) {
+      const name = r.Model_Name.trim();
+      const key = name.toLowerCase();
+      if (!byName.has(key)) byName.set(key, { id: r.Model_ID, name });
+    }
   }
   return sortByName([...byName.values()]);
 }
 
 export const makesUrl = (vehicleType: string) =>
   `${BASE}/GetMakesForVehicleType/${encodeURIComponent(vehicleType)}?format=json`;
-export const modelsUrl = (make: string) =>
-  `${BASE}/GetModelsForMake/${encodeURIComponent(make.trim().toLowerCase())}?format=json`;
+/**
+ * Models of one vehicle type. The plain `GetModelsForMake` endpoint answers with every type the
+ * make ever built, which buries the cars: Honda has 362 models there, 304 of them motorcycles.
+ */
+export const modelsUrl = (make: string, vehicleType: string) =>
+  `${BASE}/GetModelsForMakeYear/make/${encodeURIComponent(make.trim().toLowerCase())}` +
+  `/vehicletype/${encodeURIComponent(vehicleType)}?format=json`;
 
 export const httpJsonFetcher: JsonFetcher = async (url) => {
   const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
@@ -94,9 +101,10 @@ export function createCatalogService(cache: CacheRepository, fetchJson: JsonFetc
       ),
     models: (make: string) =>
       cached(
+        // v2: per-vehicle-type models; older entries hold the motorcycles and trailers too
         cache,
-        { key: `nhtsa:models:${make.trim().toLowerCase()}`, source: 'nhtsa', ttlMs: TTL_MS },
-        async () => parseModels(await fetchJson(modelsUrl(make))),
+        { key: `nhtsa:models:v2:${make.trim().toLowerCase()}`, source: 'nhtsa', ttlMs: TTL_MS },
+        async () => parseModels(await Promise.all(VEHICLE_TYPES.map((t) => fetchJson(modelsUrl(make, t))))),
       ),
   };
 }

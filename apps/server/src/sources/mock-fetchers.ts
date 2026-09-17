@@ -121,8 +121,17 @@ export const mockNhtsaFetcher: JsonFetcher = async (url) => {
     [makesUrl('multipurpose passenger vehicle (mpv)')]: 'nhtsa/makes-mpv.json',
     [makesUrl('truck')]: 'nhtsa/makes-truck.json',
     [makesUrl('motorcycle')]: 'nhtsa/makes-motorcycle.json',
-    [modelsUrl('toyota')]: 'nhtsa/models-toyota.json',
-    [modelsUrl('mercedes-benz')]: 'nhtsa/models-mercedes-benz.json',
+    ...Object.fromEntries(
+      ['toyota', 'mercedes-benz'].flatMap((make) =>
+        (
+          [
+            ['car', 'car'],
+            ['multipurpose passenger vehicle (mpv)', 'mpv'],
+            ['truck', 'truck'],
+          ] as const
+        ).map(([type, short]) => [modelsUrl(make, type), `nhtsa/models-${make}-${short}.json`]),
+      ),
+    ),
   };
   const file = routes[url];
   return file ? JSON.parse(await readFixture(file)) : { Count: 0, Results: [] };

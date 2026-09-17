@@ -158,8 +158,11 @@ describe('iaai', () => {
 });
 
 describe('site facets → canonical names (recorded 2026-09-17)', () => {
-  const nhtsaMercedes = (JSON.parse(fixture('nhtsa/models-mercedes-benz.json')) as { Results: { Model_Name: string }[] }).Results.map(
-    (r) => r.Model_Name,
+  const nhtsaMercedes = ['car', 'mpv', 'truck'].flatMap(
+    (type) =>
+      (JSON.parse(fixture(`nhtsa/models-mercedes-benz-${type}.json`)) as { Results: { Model_Name: string }[] }).Results.map(
+        (r) => r.Model_Name,
+      ),
   );
 
   it('reads Copart make/model facets in exact site spelling', () => {
