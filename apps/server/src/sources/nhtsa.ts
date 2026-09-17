@@ -12,6 +12,8 @@ export type JsonFetcher = (url: string) => Promise<unknown>;
 
 const BASE = 'https://vpic.nhtsa.dot.gov/api/vehicles';
 const VEHICLE_TYPES = ['car', 'multipurpose passenger vehicle (mpv)', 'truck'];
+/** Makes of these types that aren't also car/MPV/truck makes are recognised as "not a car". */
+export const NON_CAR_VEHICLE_TYPES = ['motorcycle', 'trailer', 'bus', 'low speed vehicle (lsv)', 'incomplete vehicle'];
 const TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 const makesResponse = z.object({
@@ -84,6 +86,11 @@ export function createCatalogService(cache: CacheRepository, fetchJson: JsonFetc
     makes: () =>
       cached(cache, { key: 'nhtsa:makes', source: 'nhtsa', ttlMs: TTL_MS }, async () =>
         parseMakes(await Promise.all(VEHICLE_TYPES.map((t) => fetchJson(makesUrl(t))))),
+      ),
+    /** Motorcycle, trailer, bus, LSV and incomplete-vehicle makes (~12k names). */
+    nonCarMakes: () =>
+      cached(cache, { key: 'nhtsa:makes:non-car', source: 'nhtsa', ttlMs: TTL_MS }, async () =>
+        parseMakes(await Promise.all(NON_CAR_VEHICLE_TYPES.map((t) => fetchJson(makesUrl(t))))),
       ),
     models: (make: string) =>
       cached(

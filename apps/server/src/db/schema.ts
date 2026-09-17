@@ -157,7 +157,8 @@ export const vehicleAliases = sqliteTable(
     canonicalMake: text('canonical_make').notNull(),
     canonical: text('canonical').notNull(),
     origin: text('origin', { enum: ['auto', 'manual'] }).notNull(),
-    match: text('match', { enum: ['exact', 'rule', 'fuzzy'] }),
+    /** 'non_car': an NHTSA motorcycle/trailer/bus make, stored in `canonical` and never searched */
+    match: text('match', { enum: ['exact', 'rule', 'fuzzy', 'non_car'] }),
     lotCount: integer('lot_count'),
     lastSeenAt: timestamp('last_seen_at').notNull().default(now),
   },

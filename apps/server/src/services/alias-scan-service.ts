@@ -11,6 +11,9 @@ export interface SourceScanProgress {
   /** models phase: makes finished / to do */
   done: number;
   total: number;
+  /** requests sent to the site so far */
+  requests: number;
+  /** makes phase: the year range being read; models phase: the make */
   current: string | null;
   /** makes whose model list could not be read */
   failed: { make: string; error: SourceErrorInfo }[];
@@ -45,24 +48,30 @@ export function createAliasScanService(deps: { adapters: AuctionSearchAdapter[];
     const { source } = adapter;
     const stop = () => cancelRequested;
     const years = deps.aliases.allYears();
+    const readMakes = () =>
+      readFacetsFully(adapter.facetLimit, years, (y) => adapter.makeFacets(y), {
+        shouldStop: stop,
+        onRequest: (y) => {
+          progress.requests++;
+          progress.current = y.yearFrom === y.yearTo ? String(y.yearFrom) : `${y.yearFrom}–${y.yearTo}`;
+        },
+      });
     try {
       let makes: string[];
       if (make) {
         makes = [make];
         progress.phase = 'makes';
         if ((await deps.aliases.storedExternalMakes(source, make)).length === 0) {
-          await deps.aliases.applyMakeFacets(source, await readFacetsFully(adapter.facetLimit, years, (y) => adapter.makeFacets(y), stop));
+          await deps.aliases.applyMakeFacets(source, await readMakes());
         }
       } else {
         progress.phase = 'makes';
-        const rows = await deps.aliases.applyMakeFacets(
-          source,
-          await readFacetsFully(adapter.facetLimit, years, (y) => adapter.makeFacets(y), stop),
-        );
+        const rows = await deps.aliases.applyMakeFacets(source, await readMakes());
         makes = [...new Set(rows.map((r) => r.canonical).filter((c): c is string => !!c))].sort();
       }
 
       progress.phase = 'models';
+      progress.current = null;
       progress.total = makes.length;
       let failuresInRow = 0;
       for (const canonical of makes) {
@@ -71,7 +80,10 @@ export function createAliasScanService(deps: { adapters: AuctionSearchAdapter[];
         const external = await deps.aliases.storedExternalMakes(source, canonical);
         if (external.length > 0) {
           try {
-            const facets = await readFacetsFully(adapter.facetLimit, years, (y) => adapter.modelFacets(external, y), stop);
+            const facets = await readFacetsFully(adapter.facetLimit, years, (y) => adapter.modelFacets(external, y), {
+              shouldStop: stop,
+              onRequest: () => progress.requests++,
+            });
             await deps.aliases.applyModelFacets(source, canonical, facets);
             failuresInRow = 0;
           } catch (err) {
@@ -99,7 +111,7 @@ export function createAliasScanService(deps: { adapters: AuctionSearchAdapter[];
       make,
       startedAt: new Date().toISOString(),
       finishedAt: null,
-      sources: deps.adapters.map((a) => ({ source: a.source, phase: 'queued', done: 0, total: 0, current: null, failed: [] })),
+      sources: deps.adapters.map((a) => ({ source: a.source, phase: 'queued', done: 0, total: 0, requests: 0, current: null, failed: [] })),
     };
     const current = status;
     running = (async () => {

@@ -114,7 +114,7 @@ describe('/api/lots/search', () => {
     const makes = await app.inject({ method: 'GET', url: '/api/aliases?kind=make&source=copart' });
     expect(makes.json().items).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ externalName: 'MERCEDES BENZ', auto: { targets: ['Mercedes-Benz'], match: 'exact' }, lotCount: 6 }),
+        expect.objectContaining({ externalName: 'MERCEDES BENZ', auto: { targets: ['Mercedes-Benz'], match: 'exact', nonCarMake: null }, lotCount: 6 }),
       ]),
     );
     expect(spy).toHaveBeenCalledTimes(1); // the C-Class search; G-Class has no site names

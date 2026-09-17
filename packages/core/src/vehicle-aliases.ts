@@ -78,6 +78,25 @@ export function mapMakes(canonicalMakes: string[], externalMakes: string[]): Ali
   });
 }
 
+/**
+ * Exact or added-words make lookup ("GREAT DANE TRAILERS" → Great Dane) for very large lists
+ * (NHTSA's ~12k trailer/motorcycle makes), without the abbreviation and typo rules of `mapMakes`.
+ */
+export function mapMakesByName(canonicalMakes: string[], externalMakes: string[]): AliasMapping[] {
+  const byKey = new Map<string, string>();
+  for (const name of canonicalMakes) if (!byKey.has(normalizeMake(name))) byKey.set(normalizeMake(name), name);
+  return externalMakes.map((external) => {
+    const exact = byKey.get(normalizeMake(external));
+    if (exact) return { external, canonical: exact, match: 'exact' };
+    const words = normalizeText(external).split(' ');
+    for (let n = words.length - 1; n >= 1; n--) {
+      const found = byKey.get(normalizeMake(words.slice(0, n).join(' ')));
+      if (found) return { external, canonical: found, match: 'rule' };
+    }
+    return { external, canonical: null, match: null };
+  });
+}
+
 function uniqueClosest<T>(items: T[], keyOf: (item: T) => string, key: string): T | null {
   const budget = allowedEdits(key.length);
   if (budget === 0) return null;

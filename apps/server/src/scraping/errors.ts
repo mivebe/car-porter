@@ -11,6 +11,9 @@ export class SourceError extends Error {
   }
 }
 
+/** How long a single in-page request to an auction site may take. */
+export const SITE_REQUEST_TIMEOUT_MS = 45_000;
+
 /** Maps any thrown value to a SourceErrorInfo suitable for API responses. */
 export function toSourceErrorInfo(err: unknown): SourceErrorInfo {
   if (err instanceof SourceError) return { code: err.code, message: err.message };

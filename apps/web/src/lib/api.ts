@@ -80,8 +80,9 @@ export interface FxResponse {
 }
 
 export type AliasKind = 'make' | 'model';
-export type AliasStatus = 'unassigned' | 'auto' | 'manual' | 'ignored';
-export type AliasAutoMatch = 'exact' | 'rule' | 'fuzzy';
+/** non_car: recognised as an NHTSA motorcycle/trailer/bus make, so not waiting for assignment */
+export type AliasStatus = 'unassigned' | 'auto' | 'non_car' | 'manual' | 'ignored';
+export type AliasAutoMatch = 'exact' | 'rule' | 'fuzzy' | 'non_car';
 
 /** A make or model name as an auction site spells it, and what it maps to in our catalog. */
 export interface AliasEntry {
@@ -92,7 +93,8 @@ export interface AliasEntry {
   make: string;
   lotCount: number | null;
   lastSeenAt: string;
-  auto: { targets: string[]; match: AliasAutoMatch | null };
+  /** nonCarMake: the NHTSA motorcycle/trailer/bus make it was recognised as */
+  auto: { targets: string[]; match: AliasAutoMatch | null; nonCarMake: string | null };
   /** null = not assigned by the user; targets [] = ignored */
   manual: { targets: string[] } | null;
   status: AliasStatus;
@@ -119,6 +121,9 @@ export interface AliasScanSource {
   phase: 'queued' | 'makes' | 'models' | 'done' | 'failed' | 'cancelled';
   done: number;
   total: number;
+  /** requests sent to the site so far */
+  requests: number;
+  /** makes phase: year range being read; models phase: the make */
   current: string | null;
   failed: { make: string; error: SourceErrorInfo }[];
   error?: SourceErrorInfo;

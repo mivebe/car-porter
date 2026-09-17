@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { editDistance, externalNamesFor, mapMakes, mapModels, modelTokens } from './vehicle-aliases.ts';
+import { editDistance, externalNamesFor, mapMakes, mapMakesByName, mapModels, modelTokens } from './vehicle-aliases.ts';
 
 // NHTSA names (the canonical catalog), trimmed to what the cases need
 const MAKES = ['Mercedes-Benz', 'Mercury', 'Toyota', 'Chevrolet', 'Nissan', 'Ram', 'Dodge', 'BMW', 'Mazda', 'Land Rover'];
@@ -43,6 +43,20 @@ describe('mapMakes', () => {
       TOYO: ['Toyota', 'rule'],
       'GREAT DANE': [null, null],
     });
+  });
+});
+
+describe('mapMakesByName', () => {
+  it('matches exact names and names with added words only', () => {
+    const rows = mapMakesByName(['HARLEY-DAVIDSON', 'GREAT DANE', 'FOREST RIVER'], [
+      'HARLEY-DAVIDSON', 'GREAT DANE TRAILERS', 'FORESRIVER', 'HARLEY',
+    ]);
+    expect(rows.map((r) => [r.external, r.canonical, r.match])).toEqual([
+      ['HARLEY-DAVIDSON', 'HARLEY-DAVIDSON', 'exact'],
+      ['GREAT DANE TRAILERS', 'GREAT DANE', 'rule'],
+      ['FORESRIVER', null, null],
+      ['HARLEY', null, null],
+    ]);
   });
 });
 

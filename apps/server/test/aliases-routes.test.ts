@@ -49,6 +49,28 @@ describe('/api/aliases', () => {
     expect(after.counts).toMatchObject({ unassigned: 0, ignored: 1 });
   });
 
+  it('recognises motorcycle/trailer/bus makes as not a car instead of unassigned', async () => {
+    app = await buildApp({ mockSources: true });
+    await search(app, 'Toyota', 'Camry');
+    const harley = await entries(app, { kind: 'make', source: 'iaai', status: 'non_car' });
+    expect(harley.items).toEqual([
+      expect.objectContaining({
+        externalName: 'HARLEY-DAVIDSON',
+        status: 'non_car',
+        auto: { targets: [], match: 'non_car', nonCarMake: 'Harley-Davidson' },
+      }),
+    ]);
+    // Honda is also a motorcycle make, but a car make first
+    expect((await entries(app, { kind: 'make', source: 'iaai', q: 'toyota' })).items[0]).toMatchObject({ status: 'auto' });
+
+    // still assignable, and not scanned for models
+    await assign(app, [{ source: 'iaai', kind: 'make', externalName: 'HARLEY-DAVIDSON' }], ['Harley-Davidson']);
+    expect((await entries(app, { kind: 'make', source: 'iaai', q: 'harley' })).items[0]).toMatchObject({
+      status: 'manual',
+      auto: { nonCarMake: 'Harley-Davidson' },
+    });
+  });
+
   it('reassigns a site model to several models, including a new one, and resets it', async () => {
     app = await buildApp({ mockSources: true });
     await search(app, 'Mercedes-Benz', 'C-Class');
@@ -60,7 +82,7 @@ describe('/api/aliases', () => {
       expect.objectContaining({
         status: 'manual',
         manual: { targets: expect.arrayContaining(['C 63 AMG', 'C-Class']) },
-        auto: { targets: ['C-Class'], match: 'rule' },
+        auto: { targets: ['C-Class'], match: 'rule', nonCarMake: null },
       }),
     ]);
 
@@ -100,8 +122,8 @@ describe('/api/aliases', () => {
 
     expect(status.state).toBe('done');
     expect(status.sources).toEqual([
-      expect.objectContaining({ source: 'copart', phase: 'done', done: 2, total: 2, failed: [] }),
-      expect.objectContaining({ source: 'iaai', phase: 'done', done: 2, total: 2, failed: [] }),
+      expect.objectContaining({ source: 'copart', phase: 'done', done: 2, total: 2, requests: 3, failed: [] }),
+      expect.objectContaining({ source: 'iaai', phase: 'done', done: 2, total: 2, requests: 3, failed: [] }),
     ]);
     const toyota = await entries(app, { kind: 'model', source: 'copart', make: 'Toyota' });
     expect(toyota.items.map((e) => e.externalName)).toEqual(['CAMRY', 'COROLLA', 'RAV4', 'CAMARY']);
@@ -115,15 +137,29 @@ describe('/api/aliases', () => {
 describe('readFacetsFully', () => {
   it('splits the year range while a truncated facet hits the limit, merging counts', async () => {
     const calls: string[] = [];
-    const facets = await readFacetsFully(2, { yearFrom: 2000, yearTo: 2003 }, async ({ yearFrom, yearTo }) => {
-      calls.push(`${yearFrom}-${yearTo}`);
+    const facets = await readFacetsFully(2, { yearFrom: 1971, yearTo: 2003 }, async ({ yearFrom, yearTo }) => {
+      if (yearTo < 2000) return [];
       if (yearTo > yearFrom) return [{ name: 'A', count: 9 }, { name: 'B', count: 9 }];
       return yearFrom === 2002 ? [{ name: 'A', count: 1 }, { name: 'C', count: 1 }] : [{ name: 'A', count: 1 }];
-    });
-    expect(calls).toEqual(['2000-2003', '2000-2001', '2000-2000', '2001-2001', '2002-2003', '2002-2002', '2003-2003']);
+    }, { onRequest: ({ yearFrom, yearTo }) => calls.push(`${yearFrom}-${yearTo}`) });
+    // halves while long, then straight to single years
+    expect(calls).toEqual([
+      '1971-2003', '1971-1987', '1988-2003',
+      ...Array.from({ length: 16 }, (_, i) => `${1988 + i}-${1988 + i}`),
+    ]);
     expect(facets).toEqual([
       { name: 'A', count: 4 },
       { name: 'C', count: 1 },
     ]);
+  });
+
+  it('stops splitting once cancelled', async () => {
+    let requests = 0;
+    let stop = false;
+    await readFacetsFully(1, { yearFrom: 2000, yearTo: 2010 }, async () => {
+      if (++requests === 3) stop = true;
+      return [{ name: 'A', count: 1 }];
+    }, { shouldStop: () => stop });
+    expect(requests).toBe(3);
   });
 });

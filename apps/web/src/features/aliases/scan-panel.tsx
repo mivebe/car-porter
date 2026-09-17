@@ -76,6 +76,11 @@ function SourceProgress({ progress: p }: { progress: AliasScanSource }) {
         <SourceBadge source={p.source} />
         {active && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
         <span>{t(`aliases.scan.phase.${p.phase}`)}</span>
+        {p.phase === 'makes' && (
+          <span className="tabular-nums text-muted-foreground">
+            {t('aliases.scan.makesProgress', { count: p.requests, years: p.current ?? '' })}
+          </span>
+        )}
         {p.phase === 'models' && (
           <span className="tabular-nums text-muted-foreground">
             {p.done}/{p.total}

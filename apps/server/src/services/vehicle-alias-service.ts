@@ -1,5 +1,6 @@
 import {
   mapMakes,
+  mapMakesByName,
   mapModels,
   normalizeMake,
   normalizeText,
@@ -29,8 +30,9 @@ export interface MatchedNames {
   models: string[];
 }
 
-export type AliasStatus = 'unassigned' | 'auto' | 'manual' | 'ignored';
-export const ALIAS_STATUSES: AliasStatus[] = ['unassigned', 'auto', 'manual', 'ignored'];
+/** non_car: automatically recognised as a motorcycle/trailer/bus make, so not waiting for assignment */
+export type AliasStatus = 'unassigned' | 'auto' | 'non_car' | 'manual' | 'ignored';
+export const ALIAS_STATUSES: AliasStatus[] = ['unassigned', 'auto', 'non_car', 'manual', 'ignored'];
 
 /** One site name with its automatic suggestion and the user's assignment, if any. */
 export interface AliasEntry {
@@ -41,7 +43,8 @@ export interface AliasEntry {
   make: string;
   lotCount: number | null;
   lastSeenAt: string;
-  auto: { targets: string[]; match: AutoMatch | null };
+  /** nonCarMake: the NHTSA motorcycle/trailer/bus make it was recognised as */
+  auto: { targets: string[]; match: AutoMatch | null; nonCarMake: string | null };
   /** null = not assigned by the user; targets [] = ignored */
   manual: { targets: string[] } | null;
   status: AliasStatus;
@@ -58,23 +61,38 @@ export interface AliasEntryFilter {
 
 const ALL_YEARS = (): YearRange => ({ yearFrom: 1900, yearTo: new Date().getFullYear() + 1 });
 
+/** Ranges up to this many years are split straight into single years (they nearly always hit the limit). */
+const SPLIT_TO_YEARS_SPAN = 16;
+
 /**
  * Reads a facet over a year range. When the site truncates facets (Copart) and the limit is hit,
- * the range is split and the halves merged, so rare spellings are not cut off.
+ * the range is split (halves, or single years once short) and the parts merged, so rare
+ * spellings are not cut off. `onRequest` is told about every site request, for progress.
  */
 export async function readFacetsFully(
   limit: number | undefined,
   years: YearRange,
   load: (years: YearRange) => Promise<ExternalFacet[]>,
-  shouldStop: () => boolean = () => false,
+  options: { shouldStop?: () => boolean; onRequest?: (years: YearRange) => void } = {},
 ): Promise<ExternalFacet[]> {
+  const { shouldStop = () => false, onRequest } = options;
+  onRequest?.(years);
   const facets = await load(years);
   if (!limit || facets.length < limit || years.yearFrom >= years.yearTo || shouldStop()) return facets;
+  const span = years.yearTo - years.yearFrom + 1;
   const mid = Math.floor((years.yearFrom + years.yearTo) / 2);
-  const parts = [
-    await readFacetsFully(limit, { yearFrom: years.yearFrom, yearTo: mid }, load, shouldStop),
-    await readFacetsFully(limit, { yearFrom: mid + 1, yearTo: years.yearTo }, load, shouldStop),
-  ];
+  const ranges =
+    span <= SPLIT_TO_YEARS_SPAN
+      ? Array.from({ length: span }, (_, i) => ({ yearFrom: years.yearFrom + i, yearTo: years.yearFrom + i }))
+      : [
+          { yearFrom: years.yearFrom, yearTo: mid },
+          { yearFrom: mid + 1, yearTo: years.yearTo },
+        ];
+  const parts: ExternalFacet[][] = [];
+  for (const range of ranges) {
+    if (shouldStop()) break;
+    parts.push(await readFacetsFully(limit, range, load, options));
+  }
   const merged = new Map<string, number>();
   for (const f of parts.flat()) merged.set(f.name, (merged.get(f.name) ?? 0) + f.count);
   return [...merged].map(([name, count]) => ({ name, count }));
@@ -95,6 +113,14 @@ export function createVehicleAliasService(deps: {
     const catalog = await deps.catalog.makes();
     const names = catalog.ok ? catalog.data.map((m) => m.name) : [];
     return [...new Set([...names, ...(await deps.aliases.manualTargets('make'))])];
+  }
+
+  /** NHTSA non-car makes that aren't also car makes (e.g. Harley-Davidson, but not Ford). */
+  async function nonCarMakes(carMakes: string[]): Promise<string[]> {
+    const catalog = await deps.catalog.nonCarMakes();
+    if (!catalog.ok) return [];
+    const cars = new Set(carMakes.map(normalizeMake));
+    return catalog.data.map((m) => m.name).filter((name) => !cars.has(normalizeMake(name)));
   }
 
   async function catalogModels(make: string): Promise<string[]> {
@@ -124,15 +150,22 @@ export function createVehicleAliasService(deps: {
 
   /** Maps and stores a site's make facets; returns the effective mappings. */
   async function applyMakeFacets(source: AuctionSource, facets: ExternalFacet[]) {
-    const computed = mapMakes(await canonicalMakes(), facets.map((f) => f.name));
+    const makes = await canonicalMakes();
+    const computed = mapMakes(makes, facets.map((f) => f.name));
+    const unmatched = computed.filter((m) => !m.canonical).map((m) => m.external);
+    const nonCar = new Map(
+      (unmatched.length ? mapMakesByName(await nonCarMakes(makes), unmatched) : [])
+        .filter((m) => m.canonical)
+        .map((m) => [m.external, m.canonical!]),
+    );
     const counts = new Map(facets.map((f) => [f.name, f.count]));
     await deps.aliases.replaceAuto(
       { source, kind: 'make' },
       computed.map((m) => ({
         externalName: m.external,
         canonicalMake: m.canonical ?? '',
-        canonical: '',
-        match: m.match === 'manual' ? null : m.match,
+        canonical: nonCar.get(m.external) ?? '',
+        match: nonCar.has(m.external) ? 'non_car' : m.match === 'manual' ? null : m.match,
         lotCount: counts.get(m.external) ?? null,
       })),
     );
@@ -163,7 +196,9 @@ export function createVehicleAliasService(deps: {
       source,
       'make',
       '',
-      rows.filter((r) => r.origin === 'auto').map((r) => ({ external: r.externalName, canonical: r.canonicalMake || null, match: r.match })),
+      rows
+        .filter((r) => r.origin === 'auto')
+        .map((r) => ({ external: r.externalName, canonical: r.canonicalMake || null, match: r.match === 'non_car' ? null : r.match })),
     );
     return mappings.filter((m) => m.canonical && normalizeMake(m.canonical) === normalizeMake(make)).map((m) => m.external);
   }
@@ -210,7 +245,7 @@ export function createVehicleAliasService(deps: {
     const groups = new Map<string, VehicleAlias[]>();
     for (const r of rows) {
       const scope = r.kind === 'model' ? r.canonicalMake : '';
-      const key = `${r.source} ${scope} ${r.externalName}`;
+      const key = `${r.source}|${scope}|${r.externalName}`;
       groups.set(key, [...(groups.get(key) ?? []), r]);
     }
 
@@ -219,11 +254,12 @@ export function createVehicleAliasService(deps: {
       const first = group[0]!;
       const auto = group.filter((r) => r.origin === 'auto');
       const manual = group.filter((r) => r.origin === 'manual');
-      const autoTargets = auto.map(target).filter(Boolean);
+      const nonCar = auto.find((r) => r.match === 'non_car');
+      const autoTargets = auto.filter((r) => r !== nonCar).map(target).filter(Boolean);
       const manualTargets = manual.map(target).filter(Boolean);
       const status: AliasStatus = manual.length
         ? manualTargets.length ? 'manual' : 'ignored'
-        : autoTargets.length ? 'auto' : 'unassigned';
+        : autoTargets.length ? 'auto' : nonCar ? 'non_car' : 'unassigned';
       const newest = group.reduce((a, b) => (b.lastSeenAt > a.lastSeenAt ? b : a));
       return {
         source: first.source,
@@ -232,7 +268,7 @@ export function createVehicleAliasService(deps: {
         make: first.kind === 'model' ? first.canonicalMake : '',
         lotCount: auto[0]?.lotCount ?? manual[0]?.lotCount ?? null,
         lastSeenAt: newest.lastSeenAt.toISOString(),
-        auto: { targets: autoTargets, match: auto.find((r) => r.match)?.match ?? null },
+        auto: { targets: autoTargets, match: auto.find((r) => r.match)?.match ?? null, nonCarMake: nonCar?.canonical ?? null },
         manual: manual.length ? { targets: manualTargets } : null,
         status,
       };

@@ -2,7 +2,7 @@ import type { Lot, LotSearchPage } from '@car-porter/core';
 import * as cheerio from 'cheerio';
 import type { Page } from 'patchright';
 import type { BrowserManager } from '../scraping/browser.ts';
-import { detectChallenge, SourceError } from '../scraping/errors.ts';
+import { detectChallenge, SITE_REQUEST_TIMEOUT_MS, SourceError } from '../scraping/errors.ts';
 import type { SourceQueue } from '../scraping/source-queue.ts';
 import {
   AUCTION_PAGE_SIZE,
@@ -193,24 +193,34 @@ export function createIaaiAdapter(browser: BrowserManager, queue: SourceQueue): 
   const post = <T>(body: unknown, parse: (html: string) => T) =>
     queue.run('iaai', async () => {
       for (let attempt = 1; ; attempt++) {
-        const sessionPage = await browser.sessionPage(PROFILE, bootstrap);
-        const res = await sessionPage.evaluate(async (payload) => {
-          const r = await fetch(`/Search?c=${Date.now()}`, {
-            method: 'POST',
-            headers: {
-              accept: '*/*',
-              'content-type': 'application/json; charset=UTF-8',
-              'x-requested-with': 'XMLHttpRequest',
-            },
-            body: JSON.stringify(payload),
-          });
-          return { status: r.status, text: await r.text() };
-        }, body);
         try {
+          const sessionPage = await browser.sessionPage(PROFILE, bootstrap);
+          const res = await sessionPage.evaluate(
+            async ({ payload, timeoutMs }) => {
+              try {
+                const r = await fetch(`/Search?c=${Date.now()}`, {
+                  method: 'POST',
+                  headers: {
+                    accept: '*/*',
+                    'content-type': 'application/json; charset=UTF-8',
+                    'x-requested-with': 'XMLHttpRequest',
+                  },
+                  body: JSON.stringify(payload),
+                  signal: AbortSignal.timeout(timeoutMs),
+                });
+                return { status: r.status, text: await r.text(), timedOut: false };
+              } catch (err) {
+                if ((err as Error).name === 'TimeoutError') return { status: 0, text: '', timedOut: true };
+                throw err;
+              }
+            },
+            { payload: body, timeoutMs: SITE_REQUEST_TIMEOUT_MS },
+          );
+          if (res.timedOut) throw new SourceError('timeout', `iaai: no answer within ${SITE_REQUEST_TIMEOUT_MS / 1000}s`);
           if (res.status === 403) throw new SourceError('blocked', 'iaai: 403 from search');
           return parse(res.text);
         } catch (err) {
-          if (attempt >= 2 || !(err instanceof SourceError) || err.code !== 'blocked') throw err;
+          if (attempt >= 2 || !(err instanceof SourceError) || (err.code !== 'blocked' && err.code !== 'timeout')) throw err;
           await browser.resetSession(PROFILE);
         }
       }

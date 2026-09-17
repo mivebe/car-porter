@@ -5,7 +5,7 @@ import { vehicleAliases } from '../db/schema.ts';
 
 export type AliasKind = 'make' | 'model';
 export type AliasOrigin = 'auto' | 'manual';
-export type AutoMatch = 'exact' | 'rule' | 'fuzzy';
+export type AutoMatch = 'exact' | 'rule' | 'fuzzy' | 'non_car';
 
 export interface VehicleAlias {
   source: AuctionSource;

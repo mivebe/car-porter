@@ -120,6 +120,7 @@ export const mockNhtsaFetcher: JsonFetcher = async (url) => {
     [makesUrl('car')]: 'nhtsa/makes-car.json',
     [makesUrl('multipurpose passenger vehicle (mpv)')]: 'nhtsa/makes-mpv.json',
     [makesUrl('truck')]: 'nhtsa/makes-truck.json',
+    [makesUrl('motorcycle')]: 'nhtsa/makes-motorcycle.json',
     [modelsUrl('toyota')]: 'nhtsa/models-toyota.json',
     [modelsUrl('mercedes-benz')]: 'nhtsa/models-mercedes-benz.json',
   };
@@ -134,6 +135,7 @@ const MOCK_MAKES: ExternalFacet[] = [
   { name: 'MERCEDES-BENZ', count: 700 },
   { name: 'MERCEDES BENZ', count: 6 },
   { name: 'GREAT DANE TRAILERS', count: 16 },
+  { name: 'HARLEY-DAVIDSON', count: 300 },
 ];
 const MOCK_MODELS: Record<string, ExternalFacet[]> = {
   TOYOTA: [

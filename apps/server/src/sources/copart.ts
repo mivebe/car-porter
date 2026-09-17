@@ -2,7 +2,7 @@ import type { Lot, LotSearchPage } from '@car-porter/core';
 import type { Page } from 'patchright';
 import { z } from 'zod';
 import type { BrowserManager } from '../scraping/browser.ts';
-import { detectChallenge, SourceError } from '../scraping/errors.ts';
+import { detectChallenge, SITE_REQUEST_TIMEOUT_MS, SourceError } from '../scraping/errors.ts';
 import type { SourceQueue } from '../scraping/source-queue.ts';
 import {
   AUCTION_PAGE_SIZE,
@@ -191,20 +191,31 @@ async function bootstrap(page: Page) {
 }
 
 async function postFromPage(page: Page, body: unknown) {
-  return page.evaluate(async (payload) => {
-    const xsrf = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/)?.[1];
-    const res = await fetch('/public/lots/search-results', {
-      method: 'POST',
-      headers: {
-        accept: 'application/json, text/plain, */*',
-        'content-type': 'application/json',
-        'x-requested-with': 'XMLHttpRequest',
-        ...(xsrf ? { 'x-xsrf-token': decodeURIComponent(xsrf) } : {}),
-      },
-      body: JSON.stringify(payload),
-    });
-    return { status: res.status, text: await res.text() };
-  }, body);
+  const res = await page.evaluate(
+    async ({ payload, timeoutMs }) => {
+      const xsrf = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]+)/)?.[1];
+      try {
+        const r = await fetch('/public/lots/search-results', {
+          method: 'POST',
+          headers: {
+            accept: 'application/json, text/plain, */*',
+            'content-type': 'application/json',
+            'x-requested-with': 'XMLHttpRequest',
+            ...(xsrf ? { 'x-xsrf-token': decodeURIComponent(xsrf) } : {}),
+          },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(timeoutMs),
+        });
+        return { status: r.status, text: await r.text(), timedOut: false };
+      } catch (err) {
+        if ((err as Error).name === 'TimeoutError') return { status: 0, text: '', timedOut: true };
+        throw err;
+      }
+    },
+    { payload: body, timeoutMs: SITE_REQUEST_TIMEOUT_MS },
+  );
+  if (res.timedOut) throw new SourceError('timeout', `copart: no answer within ${SITE_REQUEST_TIMEOUT_MS / 1000}s`);
+  return res;
 }
 
 export function createCopartAdapter(
@@ -214,14 +225,14 @@ export function createCopartAdapter(
   const post = <T>(body: unknown, parse: (text: string) => T) =>
     queue.run('copart', async () => {
       for (let attempt = 1; ; attempt++) {
-        const sessionPage = await browser.sessionPage(PROFILE, bootstrap);
-        const res = await postFromPage(sessionPage, body);
         try {
+          const sessionPage = await browser.sessionPage(PROFILE, bootstrap);
+          const res = await postFromPage(sessionPage, body);
           if (res.status === 403) throw new SourceError('blocked', 'copart: 403 from search API');
           return parse(res.text);
         } catch (err) {
-          // tokens can expire; re-bootstrap once
-          if (attempt >= 2 || !(err instanceof SourceError) || err.code !== 'blocked') throw err;
+          // tokens can expire and hung requests usually mean a stale session; re-bootstrap once
+          if (attempt >= 2 || !(err instanceof SourceError) || (err.code !== 'blocked' && err.code !== 'timeout')) throw err;
           await browser.resetSession(PROFILE);
         }
       }

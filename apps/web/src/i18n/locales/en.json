@@ -415,6 +415,7 @@
     "status": {
       "unassigned": "Unassigned",
       "auto": "Automatic",
+      "non_car": "Not a car",
       "manual": "Assigned by you",
       "ignored": "Ignored"
     },
@@ -471,7 +472,7 @@
     },
     "scan": {
       "title": "Check the sites for new names",
-      "hint": "Reads every make, and the models of every assigned make, from Copart and IAAI. A full scan takes a while; searches wait while it runs.",
+      "hint": "Reads every make, and the models of every assigned make, from Copart and IAAI. Copart only lists 100 makes per request, so reading its makes takes about 150 requests (10+ minutes); searches wait while a scan runs.",
       "runningAll": "Scanning all makes and models…",
       "runningMake": "Scanning {{make}} models…",
       "finished": {
@@ -489,7 +490,9 @@
         "failed": "Failed",
         "cancelled": "Stopped"
       },
-      "failedMakes": "Could not read models of: {{makes}}"
+      "failedMakes": "Could not read models of: {{makes}}",
+      "makesProgress_one": "{{count}} request · {{years}}",
+      "makesProgress_other": "{{count}} requests · {{years}}"
     },
     "unassignedCount_one": "{{count}} unassigned name",
     "unassignedCount_other": "{{count}} unassigned names",
@@ -497,6 +500,7 @@
     "emptyUnassigned": "Nothing to assign. Run a scan to check the sites for new names.",
     "truncated": "Showing {{shown}} of {{total}}. Narrow the filters to see the rest.",
     "requestFailed": "Could not load aliases.",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "nonCarMake": "NHTSA motorcycle/trailer/bus make: {{make}}"
   }
 }
