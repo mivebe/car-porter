@@ -20,11 +20,19 @@ const PROFILE = 'copart';
 const quote = (value: string) => `"${value.trim().toUpperCase().replace(/"/g, '')}"`;
 
 /**
+ * Cars, SUVs, pickups and vans. Copart's other types (motorcycles, boats, trailers, heavy trucks,
+ * ATVs, industrial equipment) bring in makes and models we never import, e.g. forklift models
+ * under Toyota. Verified live 2026-09-17: this keeps 4Runner, Tacoma and Sienna.
+ */
+const AUTOMOBILES = 'vehicle_type_code:VEHTYPE_V';
+
+/**
  * Filter map for the search API. Values under one key are OR'ed, keys are AND'ed. Facets are
  * computed "multi-select" style: a key's own facet ignores that key's filter.
  */
 export function copartFilter(query: Partial<Pick<AuctionQuery, 'makes' | 'models'>> & YearRange) {
   return {
+    VEHT: [AUTOMOBILES],
     ...(query.makes?.length ? { MAKE: query.makes.map((m) => `lot_make_desc:${quote(m)}`) } : {}),
     ...(query.models?.length
       ? { MODL: query.models.map((m) => `lot_model_desc:${quote(m)}`) }

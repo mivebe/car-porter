@@ -125,7 +125,8 @@ export function createVehicleAliasService(deps: {
   aliases: VehicleAliasesRepository;
 }) {
   async function cachedFacets(source: AuctionSource, key: string, force: boolean, load: () => Promise<ExternalFacet[]>) {
-    const result = await cached(deps.cache, { key: `aliases:${source}:${key}`, source, ttlMs: ALIAS_FACETS_TTL_MS, force }, load);
+    // v2: facets read with the sites' car-only filter; older entries also hold boats and trailers
+    const result = await cached(deps.cache, { key: `aliases:v2:${source}:${key}`, source, ttlMs: ALIAS_FACETS_TTL_MS, force }, load);
     if (!result.ok) throw new SourceError(result.error.code, result.error.message);
     return result.data;
   }

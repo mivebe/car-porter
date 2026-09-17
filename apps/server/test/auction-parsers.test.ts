@@ -19,6 +19,7 @@ describe('copart', () => {
   it('builds the search API body with make/model/year filters and 0-based paging', () => {
     const body = buildCopartSearchBody(filters, 3);
     expect(body.filter).toEqual({
+      VEHT: ['vehicle_type_code:VEHTYPE_V'],
       MAKE: ['lot_make_desc:"TOYOTA"'],
       MODL: ['lot_model_desc:"CAMRY"', 'lot_model_desc:"CAMARY"'],
       YEAR: ['lot_year:[2018 TO 2020]'],
@@ -81,6 +82,19 @@ describe('iaai', () => {
   it('builds the search body with keyword + year range and 1-based paging', () => {
     const body = buildIaaiSearchBody(filters, 2);
     expect(body.Searches).toEqual([
+      {
+        Facets: [
+          { Group: 'InventoryTypes', Value: 'Automobiles' },
+          { Group: 'InventoryTypes', Value: 'SUVs' },
+          { Group: 'InventoryTypes', Value: 'Vans' },
+          { Group: 'InventoryTypes', Value: 'Pick-up Trucks' },
+          { Group: 'InventoryTypes', Value: 'Light Trucks' },
+          { Group: 'InventoryTypes', Value: 'Fleet Vehicles' },
+          { Group: 'InventoryTypes', Value: 'Rental Vehicles' },
+        ],
+        FullSearch: null,
+        LongRanges: null,
+      },
       { Facets: [{ Group: 'Make', Value: 'TOYOTA' }], FullSearch: null, LongRanges: null },
       {
         Facets: [

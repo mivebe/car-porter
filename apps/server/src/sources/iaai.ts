@@ -24,6 +24,21 @@ const facetSearch = (group: string, values: string[]) => ({
 });
 
 /**
+ * The inventory types worth importing. Without them the make facet holds ~1100 names — boat,
+ * trailer and RV builders — instead of ~150 (verified live 2026-09-17). Fleet and rental vehicles
+ * are cars filed under their own type, so they stay in.
+ */
+const CAR_INVENTORY_TYPES = [
+  'Automobiles',
+  'SUVs',
+  'Vans',
+  'Pick-up Trucks',
+  'Light Trucks',
+  'Fleet Vehicles',
+  'Rental Vehicles',
+];
+
+/**
  * Request body for IAAI's `POST /Search?c=<ts>` endpoint (returns an HTML results page).
  * Facets inside one `Searches` entry are OR'ed, separate entries are AND'ed.
  */
@@ -34,6 +49,7 @@ export function buildIaaiSearchBody(
 ) {
   return {
     Searches: [
+      facetSearch('InventoryTypes', CAR_INVENTORY_TYPES),
       ...(query.makes?.length ? [facetSearch('Make', query.makes)] : []),
       ...(query.models?.length ? [facetSearch('Model', query.models)] : []),
       {
