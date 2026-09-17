@@ -63,6 +63,24 @@ describe('/api/catalog', () => {
     expect(fetcher).toHaveBeenCalledTimes(3);
   });
 
+  it('narrows makes to the ones the sites file lots under, once a site has been read', async () => {
+    app = await buildApp({ mockSources: true });
+    const all = (await app.inject({ method: 'GET', url: '/api/catalog/makes' })).json().items as { name: string }[];
+    expect(all.length).toBeGreaterThan(100);
+
+    await app.inject({
+      method: 'GET',
+      url: `/api/lots/search?${new URLSearchParams({ make: 'Toyota', model: 'Camry', yearFrom: '2018', yearTo: '2020' })}`,
+    });
+
+    const names = ((await app.inject({ method: 'GET', url: '/api/catalog/makes' })).json().items as { name: string }[]).map(
+      (m) => m.name,
+    );
+    // the mock sites file lots under Toyota and Mercedes-Benz only
+    expect(names).toEqual(expect.arrayContaining(['Toyota', 'Mercedes-Benz']));
+    expect(names).not.toContain('Ferrari');
+  });
+
   it('serves models for a make (case-insensitive cache key)', async () => {
     const fetcher = vi.fn(mockNhtsaFetcher);
     app = await buildApp({ overrides: { nhtsaFetcher: fetcher } });

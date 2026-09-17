@@ -125,8 +125,8 @@ export async function buildApp({
     repos.cache,
     overrides.nhtsaFetcher ?? (mockSources ? mockNhtsaFetcher : httpJsonFetcher),
   );
-  await app.register(catalogRoutes, { catalog, aliases: repos.vehicleAliases });
   const aliases = createVehicleAliasService({ catalog, cache: repos.cache, aliases: repos.vehicleAliases });
+  await app.register(catalogRoutes, { catalog, aliases: repos.vehicleAliases, aliasService: aliases });
   const aliasScan = createAliasScanService({ adapters: auctionAdapters, aliases });
   app.addHook('preClose', async () => {
     aliasScan.cancel();
