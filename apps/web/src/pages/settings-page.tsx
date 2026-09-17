@@ -1,4 +1,4 @@
-import { DEFAULT_SETTINGS, MARKET_SOURCES, settingsSchema, type Settings } from '@car-porter/core';
+import { DEFAULT_SETTINGS, MARKET_SOURCES, PALETTES, settingsSchema, type Settings } from '@car-porter/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ExternalLink, Loader2, Plus, RotateCcw, Save, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
@@ -23,7 +23,7 @@ import { TRACKED_KEY } from '@/features/tracking/tracking-hooks';
 import { SUPPORTED_LANGUAGES, type Language } from '@/i18n';
 import { api } from '@/lib/api';
 import { useUpdatePreferences } from '@/lib/preferences';
-import { useTheme, type Theme } from '@/lib/theme';
+import { useTheme, type Palette, type Theme } from '@/lib/theme';
 
 export function SettingsPage() {
   const { t } = useTranslation();
@@ -391,9 +391,17 @@ function SettingsForm({ saved }: { saved: Settings }) {
 
 const THEMES = ['dark', 'light'] as const;
 
+/** Ground and accent of each palette in dark mode, for the picker swatch. */
+const SWATCHES: Record<Palette, [string, string]> = {
+  champagne: ['#121110', '#D6B77C'],
+  racing: ['#0D1411', '#C6A15B'],
+  petrol: ['#0C1117', '#D08A5C'],
+  titanium: ['#0F1012', '#A9C4D6'],
+};
+
 function AppearanceCard() {
   const { t, i18n } = useTranslation();
-  const { theme } = useTheme();
+  const { theme, palette } = useTheme();
   const preferences = useUpdatePreferences();
 
   // Radix Select inside a <form> reports "" when its value is changed from outside (e.g. the saved
@@ -402,7 +410,7 @@ function AppearanceCard() {
     <SettingsCard
       title={t('settings.appearance.title')}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <div className="grid gap-1.5">
           <Label htmlFor="settings-language" className="font-normal">
             {t('header.language')}
@@ -422,6 +430,33 @@ function AppearanceCard() {
               {SUPPORTED_LANGUAGES.map((lng) => (
                 <SelectItem key={lng} value={lng}>
                   {t(`language.${lng}`)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-1.5">
+          <Label htmlFor="settings-palette" className="font-normal">
+            {t('settings.appearance.palette')}
+          </Label>
+          <Select
+            value={palette}
+            onValueChange={(v) =>
+              PALETTES.includes(v as Palette) && v !== palette && preferences.setPalette(v as Palette)
+            }
+          >
+            <SelectTrigger id="settings-palette" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PALETTES.map((value) => (
+                <SelectItem key={value} value={value}>
+                  <span
+                    aria-hidden
+                    className="size-3.5 shrink-0 rounded-full border border-border"
+                    style={{ background: `linear-gradient(135deg, ${SWATCHES[value][0]} 50%, ${SWATCHES[value][1]} 50%)` }}
+                  />
+                  {t(`settings.appearance.palettes.${value}`)}
                 </SelectItem>
               ))}
             </SelectContent>

@@ -370,10 +370,17 @@
     },
     "appearance": {
       "title": "Изглед",
-      "theme": "Тема",
+      "palette": "Тема",
+      "palettes": {
+        "champagne": "Шампанско и графит",
+        "racing": "Състезателно зелено",
+        "petrol": "Петрол и мед",
+        "titanium": "Титан и лед"
+      },
+      "theme": "Режим",
       "themes": {
-        "dark": "Тъмна",
-        "light": "Светла"
+        "dark": "Тъмен",
+        "light": "Светъл"
       }
     },
     "copart": {

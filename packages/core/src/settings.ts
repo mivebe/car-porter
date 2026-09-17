@@ -5,6 +5,10 @@ export type MarketSource = (typeof MARKET_SOURCES)[number];
 
 const nonNegative = z.number().finite().nonnegative();
 
+/** Colour themes; each works in both light and dark mode. */
+export const PALETTES = ['champagne', 'racing', 'petrol', 'titanium'] as const;
+export type Palette = (typeof PALETTES)[number];
+
 export const settingsSchema = z.object({
   cost: z.object({
     /** Percentages applied to the bid (displayed as separate parts, e.g. 10% + 20% + 10%). */
@@ -42,6 +46,7 @@ export const settingsSchema = z.object({
   ui: z.object({
     language: z.enum(['en', 'bg']),
     theme: z.enum(['dark', 'light']),
+    palette: z.enum(PALETTES),
   }),
 });
 
@@ -64,7 +69,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   fx: { usdToEurOverride: null },
   scraping: { minDelayMs: 1500, maxDelayMs: 4000 },
-  ui: { language: 'en', theme: 'dark' },
+  ui: { language: 'en', theme: 'dark', palette: 'champagne' },
 };
 
 type DeepPartial<T> = T extends unknown[]

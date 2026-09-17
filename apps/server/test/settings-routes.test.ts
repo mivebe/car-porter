@@ -29,7 +29,7 @@ describe('/api/settings', () => {
     expect(res.json().verdict.worthThresholdEur).toBe(2500);
 
     const after = await app.inject({ method: 'GET', url: '/api/settings' });
-    expect(after.json().ui).toEqual({ language: 'bg', theme: 'dark' });
+    expect(after.json().ui).toEqual({ language: 'bg', theme: 'dark', palette: 'champagne' });
     expect(after.json().cost).toEqual(DEFAULT_SETTINGS.cost);
   });
 
@@ -40,7 +40,7 @@ describe('/api/settings', () => {
       app.inject({ method: 'PATCH', url: '/api/settings', payload: { verdict: { worthThresholdEur: 1 } } }),
     ]);
     const after = (await app.inject({ method: 'GET', url: '/api/settings' })).json();
-    expect(after.ui).toEqual({ language: 'bg', theme: 'light' });
+    expect(after.ui).toEqual({ language: 'bg', theme: 'light', palette: 'champagne' });
     expect(after.verdict.worthThresholdEur).toBe(1);
   });
 

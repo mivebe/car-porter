@@ -1,10 +1,19 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en" class="dark" data-palette="champagne">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>" />
     <title>Car Porter</title>
+    <script>
+      // apply the stored mode and theme before the first paint (ThemeProvider takes over after)
+      try {
+        var root = document.documentElement;
+        if (localStorage.getItem('car-porter.theme') === 'light') root.classList.remove('dark');
+        var palette = localStorage.getItem('car-porter.palette');
+        if (palette) root.dataset.palette = palette;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

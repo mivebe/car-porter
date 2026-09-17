@@ -66,14 +66,17 @@ test('settings: validation, save, effect on the verdict and market defaults, res
   expect((await (await request.get('/api/settings')).json()).verdict.worthThresholdEur).toBe(3000);
 });
 
-test('settings: language and theme are saved on the server; Copart login window', async ({
+test('settings: language, mode and theme are saved on the server; Copart login window', async ({
   page,
   browser,
 }) => {
   await page.goto('/settings');
-  await page.getByRole('combobox', { name: 'Theme' }).click();
+  await page.getByRole('combobox', { name: 'Mode' }).click();
   await page.getByRole('option', { name: 'Light' }).click();
   await expect(page.locator('html')).not.toHaveClass(/dark/);
+  await page.getByRole('combobox', { name: 'Theme' }).click();
+  await page.getByRole('option', { name: 'Petrol & Copper' }).click();
+  await expect(page.locator('html')).toHaveAttribute('data-palette', 'petrol');
   await page.getByRole('combobox', { name: 'Language' }).click();
   const saved = page.waitForResponse(
     (r) => r.url().endsWith('/api/settings') && r.request().method() === 'PATCH',
@@ -88,6 +91,7 @@ test('settings: language and theme are saved on the server; Copart login window'
   await fresh.goto('/settings');
   await expect(fresh.getByRole('heading', { name: 'Настройки' })).toBeVisible();
   await expect(fresh.locator('html')).not.toHaveClass(/dark/);
+  await expect(fresh.locator('html')).toHaveAttribute('data-palette', 'petrol');
   await other.close();
 
   await page.getByRole('button', { name: 'Отвори прозорец за вход в Copart' }).click();

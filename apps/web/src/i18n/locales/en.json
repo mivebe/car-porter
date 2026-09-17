@@ -370,7 +370,14 @@
     },
     "appearance": {
       "title": "Appearance",
-      "theme": "Theme",
+      "palette": "Theme",
+      "palettes": {
+        "champagne": "Champagne Graphite",
+        "racing": "Racing Green",
+        "petrol": "Petrol & Copper",
+        "titanium": "Titanium Ice"
+      },
+      "theme": "Mode",
       "themes": {
         "dark": "Dark",
         "light": "Light"
