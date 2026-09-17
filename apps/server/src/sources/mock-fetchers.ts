@@ -133,6 +133,7 @@ const MOCK_MAKES: ExternalFacet[] = [
   { name: 'TOYO', count: 2 },
   { name: 'MERCEDES-BENZ', count: 700 },
   { name: 'MERCEDES BENZ', count: 6 },
+  { name: 'GREAT DANE TRAILERS', count: 16 },
 ];
 const MOCK_MODELS: Record<string, ExternalFacet[]> = {
   TOYOTA: [

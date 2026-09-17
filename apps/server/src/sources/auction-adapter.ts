@@ -21,6 +21,8 @@ export interface AuctionQuery extends YearRange {
 
 export interface AuctionSearchAdapter {
   source: AuctionSource;
+  /** Most values the site returns per facet; a full list needs narrower year ranges once reached. */
+  facetLimit?: number;
   /** Make names the site files lots under within the years. */
   makeFacets(years: YearRange): Promise<ExternalFacet[]>;
   /** Model names under any of the given site makes within the years. */

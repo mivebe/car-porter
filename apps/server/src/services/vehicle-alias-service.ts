@@ -8,11 +8,18 @@ import {
   type LotSearchFilters,
 } from '@car-porter/core';
 import type { CacheRepository } from '../repositories/cache-repository.ts';
-import type { VehicleAliasesRepository } from '../repositories/vehicle-aliases-repository.ts';
+import type {
+  AliasKey,
+  AliasKind,
+  AutoMatch,
+  VehicleAlias,
+  VehicleAliasesRepository,
+} from '../repositories/vehicle-aliases-repository.ts';
 import { cached } from '../scraping/cached.ts';
 import { SourceError } from '../scraping/errors.ts';
-import type { AuctionSearchAdapter, ExternalFacet } from '../sources/auction-adapter.ts';
+import type { AuctionSearchAdapter, ExternalFacet, YearRange } from '../sources/auction-adapter.ts';
 import type { CatalogService } from '../sources/nhtsa.ts';
+import { LOT_SEARCH_CACHE_PREFIX } from './lot-search-service.ts';
 
 export const ALIAS_FACETS_TTL_MS = 12 * 60 * 60 * 1000;
 
@@ -22,32 +29,87 @@ export interface MatchedNames {
   models: string[];
 }
 
+export type AliasStatus = 'unassigned' | 'auto' | 'manual' | 'ignored';
+export const ALIAS_STATUSES: AliasStatus[] = ['unassigned', 'auto', 'manual', 'ignored'];
+
+/** One site name with its automatic suggestion and the user's assignment, if any. */
+export interface AliasEntry {
+  source: AuctionSource;
+  kind: AliasKind;
+  externalName: string;
+  /** models: the make the site listed it under; '' for makes */
+  make: string;
+  lotCount: number | null;
+  lastSeenAt: string;
+  auto: { targets: string[]; match: AutoMatch | null };
+  /** null = not assigned by the user; targets [] = ignored */
+  manual: { targets: string[] } | null;
+  status: AliasStatus;
+}
+
+export interface AliasEntryFilter {
+  kind: AliasKind;
+  source?: AuctionSource;
+  make?: string;
+  status?: AliasStatus;
+  q?: string;
+  limit?: number;
+}
+
+const ALL_YEARS = (): YearRange => ({ yearFrom: 1900, yearTo: new Date().getFullYear() + 1 });
+
+/**
+ * Reads a facet over a year range. When the site truncates facets (Copart) and the limit is hit,
+ * the range is split and the halves merged, so rare spellings are not cut off.
+ */
+export async function readFacetsFully(
+  limit: number | undefined,
+  years: YearRange,
+  load: (years: YearRange) => Promise<ExternalFacet[]>,
+  shouldStop: () => boolean = () => false,
+): Promise<ExternalFacet[]> {
+  const facets = await load(years);
+  if (!limit || facets.length < limit || years.yearFrom >= years.yearTo || shouldStop()) return facets;
+  const mid = Math.floor((years.yearFrom + years.yearTo) / 2);
+  const parts = [
+    await readFacetsFully(limit, { yearFrom: years.yearFrom, yearTo: mid }, load, shouldStop),
+    await readFacetsFully(limit, { yearFrom: mid + 1, yearTo: years.yearTo }, load, shouldStop),
+  ];
+  const merged = new Map<string, number>();
+  for (const f of parts.flat()) merged.set(f.name, (merged.get(f.name) ?? 0) + f.count);
+  return [...merged].map(([name, count]) => ({ name, count }));
+}
+
 export function createVehicleAliasService(deps: {
   catalog: CatalogService;
   cache: CacheRepository;
   aliases: VehicleAliasesRepository;
 }) {
-  async function facets(
-    source: AuctionSource,
-    key: string,
-    force: boolean,
-    load: () => Promise<ExternalFacet[]>,
-  ): Promise<ExternalFacet[]> {
+  async function cachedFacets(source: AuctionSource, key: string, force: boolean, load: () => Promise<ExternalFacet[]>) {
     const result = await cached(deps.cache, { key: `aliases:${source}:${key}`, source, ttlMs: ALIAS_FACETS_TTL_MS, force }, load);
     if (!result.ok) throw new SourceError(result.error.code, result.error.message);
     return result.data;
   }
 
-  /** Manual overrides replace computed mappings for the same external name. */
-  async function withOverrides(
-    source: AuctionSource,
-    kind: 'make' | 'model',
-    canonicalMake: string,
-    computed: AliasMapping[],
-  ): Promise<AliasMapping[]> {
-    const manual = (await deps.aliases.list({ source, kind, ...(kind === 'model' ? { canonicalMake } : {}) })).filter(
-      (r) => r.match === 'manual',
-    );
+  async function canonicalMakes(): Promise<string[]> {
+    const catalog = await deps.catalog.makes();
+    const names = catalog.ok ? catalog.data.map((m) => m.name) : [];
+    return [...new Set([...names, ...(await deps.aliases.manualTargets('make'))])];
+  }
+
+  async function catalogModels(make: string): Promise<string[]> {
+    const catalog = await deps.catalog.models(make);
+    return catalog.ok ? catalog.data.map((m) => m.name) : [];
+  }
+
+  /** Our spelling of a make: the catalog's (or a user-made) name, else what was typed. */
+  async function canonicalMakeName(make: string): Promise<string> {
+    return (await canonicalMakes()).find((m) => normalizeMake(m) === normalizeMake(make)) ?? make.trim();
+  }
+
+  /** Auto mappings with the user's assignments laid over them (manual wins per site name). */
+  async function effective(source: AuctionSource, kind: AliasKind, make: string, computed: AliasMapping[]) {
+    const manual = await deps.aliases.list({ source, kind, origin: 'manual', ...(kind === 'model' ? { canonicalMake: make } : {}) });
     if (manual.length === 0) return computed;
     const overridden = new Set(manual.map((r) => r.externalName));
     return [
@@ -60,6 +122,52 @@ export function createVehicleAliasService(deps: {
     ];
   }
 
+  /** Maps and stores a site's make facets; returns the effective mappings. */
+  async function applyMakeFacets(source: AuctionSource, facets: ExternalFacet[]) {
+    const computed = mapMakes(await canonicalMakes(), facets.map((f) => f.name));
+    const counts = new Map(facets.map((f) => [f.name, f.count]));
+    await deps.aliases.replaceAuto(
+      { source, kind: 'make' },
+      computed.map((m) => ({
+        externalName: m.external,
+        canonicalMake: m.canonical ?? '',
+        canonical: '',
+        match: m.match === 'manual' ? null : m.match,
+        lotCount: counts.get(m.external) ?? null,
+      })),
+    );
+    return effective(source, 'make', '', computed);
+  }
+
+  /** Maps and stores a site's model facets for one make; returns the effective mappings. */
+  async function applyModelFacets(source: AuctionSource, make: string, facets: ExternalFacet[], models?: string[]) {
+    const computed = mapModels(make, models ?? (await catalogModels(make)), facets.map((f) => f.name));
+    const counts = new Map(facets.map((f) => [f.name, f.count]));
+    await deps.aliases.replaceAuto(
+      { source, kind: 'model', make },
+      computed.map((m) => ({
+        externalName: m.external,
+        canonicalMake: make,
+        canonical: m.canonical ?? '',
+        match: m.match === 'manual' ? null : m.match,
+        lotCount: counts.get(m.external) ?? null,
+      })),
+    );
+    return effective(source, 'model', make, computed);
+  }
+
+  /** Site make names currently tied to a canonical make, from stored rows (no site request). */
+  async function storedExternalMakes(source: AuctionSource, make: string): Promise<string[]> {
+    const rows = await deps.aliases.list({ source, kind: 'make' });
+    const mappings = await effective(
+      source,
+      'make',
+      '',
+      rows.filter((r) => r.origin === 'auto').map((r) => ({ external: r.externalName, canonical: r.canonicalMake || null, match: r.match })),
+    );
+    return mappings.filter((m) => m.canonical && normalizeMake(m.canonical) === normalizeMake(make)).map((m) => m.external);
+  }
+
   /**
    * Expands a canonical make/model into the names `adapter`'s site files lots under, reading the
    * site's make and model facets for the year range and recording every mapping in the alias table.
@@ -68,67 +176,107 @@ export function createVehicleAliasService(deps: {
     const { source } = adapter;
     const years = { yearFrom: filters.yearFrom, yearTo: filters.yearTo };
     const yearKey = `${years.yearFrom}-${years.yearTo}`;
+    const make = await canonicalMakeName(filters.make);
 
-    const catalogMakes = await deps.catalog.makes();
-    const canonicalMakes = catalogMakes.ok ? catalogMakes.data.map((m) => m.name) : [];
-    const requestedMake = canonicalMakes.find((m) => normalizeMake(m) === normalizeMake(filters.make)) ?? filters.make.trim();
-    if (!canonicalMakes.includes(requestedMake)) canonicalMakes.push(requestedMake);
-
-    const makeFacets = await facets(source, `makes:${yearKey}`, force, () => adapter.makeFacets(years));
-    const makeCounts = new Map(makeFacets.map((f) => [f.name, f.count]));
-    const makeRows = await withOverrides(source, 'make', '', mapMakes(canonicalMakes, makeFacets.map((f) => f.name)));
-    await deps.aliases.replaceComputed(
-      { source, kind: 'make' },
-      makeRows.map((m) => ({
-        source,
-        kind: 'make',
-        externalName: m.external,
-        canonicalMake: m.canonical ?? '',
-        canonical: '',
-        match: m.match,
-        lotCount: makeCounts.get(m.external) ?? null,
-      })),
-    );
-    const makes = makeRows
-      .filter((m) => m.canonical && normalizeMake(m.canonical) === normalizeMake(requestedMake))
-      .map((m) => m.external);
+    const makeFacets = await cachedFacets(source, `makes:${yearKey}`, force, () => adapter.makeFacets(years));
+    const makeRows = await applyMakeFacets(source, makeFacets);
+    const makes = makeRows.filter((m) => m.canonical && normalizeMake(m.canonical) === normalizeMake(make)).map((m) => m.external);
     if (makes.length === 0) return { makes, models: [] };
 
-    const catalogModels = await deps.catalog.models(requestedMake);
-    const canonicalModels = catalogModels.ok ? catalogModels.data.map((m) => m.name) : [];
-    const modelFacets = await facets(source, `models:${normalizeText([...makes].sort().join('|'))}:${yearKey}`, force, () =>
+    const modelFacets = await cachedFacets(source, `models:${normalizeText([...makes].sort().join('|'))}:${yearKey}`, force, () =>
       adapter.modelFacets(makes, years),
     );
-    const modelCounts = new Map(modelFacets.map((f) => [f.name, f.count]));
-    const externalModels = modelFacets.map((f) => f.name);
+    const models = await catalogModels(make);
+    const modelRows = await applyModelFacets(source, make, modelFacets, models);
 
-    const modelRows = await withOverrides(source, 'model', requestedMake, mapModels(requestedMake, canonicalModels, externalModels));
-    await deps.aliases.replaceComputed(
-      { source, kind: 'model', canonicalMake: requestedMake },
-      modelRows.map((m) => ({
-        source,
-        kind: 'model',
-        externalName: m.external,
-        canonicalMake: requestedMake,
-        canonical: m.canonical ?? '',
-        match: m.match,
-        lotCount: modelCounts.get(m.external) ?? null,
-      })),
-    );
-
-    // a model typed outside the catalog ("C 63 AMG") is matched on its own, without being stored
-    const inCatalog = canonicalModels.find((m) => normalizeText(m) === normalizeText(filters.model));
+    // a model outside the catalog (user-made or typed, e.g. "C 63 AMG") also gets automatic matches
+    // for this search only, so they are not stored against it
+    const inCatalog = models.find((m) => normalizeText(m) === normalizeText(filters.model));
+    const target = inCatalog ?? filters.model.trim();
     const rows = inCatalog
       ? modelRows
-      : await withOverrides(source, 'model', requestedMake, mapModels(requestedMake, [...canonicalModels, filters.model], externalModels));
-    const target = inCatalog ?? filters.model;
-    const models = rows
-      .filter((m) => m.canonical && normalizeText(m.canonical) === normalizeText(target))
-      .map((m) => m.external);
-    return { makes, models: [...new Set(models)] };
+      : await effective(source, 'model', make, mapModels(make, [...models, target], modelFacets.map((f) => f.name)));
+    const matched = rows.filter((m) => m.canonical && normalizeText(m.canonical) === normalizeText(target)).map((m) => m.external);
+    return { makes, models: [...new Set(matched)] };
   }
 
-  return { resolve };
+  /** All site names of a kind with their auto suggestion, manual assignment and status. */
+  async function entries(filter: AliasEntryFilter): Promise<{ items: AliasEntry[]; total: number; counts: Record<AliasStatus, number> }> {
+    const rows = await deps.aliases.list({
+      kind: filter.kind,
+      source: filter.source,
+      ...(filter.kind === 'model' && filter.make ? { canonicalMake: filter.make } : {}),
+    });
+    const groups = new Map<string, VehicleAlias[]>();
+    for (const r of rows) {
+      const scope = r.kind === 'model' ? r.canonicalMake : '';
+      const key = `${r.source} ${scope} ${r.externalName}`;
+      groups.set(key, [...(groups.get(key) ?? []), r]);
+    }
+
+    const target = (r: VehicleAlias) => (r.kind === 'make' ? r.canonicalMake : r.canonical);
+    const all: AliasEntry[] = [...groups.values()].map((group) => {
+      const first = group[0]!;
+      const auto = group.filter((r) => r.origin === 'auto');
+      const manual = group.filter((r) => r.origin === 'manual');
+      const autoTargets = auto.map(target).filter(Boolean);
+      const manualTargets = manual.map(target).filter(Boolean);
+      const status: AliasStatus = manual.length
+        ? manualTargets.length ? 'manual' : 'ignored'
+        : autoTargets.length ? 'auto' : 'unassigned';
+      const newest = group.reduce((a, b) => (b.lastSeenAt > a.lastSeenAt ? b : a));
+      return {
+        source: first.source,
+        kind: first.kind,
+        externalName: first.externalName,
+        make: first.kind === 'model' ? first.canonicalMake : '',
+        lotCount: auto[0]?.lotCount ?? manual[0]?.lotCount ?? null,
+        lastSeenAt: newest.lastSeenAt.toISOString(),
+        auto: { targets: autoTargets, match: auto.find((r) => r.match)?.match ?? null },
+        manual: manual.length ? { targets: manualTargets } : null,
+        status,
+      };
+    });
+
+    const q = filter.q ? normalizeText(filter.q) : '';
+    const matchesQuery = (e: AliasEntry) =>
+      !q || [e.externalName, e.make, ...e.auto.targets, ...(e.manual?.targets ?? [])].some((s) => normalizeText(s).includes(q));
+    const searched = all.filter(matchesQuery);
+    const counts = Object.fromEntries(ALIAS_STATUSES.map((s) => [s, searched.filter((e) => e.status === s).length])) as Record<
+      AliasStatus,
+      number
+    >;
+    const filtered = searched
+      .filter((e) => !filter.status || e.status === filter.status)
+      .sort((a, b) => (b.lotCount ?? 0) - (a.lotCount ?? 0) || a.externalName.localeCompare(b.externalName));
+    return { items: filtered.slice(0, filter.limit ?? 500), total: filtered.length, counts };
+  }
+
+  /** Assigns a site name (targets [] = ignore) or, with null, returns it to automatic matching. */
+  async function assign(key: AliasKey, targets: string[] | null) {
+    if (targets === null) await deps.aliases.clearManual(key);
+    else await deps.aliases.setManual(key, targets.map((t) => t.trim()).filter(Boolean));
+    // cached searches were expanded with the old names
+    await deps.cache.removeByPrefix(LOT_SEARCH_CACHE_PREFIX);
+  }
+
+  /** Unassigned site names per kind, across sites and makes. */
+  async function unassignedCounts(): Promise<Record<AliasKind, number>> {
+    const [makes, models] = await Promise.all([entries({ kind: 'make', limit: 0 }), entries({ kind: 'model', limit: 0 })]);
+    return { make: makes.counts.unassigned, model: models.counts.unassigned };
+  }
+
+  return {
+    resolve,
+    entries,
+    assign,
+    unassignedCounts,
+    applyMakeFacets,
+    applyModelFacets,
+    storedExternalMakes,
+    canonicalMakeName,
+    allYears: ALL_YEARS,
+  };
 }
 
 export type VehicleAliasService = ReturnType<typeof createVehicleAliasService>;

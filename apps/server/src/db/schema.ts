@@ -140,13 +140,13 @@ export const scrapeCache = sqliteTable('scrape_cache', {
 });
 
 /**
- * Conversion table between auction-site make/model names and our canonical (NHTSA) catalog,
- * refreshed from each site's search facets.
- * - make rows: `canonicalMake` = matched make ('' if none), `canonical` = ''
- * - model rows: `canonicalMake` = the make whose model list was read, `canonical` = matched model
- *   ('' if none). One external model can map to several canonical models (330I → 330i, 3 Series).
- * Unmatched rows are kept so unmapped site names stay visible. `match` = 'manual' rows are user
- * overrides and replace computed ones for the same external name.
+ * Conversion table between auction-site make/model names and our canonical catalog.
+ * - make rows: `canonicalMake` = the make it maps to ('' if none), `canonical` = ''
+ * - model rows: `canonicalMake` = the make whose model list it came from, `canonical` = the model
+ *   it maps to ('' if none). One site model can map to several models (330I → 330i, 3 Series).
+ * `origin` 'auto' rows are recomputed from the sites' search facets (`match` says how); 'manual'
+ * rows are the user's assignments and replace all auto rows of the same site name. A manual row
+ * mapping to '' means "ignored". Auto rows are kept under manual ones so a reset can restore them.
  */
 export const vehicleAliases = sqliteTable(
   'vehicle_aliases',
@@ -156,12 +156,13 @@ export const vehicleAliases = sqliteTable(
     externalName: text('external_name').notNull(),
     canonicalMake: text('canonical_make').notNull(),
     canonical: text('canonical').notNull(),
-    match: text('match', { enum: ['exact', 'rule', 'fuzzy', 'manual'] }),
+    origin: text('origin', { enum: ['auto', 'manual'] }).notNull(),
+    match: text('match', { enum: ['exact', 'rule', 'fuzzy'] }),
     lotCount: integer('lot_count'),
     lastSeenAt: timestamp('last_seen_at').notNull().default(now),
   },
   (t) => [
-    primaryKey({ columns: [t.source, t.kind, t.externalName, t.canonicalMake, t.canonical] }),
+    primaryKey({ columns: [t.source, t.kind, t.externalName, t.canonicalMake, t.canonical, t.origin] }),
     index('vehicle_aliases_canonical_idx').on(t.canonicalMake, t.canonical),
   ],
 );

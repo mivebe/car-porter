@@ -6,7 +6,8 @@
   "nav": {
     "search": "Search",
     "tracking": "Tracking",
-    "settings": "Settings"
+    "settings": "Settings",
+    "aliases": "Aliases"
   },
   "header": {
     "toggleTheme": "Toggle theme",
@@ -28,6 +29,10 @@
     "settings": {
       "title": "Settings",
       "description": "Costs, thresholds, sources and preferences."
+    },
+    "aliases": {
+      "title": "Make & model aliases",
+      "description": "How Copart and IAAI spell makes and models, and which of our makes and models each spelling is searched as."
     }
   },
   "sources": {
@@ -401,5 +406,97 @@
     "km": "{{value}} km",
     "kmSuffix": "km",
     "msSuffix": "ms"
+  },
+  "aliases": {
+    "kind": {
+      "make": "Makes",
+      "model": "Models"
+    },
+    "status": {
+      "unassigned": "Unassigned",
+      "auto": "Automatic",
+      "manual": "Assigned by you",
+      "ignored": "Ignored"
+    },
+    "match": {
+      "exact": "Automatic · exact",
+      "rule": "Automatic · rule",
+      "fuzzy": "Automatic · typo"
+    },
+    "filters": {
+      "status": "Status",
+      "allStatuses": "All statuses",
+      "site": "Site",
+      "allSites": "All sites",
+      "make": "Make",
+      "allMakes": "All makes",
+      "search": "Search names"
+    },
+    "columns": {
+      "site": "Site",
+      "siteName": "Name on site",
+      "make": "Make",
+      "lots": "Lots",
+      "mapsTo": "Searched as",
+      "lastSeen": "Last seen",
+      "actions": "Actions"
+    },
+    "actions": {
+      "assign": "Assign",
+      "reassign": "Reassign",
+      "ignore": "Ignore",
+      "reset": "Reset to automatic"
+    },
+    "bulk": {
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "clear": "Clear selection",
+      "selectAll": "Select all",
+      "select": "Select {{name}}",
+      "differentMakes": "Select models of one make to assign them together"
+    },
+    "assign": {
+      "titleMake": "Assign make",
+      "titleModel": "Assign model",
+      "descriptionMake": "Searches for the chosen make will include these site names.",
+      "descriptionModel": "Searches for any chosen {{make}} model will include these site names.",
+      "make": "Make",
+      "models": "Models",
+      "createNew": "Create \"{{value}}\"",
+      "noneSelected": "No model selected",
+      "remove": "Remove {{name}}",
+      "suggestion": "Automatic match: {{targets}}",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "scan": {
+      "title": "Check the sites for new names",
+      "hint": "Reads every make, and the models of every assigned make, from Copart and IAAI. A full scan takes a while; searches wait while it runs.",
+      "runningAll": "Scanning all makes and models…",
+      "runningMake": "Scanning {{make}} models…",
+      "finished": {
+        "done": "Last scan finished {{when}}",
+        "cancelled": "Last scan was stopped {{when}}"
+      },
+      "startAll": "Scan all",
+      "startMake": "Scan {{make}}",
+      "cancel": "Stop scan",
+      "phase": {
+        "queued": "Waiting",
+        "makes": "Reading makes",
+        "models": "Reading models",
+        "done": "Done",
+        "failed": "Failed",
+        "cancelled": "Stopped"
+      },
+      "failedMakes": "Could not read models of: {{makes}}"
+    },
+    "unassignedCount_one": "{{count}} unassigned name",
+    "unassignedCount_other": "{{count}} unassigned names",
+    "empty": "No names match these filters.",
+    "emptyUnassigned": "Nothing to assign. Run a scan to check the sites for new names.",
+    "truncated": "Showing {{shown}} of {{total}}. Narrow the filters to see the rest.",
+    "requestFailed": "Could not load aliases.",
+    "loading": "Loading…"
   }
 }

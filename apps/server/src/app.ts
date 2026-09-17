@@ -10,6 +10,7 @@ import { createSelectionsRepository } from './repositories/selections-repository
 import { createSettingsRepository } from './repositories/settings-repository.ts';
 import { createTrackedLotsRepository } from './repositories/tracked-lots-repository.ts';
 import { createVehicleAliasesRepository } from './repositories/vehicle-aliases-repository.ts';
+import { aliasRoutes } from './routes/alias-routes.ts';
 import { catalogRoutes } from './routes/catalog-routes.ts';
 import { copartRoutes } from './routes/copart-routes.ts';
 import { estimateRoutes } from './routes/estimate-routes.ts';
@@ -21,6 +22,7 @@ import { settingsRoutes } from './routes/settings-routes.ts';
 import { trackingRoutes } from './routes/tracking-routes.ts';
 import { createBrowserManager } from './scraping/browser.ts';
 import { createSourceQueue } from './scraping/source-queue.ts';
+import { createAliasScanService } from './services/alias-scan-service.ts';
 import { createEstimateService } from './services/estimate-service.ts';
 import { createHistoryService } from './services/history-service.ts';
 import { createLotSearchService } from './services/lot-search-service.ts';
@@ -124,6 +126,13 @@ export async function buildApp({
     overrides.nhtsaFetcher ?? (mockSources ? mockNhtsaFetcher : httpJsonFetcher),
   );
   await app.register(catalogRoutes, { catalog, aliases: repos.vehicleAliases });
+  const aliases = createVehicleAliasService({ catalog, cache: repos.cache, aliases: repos.vehicleAliases });
+  const aliasScan = createAliasScanService({ adapters: auctionAdapters, aliases });
+  app.addHook('preClose', async () => {
+    aliasScan.cancel();
+    await aliasScan.idle();
+  });
+  await app.register(aliasRoutes, { aliases, repository: repos.vehicleAliases, scan: aliasScan });
   const fx = createFxService({
     cache: repos.cache,
     settings: repos.settings,
@@ -136,7 +145,7 @@ export async function buildApp({
   await app.register(lotsRoutes, {
     search: createLotSearchService({
       adapters: auctionAdapters,
-      aliases: createVehicleAliasService({ catalog, cache: repos.cache, aliases: repos.vehicleAliases }),
+      aliases,
       cache: repos.cache,
       lots: repos.lots,
     }),

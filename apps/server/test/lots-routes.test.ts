@@ -102,18 +102,20 @@ describe('/api/lots/search', () => {
     const none = await app.inject({ method: 'GET', url: url({ make: 'Mercedes-Benz', model: 'G-Class', yearFrom: 2017, yearTo: 2017 }) });
     expect(none.json().sources[0]).toMatchObject({ ok: true, total: 0, matched: { models: [] } });
 
-    const aliases = await app.inject({ method: 'GET', url: '/api/catalog/aliases?source=iaai&make=Mercedes-Benz' });
-    const rows = aliases.json().items as { kind: string; externalName: string; canonical: string; match: string }[];
-    expect(rows.filter((r) => r.kind === 'model').map((r) => [r.externalName, r.canonical, r.match])).toEqual(
+    const aliases = await app.inject({ method: 'GET', url: '/api/aliases?kind=model&source=iaai&make=Mercedes-Benz' });
+    const rows = aliases.json().items as { externalName: string; auto: { targets: string[]; match: string } }[];
+    expect(rows.map((r) => [r.externalName, r.auto.targets, r.auto.match])).toEqual(
       expect.arrayContaining([
-        ['C', 'C-Class', 'exact'],
-        ['AMG C 63', 'C-Class', 'rule'],
-        ['CLA', 'CLA-Class', 'exact'],
+        ['C', ['C-Class'], 'exact'],
+        ['AMG C 63', ['C-Class'], 'rule'],
+        ['CLA', ['CLA-Class'], 'exact'],
       ]),
     );
-    const makes = await app.inject({ method: 'GET', url: '/api/catalog/aliases?source=copart&kind=make' });
+    const makes = await app.inject({ method: 'GET', url: '/api/aliases?kind=make&source=copart' });
     expect(makes.json().items).toEqual(
-      expect.arrayContaining([expect.objectContaining({ externalName: 'MERCEDES BENZ', canonicalMake: 'Mercedes-Benz', lotCount: 6 })]),
+      expect.arrayContaining([
+        expect.objectContaining({ externalName: 'MERCEDES BENZ', auto: { targets: ['Mercedes-Benz'], match: 'exact' }, lotCount: 6 }),
+      ]),
     );
     expect(spy).toHaveBeenCalledTimes(1); // the C-Class search; G-Class has no site names
   });

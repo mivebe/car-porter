@@ -29,10 +29,12 @@ export interface LotSearchResponse {
   page: number;
 }
 
+// v2: results are searched through the alias table and carry `matched`
+export const LOT_SEARCH_CACHE_PREFIX = 'lots:v2:';
+
 export function lotSearchCacheKey(source: string, f: LotSearchFilters, page: number) {
   const norm = (s: string) => s.trim().toLowerCase();
-  // v2: results are searched through the alias table and carry `matched`
-  return `lots:v2:${source}:${norm(f.make)}:${norm(f.model)}:${f.yearFrom}-${f.yearTo}:p${page}`;
+  return `${LOT_SEARCH_CACHE_PREFIX}${source}:${norm(f.make)}:${norm(f.model)}:${f.yearFrom}-${f.yearTo}:p${page}`;
 }
 
 export function createLotSearchService(deps: {

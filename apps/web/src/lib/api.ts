@@ -79,6 +79,59 @@ export interface FxResponse {
   error?: SourceErrorInfo;
 }
 
+export type AliasKind = 'make' | 'model';
+export type AliasStatus = 'unassigned' | 'auto' | 'manual' | 'ignored';
+export type AliasAutoMatch = 'exact' | 'rule' | 'fuzzy';
+
+/** A make or model name as an auction site spells it, and what it maps to in our catalog. */
+export interface AliasEntry {
+  source: AuctionSource;
+  kind: AliasKind;
+  externalName: string;
+  /** models: the make the site listed it under; '' for makes */
+  make: string;
+  lotCount: number | null;
+  lastSeenAt: string;
+  auto: { targets: string[]; match: AliasAutoMatch | null };
+  /** null = not assigned by the user; targets [] = ignored */
+  manual: { targets: string[] } | null;
+  status: AliasStatus;
+}
+
+export interface AliasListParams {
+  kind: AliasKind;
+  source?: AuctionSource;
+  make?: string;
+  status?: AliasStatus;
+  q?: string;
+}
+
+export interface AliasListResponse {
+  items: AliasEntry[];
+  total: number;
+  counts: Record<AliasStatus, number>;
+}
+
+export type AliasKey = Pick<AliasEntry, 'source' | 'kind' | 'externalName'> & { make?: string };
+
+export interface AliasScanSource {
+  source: AuctionSource;
+  phase: 'queued' | 'makes' | 'models' | 'done' | 'failed' | 'cancelled';
+  done: number;
+  total: number;
+  current: string | null;
+  failed: { make: string; error: SourceErrorInfo }[];
+  error?: SourceErrorInfo;
+}
+
+export interface AliasScanStatus {
+  state: 'idle' | 'running' | 'done' | 'cancelled';
+  make: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  sources: AliasScanSource[];
+}
+
 export interface CopartLoginStatus {
   windowOpen: boolean;
 }
@@ -112,6 +165,16 @@ export const api = {
     }),
   makes: () => request<CatalogResponse>('/api/catalog/makes'),
   models: (make: string) => request<CatalogResponse>(`/api/catalog/models?${query({ make })}`),
+  aliases: (params: AliasListParams) => request<AliasListResponse>(`/api/aliases?${query({ ...params })}`),
+  aliasMakes: () => request<{ items: string[] }>('/api/aliases/makes'),
+  aliasSummary: () => request<{ unassigned: Record<AliasKind, number> }>('/api/aliases/summary'),
+  /** `targets`: [] = ignore, null = back to automatic matching */
+  assignAliases: (items: AliasKey[], targets: string[] | null) =>
+    request<{ updated: number }>('/api/aliases/assignment', { method: 'PUT', body: JSON.stringify({ items, targets }) }),
+  aliasScan: () => request<AliasScanStatus>('/api/aliases/scan'),
+  startAliasScan: (make?: string) =>
+    request<AliasScanStatus>('/api/aliases/scan', { method: 'POST', body: JSON.stringify({ make: make ?? null }) }),
+  cancelAliasScan: () => request<AliasScanStatus>('/api/aliases/scan', { method: 'DELETE' }),
   searchLots: (params: LotSearchParams & { page: number; refresh?: boolean }) =>
     request<LotSearchResponse>(`/api/lots/search?${query({ ...params, refresh: params.refresh ? 1 : undefined })}`),
   lot: (id: string) =>

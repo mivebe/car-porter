@@ -10,6 +10,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ThemeProvider } from '@/lib/theme';
+import { AliasesPage } from '@/pages/aliases-page';
 import { SearchPage } from '@/pages/search-page';
 import { SettingsPage } from '@/pages/settings-page';
 import { TrackingPage } from '@/pages/tracking-page';
@@ -20,6 +21,7 @@ const routes: RouteObject[] = [
     children: [
       { index: true, element: <SearchPage /> },
       { path: 'tracking', element: <TrackingPage /> },
+      { path: 'aliases', element: <AliasesPage /> },
       { path: 'settings', element: <SettingsPage /> },
     ],
   },

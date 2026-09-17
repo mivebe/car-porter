@@ -154,6 +154,8 @@ const facetFields = z.array(
   }),
 );
 
+export const COPART_FACET_LIMIT = 100;
+
 /**
  * Facet values of one filter key ("MAKE", "MODL") in the site's exact spelling, taken from the
  * facet query (`lot_make_desc:"MERCEDES-BENZ"`) rather than the prettified display name.
@@ -231,6 +233,7 @@ export function createCopartAdapter(
 
   return {
     source: 'copart',
+    facetLimit: COPART_FACET_LIMIT,
     makeFacets: (years) =>
       post(facetBody(copartFilter(years)), (text) => parseCopartFacets(text, 'MAKE')),
     modelFacets: (makes, years) =>

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import type { Db } from '../db/client.ts';
 import { scrapeCache } from '../db/schema.ts';
 
@@ -35,7 +35,11 @@ export function createCacheRepository(db: Db, now: () => Date = () => new Date()
     await db.delete(scrapeCache).where(eq(scrapeCache.key, key));
   }
 
-  return { get, set, remove };
+  async function removeByPrefix(prefix: string) {
+    await db.delete(scrapeCache).where(like(scrapeCache.key, `${prefix.replace(/[%_]/g, '')}%`));
+  }
+
+  return { get, set, remove, removeByPrefix };
 }
 
 export type CacheRepository = ReturnType<typeof createCacheRepository>;
