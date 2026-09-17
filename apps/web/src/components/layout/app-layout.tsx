@@ -1,4 +1,4 @@
-import { ArrowLeftRight, CarFront, ListChecks, Search, Settings } from 'lucide-react';
+import { ArrowLeftRight, ListChecks, Search, Settings } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet } from 'react-router';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,7 @@ import { useAliasSummary } from '@/features/aliases/alias-hooks';
 import { useSyncPreferences } from '@/lib/preferences';
 import { cn } from '@/lib/utils';
 import { HeaderControls } from './header-controls';
+import { Logo } from './logo';
 
 const NAV_ITEMS = [
   { to: '/', key: 'nav.search', icon: Search, end: true },
@@ -23,9 +24,11 @@ export function AppLayout() {
   return (
     <div className="flex min-h-svh flex-col">
       <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur">
+        {/* accent hairline fading out along the header's bottom edge */}
+        <div className="pointer-events-none absolute inset-x-0 -bottom-px h-px bg-linear-to-r from-transparent via-brand/60 to-transparent" />
         <div className="mx-auto flex h-14 max-w-screen-2xl items-center gap-6 px-4">
-          <div className="flex items-center gap-2 font-semibold">
-            <CarFront className="size-5" />
+          <div className="flex items-center gap-2 font-semibold tracking-wide">
+            <Logo className="size-7" />
             <span>{t('app.name')}</span>
           </div>
           <nav className="flex items-center gap-1">
@@ -36,8 +39,9 @@ export function AppLayout() {
                 end={end}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground',
-                    isActive && 'bg-accent text-foreground',
+                    'relative flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground',
+                    isActive &&
+                      'text-foreground after:absolute after:inset-x-3 after:-bottom-3 after:h-0.5 after:rounded-full after:bg-brand',
                   )
                 }
               >
