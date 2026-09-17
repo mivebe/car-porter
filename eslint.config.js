@@ -12,6 +12,8 @@ export default tseslint.config(
       '**/coverage/**',
       '**/playwright-report/**',
       '**/test-results/**',
+      // browser profiles and the SQLite file the app writes while running
+      'apps/server/data/**',
       'apps/web/src/components/ui/**',
     ],
   },
