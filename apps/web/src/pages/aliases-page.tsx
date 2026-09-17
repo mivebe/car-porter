@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AliasBoard } from '@/features/aliases/alias-board';
 import { useAliasMakes, useAliasSummary } from '@/features/aliases/alias-hooks';
-import { ScanButton } from '@/features/aliases/scan-button';
+import { ScanButton, ScanProgress } from '@/features/aliases/scan-button';
 import { Combobox } from '@/features/search/combobox';
 import type { AliasKind, AliasStatus } from '@/lib/api';
 
@@ -119,6 +119,8 @@ export function AliasesPage() {
         </div>
         <ScanButton />
       </div>
+
+      <ScanProgress />
 
       <AliasBoard
         // a new make/model list starts with a fresh search and no locally created names

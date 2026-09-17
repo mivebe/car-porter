@@ -95,3 +95,29 @@ test('aliases: drag site names between our makes/models, the assigned column and
   await details.getByRole('button', { name: 'Reset to automatic' }).click();
   await expect(moved).toHaveCount(0);
 });
+
+test('aliases: a running scan shows per-site progress between the filters and the columns', async ({ page }) => {
+  const running = {
+    state: 'running',
+    make: null,
+    startedAt: '2026-09-17T08:52:50.134Z',
+    finishedAt: null,
+    sources: [
+      { source: 'copart', phase: 'makes', done: 0, total: 0, requests: 34, current: '1998–2005', failed: [] },
+      { source: 'iaai', phase: 'models', done: 53, total: 128, requests: 90, current: 'Lamborghini', failed: [] },
+    ],
+  };
+  await page.route('**/api/aliases/scan', (route) => route.fulfill({ json: running }));
+  await page.goto('/aliases');
+
+  const progress = page.getByTestId('alias-scan-progress');
+  await expect(page.getByRole('button', { name: 'Stop scan' })).toBeVisible();
+  await expect(progress.getByTestId('alias-scan-copart')).toContainText('Reading makes');
+  await expect(progress.getByTestId('alias-scan-copart')).toContainText('34 requests · 1998–2005');
+  await expect(progress.getByTestId('alias-scan-iaai')).toContainText('Reading models');
+  await expect(progress.getByTestId('alias-scan-iaai')).toContainText('53/128 · Lamborghini');
+  // it sits between the filter row and the columns
+  const progressBox = (await progress.boundingBox())!;
+  expect((await page.getByRole('button', { name: 'Stop scan' }).boundingBox())!.y).toBeLessThan(progressBox.y);
+  expect((await page.getByTestId('alias-pool').boundingBox())!.y).toBeGreaterThan(progressBox.y);
+});
