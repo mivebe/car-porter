@@ -46,7 +46,6 @@ test('BG market: grouped listings, match toggles, exclusions and marketplace cho
   await expect(section.getByTestId('market-group-autoscout24').getByTestId('market-site-status')).toContainText('not checked yet');
   await section.getByRole('button', { name: 'Check BG market' }).click();
   const eu = section.getByTestId('market-group-autoscout24');
-  await expect(eu).toContainText('AutoScout24 has no listings in Bulgaria');
   await expect(eu.getByTestId('market-listing')).toHaveCount(1);
   await expect(section.getByTestId('market-count')).toHaveText('3 / 4');
   await expect(section.getByTestId('market-average')).toHaveText('€23,413');

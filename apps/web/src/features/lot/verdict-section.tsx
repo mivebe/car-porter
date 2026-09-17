@@ -64,13 +64,7 @@ function Row({
   );
 }
 
-export function VerdictSection({
-  evaluation,
-  worthThresholdEur,
-}: {
-  evaluation: LotEvaluation;
-  worthThresholdEur: number;
-}) {
+export function VerdictSection({ evaluation }: { evaluation: LotEvaluation }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const eur = (c: number | null) => formatMoney(c, 'EUR', lang);
@@ -108,13 +102,9 @@ export function VerdictSection({
           </div>
         )}
 
-        <p className="text-xs text-muted-foreground">
-          {t('verdict.thresholdHint', {
-            amount: formatMoney(worthThresholdEur * 100, 'EUR', lang),
-          })}
-          {(evaluation.bidSource === 'buyNow' || evaluation.bidSource === 'currentBid') &&
-            ` ${t(`verdict.bidBasis.${evaluation.bidSource}`)}`}
-        </p>
+        {(evaluation.bidSource === 'buyNow' || evaluation.bidSource === 'currentBid') && (
+          <p className="text-xs text-muted-foreground">{t(`verdict.bidBasis.${evaluation.bidSource}`)}</p>
+        )}
       </div>
     </Section>
   );

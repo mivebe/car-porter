@@ -193,7 +193,6 @@ function SiteGroup({
           </>
         )}
       </p>
-      {group.site === 'autoscout24' && <p className="text-xs text-muted-foreground">{t('market.euReference')}</p>}
       {group.matches.length > 0 && (
         <ul className="divide-y rounded-lg border" data-testid="market-listings">
           {group.matches.map(({ listing }) => (

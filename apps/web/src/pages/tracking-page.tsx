@@ -45,7 +45,7 @@ export function TrackingPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('pages.tracking.title')} description={t('pages.tracking.description')} />
+      <PageHeader title={t('pages.tracking.title')} />
 
       {tracked.isPending && (
         <div className="flex flex-col gap-2" aria-busy="true">

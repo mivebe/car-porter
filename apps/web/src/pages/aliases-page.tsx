@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AliasBoard } from '@/features/aliases/alias-board';
 import { useAliasMakes, useAliasSummary } from '@/features/aliases/alias-hooks';
-import { ScanPanel } from '@/features/aliases/scan-panel';
+import { ScanButton } from '@/features/aliases/scan-button';
 import { Combobox } from '@/features/search/combobox';
 import type { AliasKind, AliasStatus } from '@/lib/api';
 
@@ -41,8 +41,7 @@ export function AliasesPage() {
 
   return (
     <div className="flex flex-col gap-4">
-      <PageHeader title={t('pages.aliases.title')} description={t('pages.aliases.description')} />
-      <ScanPanel make={make || null} />
+      <PageHeader title={t('pages.aliases.title')} />
 
       <div className="flex flex-wrap items-center gap-2">
         <Tabs value={kind} onValueChange={(v) => update({ kind: v === 'model' ? 'model' : null, make: null, sel: null })}>
@@ -118,9 +117,8 @@ export function AliasesPage() {
             onChange={(e) => update({ q: e.target.value.trim() || null })}
           />
         </div>
+        <ScanButton />
       </div>
-
-      <p className="text-xs text-muted-foreground">{t('aliases.board.hint')}</p>
 
       <AliasBoard
         // a new make/model list starts with a fresh search and no locally created names

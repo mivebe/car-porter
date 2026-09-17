@@ -25,6 +25,8 @@
   --ring: oklch(0.705 0.015 286.067);
   --success: oklch(0.6 0.13 155);
   --warning: oklch(0.72 0.15 70);
+  /* accent colour (placeholder until the brand palette is chosen) */
+  --brand: oklch(0.66 0.11 75);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.141 0.005 285.823);
   --sidebar-primary: oklch(0.21 0.006 285.885);
@@ -56,6 +58,7 @@
   --ring: oklch(0.552 0.016 285.938);
   --success: oklch(0.72 0.14 155);
   --warning: oklch(0.8 0.15 75);
+  --brand: oklch(0.8 0.11 80);
   --sidebar: oklch(0.21 0.006 285.885);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -91,6 +94,7 @@
   --color-ring: var(--ring);
   --color-success: var(--success);
   --color-warning: var(--warning);
+  --color-brand: var(--brand);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -107,5 +111,30 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+  }
+
+  /* Chromium/Safari: a 6px accent thumb on a transparent track */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in oklch, var(--brand) 55%, transparent);
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--brand);
+  }
+}
+
+/* Firefox has no ::-webkit-scrollbar (setting these in Chromium would disable the rules above) */
+@supports (-moz-appearance: none) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in oklch, var(--brand) 55%, transparent) transparent;
   }
 }

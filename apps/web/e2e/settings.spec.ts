@@ -22,9 +22,7 @@ test('settings: validation, save, effect on the verdict and market defaults, res
   await expect(save).toBeDisabled();
   await expect(page.getByLabel('Shipping USA → Rotterdam')).toHaveValue('2500');
   await expect(page.getByTestId('fee-total')).toHaveText('Total 40% · reduced 13.33%');
-  await expect(
-    page.getByText('Leave empty to use the ECB rate (0.8666, Sep 15, 2026).'),
-  ).toBeVisible();
+  await expect(page.getByLabel('Manual USD → EUR rate')).toHaveAttribute('placeholder', '0.8666');
 
   // validation
   await page.getByLabel('Shipping USA → Rotterdam').fill('abc');
@@ -57,9 +55,6 @@ test('settings: validation, save, effect on the verdict and market defaults, res
   await expect(sheet.getByText('Fees 10%')).toHaveCount(1);
   await expect(sheet.getByText('Fees 20%')).toHaveCount(1);
   await expect(sheet.getByTestId('market-section').getByLabel('AutoScout24 (EU)')).toBeChecked();
-  await expect(sheet.getByTestId('verdict-section')).toContainText(
-    'Worth it from a €9,000 margin.',
-  );
 
   // back to the defaults
   await page.goto('/settings');

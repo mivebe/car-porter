@@ -146,7 +146,6 @@ function LotDetail({ lotId }: { lotId: string }) {
               valueCents={inputs.data.repairEstimateEurCents}
               onCommit={(cents) => updateInputs.mutate({ repairEstimateEurCents: cents ?? 0 })}
             />
-            <p className="text-xs text-muted-foreground">{t('lotDetail.repairHint')}</p>
           </div>
         </div>
         <Separator />
@@ -189,7 +188,7 @@ function LotDetail({ lotId }: { lotId: string }) {
           onChange={(patch) => updateInputs.mutate(patch)}
         />
         <Separator />
-        <VerdictSection evaluation={evaluation} worthThresholdEur={settings.data.verdict.worthThresholdEur} />
+        <VerdictSection evaluation={evaluation} />
       </div>
     </>
   );

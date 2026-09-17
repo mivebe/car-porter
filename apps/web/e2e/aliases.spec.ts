@@ -20,9 +20,8 @@ test('aliases: drag site names between our makes/models, the assigned column and
   await page.goto('/aliases');
   await expect(page.getByRole('heading', { name: 'Make & model aliases' })).toBeVisible();
 
-  const scan = page.getByTestId('alias-scan');
-  await scan.getByRole('button', { name: 'Scan all' }).click();
-  await expect(scan.getByText(/Last scan finished/)).toBeVisible();
+  await page.getByRole('button', { name: 'Scan all' }).click();
+  await expect(page.getByText('Scan finished')).toBeVisible();
 
   const left = page.getByTestId('alias-canonical');
   const middle = page.getByTestId('alias-assigned');

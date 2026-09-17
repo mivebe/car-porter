@@ -19,20 +19,16 @@
   },
   "pages": {
     "search": {
-      "title": "Search lots",
-      "description": "Find vehicles on Copart and IAAI."
+      "title": "Search lots"
     },
     "tracking": {
-      "title": "Tracking",
-      "description": "Lots you are watching, with their estimates and verdicts."
+      "title": "Tracking"
     },
     "settings": {
-      "title": "Settings",
-      "description": "Costs, thresholds, sources and preferences."
+      "title": "Settings"
     },
     "aliases": {
-      "title": "Make & model aliases",
-      "description": "How Copart and IAAI spell makes and models, and which of our makes and models each spelling is searched as."
+      "title": "Make & model aliases"
     }
   },
   "sources": {
@@ -119,7 +115,6 @@
     "vinUsingLot": "Using the VIN from the listing.",
     "vinMasked": "The listing VIN is masked — paste it from the photos to enable VIN history.",
     "repairEstimate": "Repair estimate",
-    "repairHint": "Included in the profit margin.",
     "facts": {
       "vin": "VIN",
       "odometer": "Odometer",
@@ -253,7 +248,6 @@
       "autoscout24": "AutoScout24 (EU)",
       "olxBg": "OLX.bg"
     },
-    "euReference": "AutoScout24 has no listings in Bulgaria — these are EU prices, for reference.",
     "average": "Average",
     "median": "Median",
     "range": "Range",
@@ -292,7 +286,6 @@
       "repair": "Repair estimate",
       "margin": "Margin"
     },
-    "thresholdHint": "Worth it from a {{amount}} margin.",
     "bidBasis": {
       "buyNow": "Based on the Buy Now price (no estimate yet).",
       "currentBid": "Based on the current bid (no estimate yet)."
@@ -339,7 +332,6 @@
     },
     "cost": {
       "title": "Import costs",
-      "description": "Fees are percentages of the bid; shipping and transport are fixed amounts.",
       "percentages": "Fees (% of the bid)",
       "part": "Part {{n}}",
       "removePart": "Remove fee part {{n}}",
@@ -352,40 +344,31 @@
     },
     "verdict": {
       "title": "Verdict",
-      "description": "Margin = BG market average − landed cost − repair estimate.",
       "worthThresholdEur": "“Worth it” from a margin of"
     },
     "fx": {
       "title": "Exchange rate",
-      "description": "USD → EUR rate for the landed cost.",
-      "override": "Manual USD → EUR rate",
-      "ecbRate": "Leave empty to use the ECB rate ({{rate}}, {{date}}).",
-      "ecbUnavailable": "Leave empty to use the ECB rate (currently unavailable)."
+      "override": "Manual USD → EUR rate"
     },
     "bidfax": {
       "title": "Price estimate (bidfax)",
-      "description": "Limits for scanning past sales; a scan stops at whichever is reached first.",
       "maxMonths": "Sold within (months)",
       "maxMatches": "Max matches",
-      "maxPages": "Max pages",
-      "hint": "Each page is about 10 sales and takes 3–4 seconds."
+      "maxPages": "Max pages"
     },
     "market": {
       "title": "BG market",
-      "description": "Defaults for new lots; each lot can change its own marketplaces.",
       "mileageRangeKm": "Mileage match range (±)",
       "maxPages": "Max pages per marketplace",
       "defaultSources": "Default marketplaces"
     },
     "scraping": {
       "title": "Scraping",
-      "description": "Random pause between page loads on the same site.",
       "minDelayMs": "Minimum delay",
       "maxDelayMs": "Maximum delay"
     },
     "appearance": {
       "title": "Appearance",
-      "description": "Applied immediately.",
       "theme": "Theme",
       "themes": {
         "dark": "Dark",
@@ -394,7 +377,6 @@
     },
     "copart": {
       "title": "Copart account",
-      "description": "Search works as a guest — logging in is optional. The login is kept in the Copart browser profile.",
       "open": "Open Copart login window",
       "windowOpen": "The login window is open — log in there, then close the window.",
       "windowClosed": "No login window is open.",
@@ -440,16 +422,7 @@
       "search": "Search site names"
     },
     "scan": {
-      "title": "Check the sites for new names",
-      "hint": "Reads every make, and the models of every assigned make, from Copart and IAAI. Copart only lists 100 makes per request, so reading its makes takes about 150 requests (10+ minutes); searches wait while a scan runs.",
-      "runningAll": "Scanning all makes and models…",
-      "runningMake": "Scanning {{make}} models…",
-      "finished": {
-        "done": "Last scan finished {{when}}",
-        "cancelled": "Last scan was stopped {{when}}"
-      },
       "startAll": "Scan all",
-      "startMake": "Scan {{make}}",
       "cancel": "Stop scan",
       "phase": {
         "queued": "Waiting",
@@ -461,7 +434,10 @@
       },
       "failedMakes": "Could not read models of: {{makes}}",
       "makesProgress_one": "{{count}} request · {{years}}",
-      "makesProgress_other": "{{count}} requests · {{years}}"
+      "makesProgress_other": "{{count}} requests · {{years}}",
+      "finished": "Scan finished",
+      "stopped": "Scan stopped",
+      "finishedWithErrors": "Scan finished with errors"
     },
     "unassignedCount_one": "{{count}} unassigned name",
     "unassignedCount_other": "{{count}} unassigned names",
@@ -481,7 +457,6 @@
       "reset": "Reset to automatic"
     },
     "board": {
-      "hint": "Drag site names between the columns. Drop on one of our makes/models to assign or move them, into the middle to assign to the selected one, or to the right to unassign. Ctrl/Cmd-click selects several; hold Alt while dropping a model to also keep its current model. Hover a card or click it for details.",
       "ourMakes": "Our makes",
       "ourModels": "{{make}} models",
       "findMake": "Find or create a make",

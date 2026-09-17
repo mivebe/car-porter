@@ -80,7 +80,7 @@ export function SearchPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('pages.search.title')} description={t('pages.search.description')} />
+      <PageHeader title={t('pages.search.title')} />
       <SearchFilters
         key={params ? `${params.make}|${params.model}|${params.yearFrom}|${params.yearTo}` : 'empty'}
         initial={params ?? {}}

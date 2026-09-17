@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -22,7 +22,6 @@ import { NumberField } from '@/features/settings/number-field';
 import { TRACKED_KEY } from '@/features/tracking/tracking-hooks';
 import { SUPPORTED_LANGUAGES, type Language } from '@/i18n';
 import { api } from '@/lib/api';
-import { formatDate } from '@/lib/format';
 import { useUpdatePreferences } from '@/lib/preferences';
 import { useTheme, type Theme } from '@/lib/theme';
 
@@ -32,7 +31,7 @@ export function SettingsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('pages.settings.title')} description={t('pages.settings.description')} />
+      <PageHeader title={t('pages.settings.title')} />
       {settings.isPending && <Skeleton className="h-96 w-full" />}
       {settings.isError && (
         <div
@@ -49,18 +48,15 @@ export function SettingsPage() {
 
 function SettingsCard({
   title,
-  description,
   children,
 }: {
   title: string;
-  description?: string;
   children: ReactNode;
 }) {
   return (
     <Card className="gap-4">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="grid gap-4">{children}</CardContent>
     </Card>
@@ -71,7 +67,7 @@ function SettingsCard({
 const withoutUi = (s: Settings) => JSON.stringify({ ...s, ui: undefined });
 
 function SettingsForm({ saved }: { saved: Settings }) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const fx = useFx();
   const [draft, setDraft] = useState<Settings>(saved);
@@ -122,7 +118,7 @@ function SettingsForm({ saved }: { saved: Settings }) {
     label: string,
     value: number | null,
     set: (v: number | null) => void,
-    extra: { unit?: string; hint?: string; placeholder?: string } = {},
+    extra: { unit?: string; placeholder?: string } = {},
   ) => (
     <NumberField
       key={`${id}-${formKey}`}
@@ -147,7 +143,7 @@ function SettingsForm({ saved }: { saved: Settings }) {
       }}
     >
       <div className="grid items-start gap-6 lg:grid-cols-2">
-        <SettingsCard title={t('settings.cost.title')} description={t('settings.cost.description')}>
+        <SettingsCard title={t('settings.cost.title')}>
           <fieldset className="grid gap-2">
             <legend className="mb-1 text-sm">{t('settings.cost.percentages')}</legend>
             {percents.map((percent, i) => (
@@ -239,7 +235,6 @@ function SettingsForm({ saved }: { saved: Settings }) {
         <div className="grid gap-6">
           <SettingsCard
             title={t('settings.verdict.title')}
-            description={t('settings.verdict.description')}
           >
             {field(
               'worth-threshold',
@@ -251,7 +246,7 @@ function SettingsForm({ saved }: { saved: Settings }) {
             )}
           </SettingsCard>
 
-          <SettingsCard title={t('settings.fx.title')} description={t('settings.fx.description')}>
+          <SettingsCard title={t('settings.fx.title')}>
             {field(
               'fx-override',
               'fx.usdToEurOverride',
@@ -260,12 +255,6 @@ function SettingsForm({ saved }: { saved: Settings }) {
               (v) => update((d) => void (d.fx.usdToEurOverride = v)),
               {
                 placeholder: fx.data?.ecb ? fx.data.ecb.usdToEur.toFixed(4) : undefined,
-                hint: fx.data?.ecb
-                  ? t('settings.fx.ecbRate', {
-                      rate: fx.data.ecb.usdToEur.toFixed(4),
-                      date: formatDate(fx.data.ecb.date, i18n.language),
-                    })
-                  : t('settings.fx.ecbUnavailable'),
               },
             )}
           </SettingsCard>
@@ -273,7 +262,6 @@ function SettingsForm({ saved }: { saved: Settings }) {
 
         <SettingsCard
           title={t('settings.bidfax.title')}
-          description={t('settings.bidfax.description')}
         >
           <div className="grid gap-4 sm:grid-cols-3">
             {field(
@@ -298,12 +286,10 @@ function SettingsForm({ saved }: { saved: Settings }) {
               (v) => update((d) => void (d.bidfax.maxPages = num(v))),
             )}
           </div>
-          <p className="text-xs text-muted-foreground">{t('settings.bidfax.hint')}</p>
         </SettingsCard>
 
         <SettingsCard
           title={t('settings.market.title')}
-          description={t('settings.market.description')}
         >
           <div className="grid gap-4 sm:grid-cols-2">
             {field(
@@ -341,7 +327,6 @@ function SettingsForm({ saved }: { saved: Settings }) {
 
         <SettingsCard
           title={t('settings.scraping.title')}
-          description={t('settings.scraping.description')}
         >
           <div className="grid gap-4 sm:grid-cols-2">
             {field(
@@ -416,7 +401,6 @@ function AppearanceCard() {
   return (
     <SettingsCard
       title={t('settings.appearance.title')}
-      description={t('settings.appearance.description')}
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="grid gap-1.5">
@@ -486,7 +470,7 @@ function CopartCard() {
   const windowOpen = status.data?.windowOpen ?? false;
 
   return (
-    <SettingsCard title={t('settings.copart.title')} description={t('settings.copart.description')}>
+    <SettingsCard title={t('settings.copart.title')}>
       <p className="text-sm" data-testid="copart-login-status">
         {windowOpen ? t('settings.copart.windowOpen') : t('settings.copart.windowClosed')}
       </p>

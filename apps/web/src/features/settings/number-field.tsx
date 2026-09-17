@@ -12,7 +12,6 @@ interface NumberFieldProps {
   onChange: (value: number | null) => void;
   unit?: string;
   placeholder?: string;
-  hint?: ReactNode;
   error?: string;
   className?: string;
 }
@@ -25,7 +24,6 @@ export function NumberField({
   onChange,
   unit,
   placeholder,
-  hint,
   error,
   className,
 }: NumberFieldProps) {
@@ -55,12 +53,10 @@ export function NumberField({
           </span>
         )}
       </div>
-      {error ? (
+      {error && (
         <p id={`${id}-error`} className="text-xs text-destructive">
           {error}
         </p>
-      ) : (
-        hint && <p className="text-xs text-muted-foreground">{hint}</p>
       )}
     </div>
   );

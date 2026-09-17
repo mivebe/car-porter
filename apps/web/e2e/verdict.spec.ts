@@ -40,7 +40,6 @@ test('verdict: margin from market average, landed cost and repair estimate', asy
   await expect(sheet.getByTestId('market-average')).toHaveText('€17,936');
   await expect(verdict.getByTestId('verdict-status')).toHaveText('Worth it');
   await expect(verdict.getByTestId('verdict-margin')).toHaveText('€8,012');
-  await expect(verdict).toContainText('Worth it from a €3,000 margin.');
 
   const repair = sheet.getByLabel('Repair estimate');
   await repair.fill('6000');
