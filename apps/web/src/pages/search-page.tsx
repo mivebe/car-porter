@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LotDetailSheet } from '@/features/lot/lot-detail-sheet';
 import { LotResults } from '@/features/search/lot-results';
+import { RECENT_SEARCHES_KEY } from '@/features/search/recent-search-hooks';
+import { RecentSearches } from '@/features/search/recent-searches';
 import { SearchFilters } from '@/features/search/search-filters';
 import { LOT_SORTS, sortAndFilterLots, uniqueLots, type LotSort, type SourceFilter } from '@/features/search/sort-lots';
 import { SourceStatusBadge } from '@/features/search/source-status';
@@ -57,10 +59,13 @@ export function SearchPage() {
     queryKey: ['lots', params],
     enabled: !!params,
     initialPageParam: 1,
-    queryFn: ({ pageParam }) => {
+    queryFn: async ({ pageParam }) => {
       const refresh = forceRefresh.current;
       forceRefresh.current = false;
-      return api.searchLots({ ...params!, page: pageParam, refresh });
+      const page = await api.searchLots({ ...params!, page: pageParam, refresh });
+      // the server records every first page as a recent search
+      if (pageParam === 1) void queryClient.invalidateQueries({ queryKey: RECENT_SEARCHES_KEY });
+      return page;
     },
     getNextPageParam: (last: LotSearchResponse) =>
       last.sources.some((s) => s.ok && s.hasMore) ? last.page + 1 : undefined,
@@ -103,7 +108,7 @@ export function SearchPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title={t('pages.search.title')} />
+      <PageHeader title={t('pages.search.title')} actions={<RecentSearches onSearch={runSearch} />} />
       <SearchFilters
         key={params ? JSON.stringify(params) : 'empty'}
         initial={params ?? {}}

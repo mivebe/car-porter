@@ -79,6 +79,12 @@ export interface LotSearchParams {
   engine?: string;
 }
 
+export interface RecentSearch {
+  key: string;
+  filters: LotSearchParams;
+  searchedAt: string;
+}
+
 export interface FxResponse {
   usdToEur: number;
   source: 'ecb' | 'override';
@@ -217,4 +223,8 @@ export const api = {
   track: (id: string) =>
     request<{ lotId: string; trackedAt: string }>(`/api/tracked/${encodeURIComponent(id)}`, { method: 'PUT' }),
   untrack: (id: string) => request<null>(`/api/tracked/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  recentSearches: () => request<{ items: RecentSearch[] }>('/api/searches/recent'),
+  removeRecentSearch: (key: string) =>
+    request<null>(`/api/searches/recent/${encodeURIComponent(key)}`, { method: 'DELETE' }),
+  clearRecentSearches: () => request<null>('/api/searches/recent', { method: 'DELETE' }),
 };

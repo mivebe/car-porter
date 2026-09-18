@@ -5,6 +5,7 @@ async function pick(page: Page, label: string, search: string, option: string) {
   await page.getByRole('combobox', { name: label }).click();
   await page.getByPlaceholder(/Search (manufacturers|models)/).fill(search);
   await page.getByRole('option', { name: option, exact: true }).click();
+  await expect(page.getByPlaceholder(/Search (manufacturers|models)/)).toHaveCount(0);
 }
 
 async function pickYear(page: Page, label: string, year: string) {

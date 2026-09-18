@@ -5,6 +5,7 @@ async function pick(page: Page, label: string, search: string, option: string) {
   await page.getByRole('combobox', { name: label }).click();
   await page.getByPlaceholder(/Search (manufacturers|models)/).fill(search);
   await page.getByRole('option', { name: option, exact: true }).click();
+  await expect(page.getByPlaceholder(/Search (manufacturers|models)/)).toHaveCount(0);
 }
 
 async function pickYear(page: Page, label: string, year: string) {
@@ -133,5 +134,26 @@ test.describe('lot search', () => {
     await page.goto('/?make=Honda&model=Civic&yearFrom=2018&yearTo=2020');
     await expect(page.getByText('No lots match these filters.')).toBeVisible();
     await expect(page.getByTestId('source-status-Copart')).toContainText('0');
+  });
+
+  test('re-runs and removes recent searches', async ({ page }) => {
+    await page.goto('/?make=Toyota&model=Camry&yearFrom=2018&yearTo=2020');
+    await expect(page.getByTestId('lot-row').first()).toBeVisible();
+    await page.goto('/?make=Toyota&model=Camry&yearFrom=2019&yearTo=2019&transmission=automatic');
+    await expect(page.getByTestId('lot-row').first()).toBeVisible();
+
+    await page.getByRole('button', { name: 'Recent' }).click();
+    const items = page.getByRole('menuitem');
+    await expect(items.nth(0)).toContainText('Toyota Camry 2019');
+    await expect(items.nth(0)).toContainText('Automatic');
+    await items.filter({ hasText: 'Toyota Camry 2018–2020' }).click();
+    await expect(page).toHaveURL(/yearFrom=2018&yearTo=2020$/);
+
+    await page.getByRole('button', { name: 'Recent' }).click();
+    await expect(items.nth(0)).toContainText('Toyota Camry 2018–2020');
+    await page.getByRole('button', { name: 'Remove' }).first().click();
+    await expect(items.filter({ hasText: '2018–2020' })).toHaveCount(0);
+    await page.getByRole('menuitem', { name: 'Clear all' }).click();
+    await expect(page.getByRole('button', { name: 'Recent' })).toBeDisabled();
   });
 });
