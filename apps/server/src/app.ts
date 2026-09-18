@@ -6,6 +6,7 @@ import { createCacheRepository } from './repositories/cache-repository.ts';
 import { createLotInputsRepository } from './repositories/lot-inputs-repository.ts';
 import { createLotsRepository } from './repositories/lots-repository.ts';
 import { createMarketListingsRepository } from './repositories/market-listings-repository.ts';
+import { createRecentSearchesRepository } from './repositories/recent-searches-repository.ts';
 import { createSelectionsRepository } from './repositories/selections-repository.ts';
 import { createSettingsRepository } from './repositories/settings-repository.ts';
 import { createTrackedLotsRepository } from './repositories/tracked-lots-repository.ts';
@@ -18,6 +19,7 @@ import { historyRoutes } from './routes/history-routes.ts';
 import { fxRoutes } from './routes/fx-routes.ts';
 import { lotsRoutes } from './routes/lots-routes.ts';
 import { marketRoutes } from './routes/market-routes.ts';
+import { recentSearchesRoutes } from './routes/recent-searches-routes.ts';
 import { settingsRoutes } from './routes/settings-routes.ts';
 import { trackingRoutes } from './routes/tracking-routes.ts';
 import { createBrowserManager } from './scraping/browser.ts';
@@ -93,6 +95,7 @@ export async function buildApp({
     marketListings: createMarketListingsRepository(database.db),
     tracked: createTrackedLotsRepository(database.db),
     vehicleAliases: createVehicleAliasesRepository(database.db),
+    recentSearches: createRecentSearchesRepository(database.db),
   };
   await repos.settings.get();
 
@@ -152,7 +155,9 @@ export async function buildApp({
     lots: repos.lots,
     inputs: repos.lotInputs,
     tracked: repos.tracked,
+    recent: repos.recentSearches,
   });
+  await app.register(recentSearchesRoutes, { recent: repos.recentSearches });
 
   const estimate = createEstimateService({
     fetchHtml:

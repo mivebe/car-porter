@@ -3,6 +3,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { LotInputsRepository } from '../repositories/lot-inputs-repository.ts';
 import type { LotsRepository } from '../repositories/lots-repository.ts';
+import type { RecentSearchesRepository } from '../repositories/recent-searches-repository.ts';
 import type { TrackedLotsRepository } from '../repositories/tracked-lots-repository.ts';
 import type { LotSearchService } from '../services/lot-search-service.ts';
 
@@ -43,12 +44,19 @@ const searchQuery = z
 
 export async function lotsRoutes(
   app: FastifyInstance,
-  opts: { search: LotSearchService; lots: LotsRepository; inputs: LotInputsRepository; tracked: TrackedLotsRepository },
+  opts: {
+    search: LotSearchService;
+    lots: LotsRepository;
+    inputs: LotInputsRepository;
+    tracked: TrackedLotsRepository;
+    recent: RecentSearchesRepository;
+  },
 ) {
   app.get('/api/lots/search', async (req, reply) => {
     const q = searchQuery.safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: 'invalid_query', issues: q.error.issues });
     const { page, refresh, ...filters } = q.data;
+    if (page === 1) await opts.recent.record(filters);
     return opts.search.search(filters, page, refresh);
   });
 

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import type { LotSearchFilters } from '@car-porter/core';
 
 const now = sql`(unixepoch() * 1000)`;
 const timestamp = (name: string) => integer(name, { mode: 'timestamp_ms' });
@@ -168,3 +169,10 @@ export const vehicleAliases = sqliteTable(
     index('vehicle_aliases_canonical_idx').on(t.canonicalMake, t.canonical),
   ],
 );
+
+/** Searches the user ran, newest first; key = normalized filters, so repeating a search moves it to the top. */
+export const recentSearches = sqliteTable('recent_searches', {
+  key: text('key').primaryKey(),
+  filters: text('filters', { mode: 'json' }).$type<LotSearchFilters>().notNull(),
+  searchedAt: timestamp('searched_at').notNull().default(now),
+});
