@@ -72,15 +72,16 @@ describe('AliasBoard paging', () => {
     render(board());
 
     // a long column would make every drag re-render hundreds of cards
-    expect(screen.getAllByTestId('alias-card')).toHaveLength(100);
+    expect(screen.getAllByTestId('alias-card')).toHaveLength(60);
     const more = screen.getByTestId('alias-show-more');
-    expect(more).toHaveTextContent('Show 150 more');
+    expect(more).toHaveTextContent('Show 190 more');
 
     await user.click(more);
-    expect(screen.getAllByTestId('alias-card')).toHaveLength(200);
-    expect(screen.getByTestId('alias-show-more')).toHaveTextContent('Show 50 more');
+    expect(screen.getAllByTestId('alias-card')).toHaveLength(120);
+    expect(screen.getByTestId('alias-show-more')).toHaveTextContent('Show 130 more');
 
-    await user.click(screen.getByTestId('alias-show-more'));
+    // 180, 240, then the last 10
+    for (let i = 0; i < 3; i++) await user.click(screen.getByTestId('alias-show-more'));
     expect(screen.getAllByTestId('alias-card')).toHaveLength(250);
     expect(screen.queryByTestId('alias-show-more')).not.toBeInTheDocument();
   });

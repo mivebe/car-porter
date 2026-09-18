@@ -38,7 +38,7 @@ const norm = (s: string) => s.trim().toLowerCase();
  * Cards rendered per column before "show more". Dragging re-renders every card on the board (each
  * one is a dnd-kit draggable), so a column of 500 names makes a drag take over a second to start.
  */
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 60;
 
 /** Drop on whatever is under the pointer (a make row inside a column wins); keyboard drags fall back to overlap. */
 const collision: CollisionDetection = (args) => {
