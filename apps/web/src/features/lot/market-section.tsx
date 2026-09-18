@@ -8,7 +8,8 @@ import {
   type MarketSummary,
   type Settings,
 } from '@car-porter/core';
-import { AlertTriangle, ExternalLink, Loader2, RefreshCw, Search, Store } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, ExternalLink, Loader2, RefreshCw, Search, Store } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -159,6 +160,8 @@ function SiteGroup({
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const eur = (c: number | null | undefined) => formatMoney(c, 'EUR', lang);
+  const [expanded, setExpanded] = useState(false);
+  const listId = `market-listings-${group.site}`;
 
   return (
     <div className="grid gap-2" data-testid={`market-group-${group.site}`}>
@@ -194,7 +197,20 @@ function SiteGroup({
         )}
       </p>
       {group.matches.length > 0 && (
-        <ul className="divide-y rounded-lg border" data-testid="market-listings">
+        <button
+          type="button"
+          className="flex items-center gap-1 justify-self-start text-xs font-medium text-muted-foreground hover:text-foreground"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-controls={listId}
+          data-testid="market-listings-toggle"
+        >
+          {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+          {t('market.listings', { count: group.matches.length })}
+        </button>
+      )}
+      {group.matches.length > 0 && expanded && (
+        <ul id={listId} className="divide-y rounded-lg border" data-testid="market-listings">
           {group.matches.map(({ listing }) => (
             <ListingItem
               key={listing.id}

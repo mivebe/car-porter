@@ -312,6 +312,8 @@
     "pageLimit": "спряно при лимита от страници ({{pages}})",
     "notChecked": "още не е проверено",
     "openSearch": "Отвори търсенето",
+    "listings_one": "{{count}} обява",
+    "listings_other": "{{count}} обяви",
     "include": "Включи {{title}} ({{price}}) в средната цена",
     "previousPrice": "Предишна цена"
   },

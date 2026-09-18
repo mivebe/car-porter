@@ -312,6 +312,8 @@
     "pageLimit": "stopped at the page limit ({{pages}})",
     "notChecked": "not checked yet",
     "openSearch": "Open the search",
+    "listings_one": "{{count}} listing",
+    "listings_other": "{{count}} listings",
     "include": "Include {{title}} ({{price}}) in the average",
     "previousPrice": "Previous price"
   },

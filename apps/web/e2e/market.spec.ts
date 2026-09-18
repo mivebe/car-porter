@@ -22,13 +22,20 @@ test('BG market: grouped listings, match toggles, exclusions and marketplace cho
   const mobile = section.getByTestId('market-group-mobileBg');
   await expect(mobile.getByTestId('market-site-status')).toContainText('9 listings found now · 5 ruled out by the criteria or located abroad');
   await expect(mobile.getByTestId('market-group-average')).toHaveText('€17,475 average of 4 listings');
+  // each marketplace's listings start collapsed
+  await expect(mobile.getByTestId('market-listing')).toHaveCount(0);
+  await expect(mobile.getByTestId('market-listings-toggle')).toHaveText('4 listings');
+  await mobile.getByTestId('market-listings-toggle').click();
   await expect(mobile.getByTestId('market-listing')).toHaveCount(4);
   await expect(mobile.getByTestId('market-listing-price').first()).toHaveText('€12,200');
   await expect(mobile.getByRole('link', { name: 'Open the search' })).toHaveAttribute(
     'href',
     'https://www.mobile.bg/obiavi/avtomobili-dzhipove/toyota/camry/ot-2019/do-2019',
   );
-  await expect(section.getByTestId('market-group-carsBg').getByTestId('market-listing')).toHaveCount(3);
+  const carsBg = section.getByTestId('market-group-carsBg');
+  await expect(carsBg.getByTestId('market-listing')).toHaveCount(0);
+  await carsBg.getByTestId('market-listings-toggle').click();
+  await expect(carsBg.getByTestId('market-listing')).toHaveCount(3);
   await expect(section.getByTestId('market-group-autoscout24')).toHaveCount(0);
 
   // match the fuel too: hybrids drop out
@@ -46,6 +53,7 @@ test('BG market: grouped listings, match toggles, exclusions and marketplace cho
   await expect(section.getByTestId('market-group-autoscout24').getByTestId('market-site-status')).toContainText('not checked yet');
   await section.getByRole('button', { name: 'Check BG market' }).click();
   const eu = section.getByTestId('market-group-autoscout24');
+  await eu.getByTestId('market-listings-toggle').click();
   await expect(eu.getByTestId('market-listing')).toHaveCount(1);
   await expect(section.getByTestId('market-count')).toHaveText('3 / 4');
   await expect(section.getByTestId('market-average')).toHaveText('€23,413');
