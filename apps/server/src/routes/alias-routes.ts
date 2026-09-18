@@ -67,7 +67,10 @@ export async function aliasRoutes(
     return { items: await opts.aliases.canonicalItems(query.data) };
   });
 
-  app.get('/api/aliases/summary', async () => ({ unassigned: await opts.aliases.unassignedCounts() }));
+  app.get('/api/aliases/summary', async () => {
+    const { total, bySource } = await opts.aliases.unassignedCounts();
+    return { unassigned: total, unassignedBySource: bySource };
+  });
 
   app.put('/api/aliases/assignment', async (req, reply) => {
     const body = assignmentBody.safeParse(req.body);

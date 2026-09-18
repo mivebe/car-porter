@@ -33,6 +33,19 @@ test('aliases: drag site names between our makes/models, the assigned column and
   await expect(pool.locator('[data-name="HARLEY-DAVIDSON"]')).toHaveCount(0);
   await expect(middle).toContainText('Select one of our makes');
 
+  // unassigned counts follow the site filter, and each site shows its own
+  await expect(page.getByTestId('unassigned-make')).toHaveText('2');
+  await page.getByRole('combobox', { name: 'Site' }).click();
+  await expect(page.getByTestId('unassigned-site-copart')).toHaveText('1');
+  await expect(page.getByTestId('unassigned-site-mobileBg')).toHaveCount(0);
+  await page.getByRole('option', { name: /Copart/ }).click();
+  await expect(page.getByTestId('unassigned-make')).toHaveText('1');
+  await expect(card(pool, 'GREAT DANE TRAILERS', 'iaai')).toHaveCount(0);
+  await page.getByRole('combobox', { name: 'Site' }).click();
+  await page.getByRole('option', { name: 'All sites' }).click();
+  await expect(page.getByRole('listbox')).toHaveCount(0);
+  await expect(page.getByTestId('unassigned-make')).toHaveText('2');
+
   // dropping in the middle with nothing selected sends the card back
   await drag(page, card(pool, 'GREAT DANE TRAILERS', 'copart'), middle, async () => {
     await expect(page.getByTestId('alias-drop-label')).toHaveText('Select a make or model on the left first');

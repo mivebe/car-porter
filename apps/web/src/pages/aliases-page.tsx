@@ -38,7 +38,8 @@ export function AliasesPage() {
   };
 
   const summary = useAliasSummary();
-  const aliasMakes = useAliasMakes();
+  const aliasMakes = useAliasMakes(source);
+  const unassigned = source ? summary.data?.unassignedBySource[source] : summary.data?.unassigned;
 
   return (
     <div className="flex flex-col gap-4">
@@ -50,9 +51,9 @@ export function AliasesPage() {
             {(['make', 'model', 'body'] as const).map((k) => (
               <TabsTrigger key={k} value={k} className="gap-1.5">
                 {t(`aliases.kind.${k}`)}
-                {!!summary.data?.unassigned[k] && (
+                {!!unassigned?.[k] && (
                   <Badge variant="destructive" className="h-4 px-1.5 text-[10px] tabular-nums" data-testid={`unassigned-${k}`}>
-                    {summary.data.unassigned[k]}
+                    {unassigned[k]}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -75,16 +76,24 @@ export function AliasesPage() {
         </Select>
 
         <Select value={source ?? ALL} onValueChange={(v) => update({ source: v === ALL ? null : v })}>
-          <SelectTrigger className="w-36" aria-label={t('aliases.filters.site')}>
+          <SelectTrigger className="w-40" aria-label={t('aliases.filters.site')}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>{t('aliases.filters.allSites')}</SelectItem>
-            {ALIAS_SOURCES.map((s) => (
-              <SelectItem key={s} value={s}>
-                {t(`sources.${s}`)}
-              </SelectItem>
-            ))}
+            {ALIAS_SOURCES.map((s) => {
+              const count = summary.data?.unassignedBySource[s]?.[kind];
+              return (
+                <SelectItem key={s} value={s}>
+                  {t(`sources.${s}`)}
+                  {!!count && (
+                    <Badge variant="destructive" className="h-4 px-1.5 text-[10px] tabular-nums" data-testid={`unassigned-site-${s}`}>
+                      {count}
+                    </Badge>
+                  )}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
 

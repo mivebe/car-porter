@@ -463,12 +463,18 @@ export function createVehicleAliasService(deps: {
       .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
   }
 
-  /** Unassigned site names per kind, across sites and makes. */
-  async function unassignedCounts(): Promise<Record<AliasKind, number>> {
-    const [makes, models, bodies] = await Promise.all(
-      (['make', 'model', 'body'] as const).map((kind) => entries({ kind, limit: 0 })),
-    );
-    return { make: makes!.counts.unassigned, model: models!.counts.unassigned, body: bodies!.counts.unassigned };
+  /** Unassigned site names per kind across sites and makes, and per kind for each site. */
+  async function unassignedCounts(): Promise<{ total: Record<AliasKind, number>; bySource: Record<AliasSource, Record<AliasKind, number>> }> {
+    const kinds = ['make', 'model', 'body'] as const;
+    const zero = () => ({ make: 0, model: 0, body: 0 });
+    const total = zero();
+    const bySource = Object.fromEntries(ALIAS_SOURCES.map((s) => [s, zero()])) as Record<AliasSource, Record<AliasKind, number>>;
+    for (const kind of kinds) {
+      const { items } = await entries({ kind, status: 'unassigned', limit: Infinity });
+      total[kind] = items.length;
+      for (const e of items) bySource[e.source][kind]++;
+    }
+    return { total, bySource };
   }
 
   return {

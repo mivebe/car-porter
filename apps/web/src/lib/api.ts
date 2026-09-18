@@ -205,7 +205,10 @@ export const api = {
     request<{ items: { name: string; unassigned: number }[] }>(`/api/aliases/makes?${query({ source })}`),
   aliasCanonical: (params: { kind: AliasKind; make?: string; source?: AliasSource }) =>
     request<{ items: CanonicalItem[] }>(`/api/aliases/canonical?${query({ ...params })}`),
-  aliasSummary: () => request<{ unassigned: Record<AliasKind, number> }>('/api/aliases/summary'),
+  aliasSummary: () =>
+    request<{ unassigned: Record<AliasKind, number>; unassignedBySource: Record<AliasSource, Record<AliasKind, number>> }>(
+      '/api/aliases/summary',
+    ),
   changeAliases: (changes: AliasChange[]) =>
     request<{ updated: number }>('/api/aliases/assignment', { method: 'PUT', body: JSON.stringify({ changes }) }),
   aliasScan: () => request<AliasScanStatus>('/api/aliases/scan'),

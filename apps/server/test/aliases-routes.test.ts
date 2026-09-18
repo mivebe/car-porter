@@ -41,6 +41,13 @@ describe('/api/aliases', () => {
     ]);
     expect((await app.inject({ method: 'GET', url: '/api/aliases/summary' })).json()).toEqual({
       unassigned: { make: 2, model: 0, body: 0 },
+      unassignedBySource: {
+        copart: { make: 1, model: 0, body: 0 },
+        iaai: { make: 1, model: 0, body: 0 },
+        mobileBg: { make: 0, model: 0, body: 0 },
+        carsBg: { make: 0, model: 0, body: 0 },
+        olxBg: { make: 0, model: 0, body: 0 },
+      },
     });
 
     const res = await assign(app, [{ source: 'copart', kind: 'make', externalName: 'GREAT DANE TRAILERS' }], { action: 'ignore' });
