@@ -158,6 +158,15 @@ describe('matchAuctionRecord (bidfax)', () => {
     expect(r.unknown).toEqual(['trim', 'engine', 'fuel']);
   });
 
+  it('finds the model in the trim of a catch-all bidfax model', () => {
+    const c63 = { ...lot, make: 'MERCEDES-BENZ', model: 'AMG C 63', trim: null, engine: null, fuel: null };
+    const amg = (trim: string) => record({ make: 'mercedes-benz', model: 'amg-gt', trim, engine: null, fuel: null });
+    expect(matchAuctionRecord(c63, amg('C 63 S'), 'AMG').matches).toBe(true);
+    expect(matchAuctionRecord({ ...c63, model: 'C 63 AMG' }, amg('C 63'), 'AMG').matches).toBe(true);
+    expect(matchAuctionRecord(c63, amg('C 43 4Matic'), 'AMG').matches).toBe(false);
+    expect(matchAuctionRecord(c63, amg('Cls 63 S 4Matic'), 'AMG').matches).toBe(false);
+  });
+
   it('requires make/model/year to be known', () => {
     expect(matchAuctionRecord(lot, record({ year: null })).matches).toBe(false);
     expect(matchAuctionRecord(lot, record({ make: null })).matches).toBe(false);

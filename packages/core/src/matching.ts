@@ -1,4 +1,5 @@
 import type { AuctionRecord, Lot, MarketListing } from './types.ts';
+import { modelTokens } from './vehicle-aliases.ts';
 
 export const MILES_TO_KM = 1.609344;
 
@@ -125,14 +126,28 @@ function finalize<K extends string>(criteria: Record<K, CriterionResult>, requir
 export type AuctionCriterion = 'make' | 'model' | 'year' | 'trim' | 'engine' | 'fuel';
 
 /**
- * Bidfax price-estimate match: make + model + exact year are required; trim, engine and fuel
- * must not conflict (unknown on either side is allowed and reported).
+ * Bidfax files some models under a catch-all ("AMG" holds every C 63, E 63 and GLE 43) and keeps
+ * the real model in the trim ("C 63 S"), so a model also matches when every word of the lot's
+ * model appears in the record's model name plus trim.
  */
-export function matchAuctionRecord(lot: Lot, record: AuctionRecord): MatchResult<AuctionCriterion> {
+export function auctionModelMatches(lotModel: string, record: { make: string | null; model: string; trim: string | null }) {
+  if (compact(lotModel) === compact(record.model)) return true;
+  const wanted = modelTokens(lotModel, record.make ?? '');
+  const have = new Set(modelTokens(`${record.model} ${record.trim ?? ''}`, record.make ?? ''));
+  return wanted.length > 0 && wanted.every((t) => have.has(t));
+}
+
+/**
+ * Bidfax price-estimate match: make + model + exact year are required; trim, engine and fuel
+ * must not conflict (unknown on either side is allowed and reported). `modelName` is the bidfax
+ * model the records were listed under ("AMG"), when their stored model is only its slug ("amg-gt").
+ */
+export function matchAuctionRecord(lot: Lot, record: AuctionRecord, modelName?: string): MatchResult<AuctionCriterion> {
+  const model = modelName ?? record.model;
   return finalize<AuctionCriterion>(
     {
       make: compare(lot.make, record.make, (a, b) => normalizeMake(a) === normalizeMake(b)),
-      model: compare(lot.model, record.model, modelMatches),
+      model: compare(lot.model, model, (a, b) => auctionModelMatches(a, { make: record.make, model: b, trim: record.trim })),
       year: compare(lot.year, record.year, (a, b) => a === b),
       trim: compare(lot.trim, record.trim, trimMatches),
       engine: compare(engineLiters(lot.engine), engineLiters(record.engine), (a, b) => Math.abs(a - b) < 0.05),
@@ -158,11 +173,11 @@ export function isWithinMonths(isoDate: string | null, now: Date, months: number
 export function selectAuctionMatches(
   lot: Lot,
   records: AuctionRecord[],
-  options: { now: Date; maxMonths: number; maxMatches: number },
+  options: { now: Date; maxMonths: number; maxMatches: number; modelName?: string },
 ): { record: AuctionRecord; match: MatchResult<AuctionCriterion> }[] {
   return records
     .filter((r) => r.finalPriceUsdCents != null && isWithinMonths(r.saleDate, options.now, options.maxMonths))
-    .map((record) => ({ record, match: matchAuctionRecord(lot, record) }))
+    .map((record) => ({ record, match: matchAuctionRecord(lot, record, options.modelName) }))
     .filter(({ match }) => match.matches)
     .sort((a, b) => (b.record.saleDate ?? '').localeCompare(a.record.saleDate ?? ''))
     .slice(0, options.maxMatches);

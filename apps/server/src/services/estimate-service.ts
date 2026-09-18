@@ -144,14 +144,15 @@ export function createEstimateService(deps: {
   const coverageKey = (makeSlug: string, modelSlug: string, year: number) =>
     `bidfax:coverage:${makeSlug}:${modelSlug}:${year}`;
 
-  async function build(lot: Lot, makeSlug: string | null, modelSlug: string | null, error?: SourceErrorInfo) {
+  async function build(lot: Lot, makeSlug: string | null, model: BidfaxModelLink | null, error?: SourceErrorInfo) {
     const { maxMonths, maxMatches } = (await deps.settings.get()).bidfax;
+    const modelSlug = model?.slug ?? null;
     const records = makeSlug && modelSlug ? await deps.records.findByModelYear('bidfax', makeSlug, modelSlug, lot.year) : [];
     const scan = makeSlug && modelSlug ? await deps.cache.get<ScanInfo>(scanKey(makeSlug, modelSlug, lot.year)) : null;
     const response: EstimateResponse = {
       lotId: lot.id,
       searchUrl: makeSlug && modelSlug ? bidfaxListingUrl(makeSlug, modelSlug, lot.year) : null,
-      matches: selectAuctionMatches(lot, records, { now: now(), maxMonths, maxMatches }).map(({ record, match }) => ({
+      matches: selectAuctionMatches(lot, records, { now: now(), maxMonths, maxMatches, modelName: model?.name }).map(({ record, match }) => ({
         record,
         criteria: match.criteria,
         unknown: match.unknown,
@@ -175,7 +176,7 @@ export function createEstimateService(deps: {
     const makeSlug = bidfaxSlug(lot.make);
     const models = await deps.cache.get<BidfaxModelLink[]>(`bidfax:models:${makeSlug}`);
     const model = models ? pickBidfaxModel(models.payload, lot.model) : null;
-    return build(lot, model ? makeSlug : null, model?.slug ?? null);
+    return build(lot, model ? makeSlug : null, model);
   }
 
   /**
@@ -189,16 +190,16 @@ export function createEstimateService(deps: {
   async function run(lotId: string, force = false): Promise<EstimateResponse> {
     const lot = await loadLot(lotId);
     let makeSlug: string | null = null;
-    let modelSlug: string | null = null;
+    let model: BidfaxModelLink | null = null;
     try {
       const resolved = await resolveModel(lot, false);
       const mk = (makeSlug = resolved.makeSlug);
-      const md = (modelSlug = resolved.model.slug);
+      const md = (model = resolved.model).slug;
       const key = scanKey(mk, md, lot.year);
       const { maxPages, maxMonths, maxMatches } = (await deps.settings.get()).bidfax;
       const stored = () => deps.records.findByModelYear('bidfax', mk, md, lot.year);
       const lotMatchCount = async () =>
-        selectAuctionMatches(lot, await stored(), { now: now(), maxMonths, maxMatches }).length;
+        selectAuctionMatches(lot, await stored(), { now: now(), maxMonths, maxMatches, modelName: resolved.model.name }).length;
 
       const previous = await deps.cache.get<ScanInfo>(key);
       if (
@@ -206,7 +207,7 @@ export function createEstimateService(deps: {
         !force &&
         (previous.payload.stopReason !== 'max_matches' || (await lotMatchCount()) >= maxMatches)
       ) {
-        return build(lot, mk, md);
+        return build(lot, mk, model);
       }
 
       const coverage = (await deps.cache.get<ScanCoverage>(coverageKey(mk, md, lot.year)))?.payload ?? null;
@@ -288,9 +289,9 @@ export function createEstimateService(deps: {
           null,
         );
       }
-      return build(lot, mk, md, scanError);
+      return build(lot, mk, model, scanError);
     } catch (err) {
-      return build(lot, makeSlug, modelSlug, toSourceErrorInfo(err));
+      return build(lot, makeSlug, model, toSourceErrorInfo(err));
     }
   }
 
