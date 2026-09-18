@@ -128,7 +128,7 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
               id="filter-trim"
               value={draft.trim}
               maxLength={40}
-              placeholder={t('search.trimPlaceholder')}
+              placeholder={t('search.any')}
               onChange={(e) => update({ trim: e.target.value })}
             />
           </div>
@@ -137,7 +137,7 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
             <YearPicker
               id="filter-year-from"
               ariaLabel={t('search.yearFrom')}
-              placeholder="2018"
+              placeholder={t('search.any')}
               value={draft.yearFrom}
               invalid={!!errors.yearFrom}
               onChange={(yearFrom) =>
@@ -152,7 +152,7 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
             <YearPicker
               id="filter-year-to"
               ariaLabel={t('search.yearTo')}
-              placeholder="2020"
+              placeholder={t('search.any')}
               value={draft.yearTo}
               min={draft.yearFrom ? Number(draft.yearFrom) : undefined}
               invalid={!!errors.yearTo}
@@ -210,7 +210,7 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
               value={draft.engine}
               inputMode="decimal"
               maxLength={4}
-              placeholder={t('search.enginePlaceholder')}
+              placeholder={t('search.any')}
               aria-invalid={!!errors.engine}
               onChange={(e) => update({ engine: e.target.value })}
             />

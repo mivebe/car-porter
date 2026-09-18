@@ -2,6 +2,7 @@ import {
   DEFAULT_IAAI_MARKETS,
   IAAI_MARKETS,
   lotMatchesTrim,
+  searchYears,
   trimKeyword,
   trimWords,
   type AuctionSource,
@@ -61,7 +62,8 @@ export function lotSearchCacheKey(source: string, f: LotSearchFilters, page: num
     f.engine && `e=${f.engine}`,
   ].filter(Boolean);
   const extra = options.map((o) => `:${o}`).join('');
-  return `${LOT_SEARCH_CACHE_PREFIX}${source}:${norm(f.make)}:${norm(f.model)}:${f.yearFrom}-${f.yearTo}${extra}:p${page}`;
+  const { yearFrom, yearTo } = searchYears(f);
+  return `${LOT_SEARCH_CACHE_PREFIX}${source}:${norm(f.make)}:${norm(f.model)}:${yearFrom}-${yearTo}${extra}:p${page}`;
 }
 
 export function createLotSearchService(deps: {
@@ -73,7 +75,8 @@ export function createLotSearchService(deps: {
   async function searchSource(adapter: AuctionSearchAdapter, filters: LotSearchFilters, page: number, force: boolean) {
     // site names are re-read on an explicit refresh of the first page only
     const matched = await deps.aliases.resolve(adapter, filters, force && page === 1);
-    const { yearFrom, yearTo, transmission } = filters;
+    const { transmission } = filters;
+    const { yearFrom, yearTo } = searchYears(filters);
     const iaaiMarkets = adapter.source === 'iaai' ? iaaiMarketFilter(filters) : undefined;
     // the site narrows by one trim word, every word is then checked here
     const words = trimWords(filters.trim ?? '', filters.make, filters.model);

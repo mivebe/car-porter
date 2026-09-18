@@ -30,15 +30,21 @@ describe('validateFilters', () => {
     expect(validateFilters({ ...draft, yearFrom: '2019', yearTo: '2019' })).toHaveProperty('params');
   });
 
-  it('requires make, model and valid years', () => {
+  it('requires make and model, and valid years when given', () => {
     expect(validateFilters({ ...draft, make: '', model: '', yearFrom: '', yearTo: '12' })).toEqual({
       errors: {
         make: 'search.errors.makeRequired',
         model: 'search.errors.modelRequired',
-        yearFrom: 'search.errors.yearInvalid',
         yearTo: 'search.errors.yearInvalid',
       },
     });
+  });
+
+  it('leaves out years that are not chosen', () => {
+    expect(validateFilters({ ...draft, yearFrom: '', yearTo: '' })).toEqual({
+      params: { make: 'Toyota', model: 'Camry', iaaiMarkets: ['us'] },
+    });
+    expect(validateFilters({ ...draft, yearTo: '' })).toMatchObject({ params: { yearFrom: 2018 } });
   });
 
   it('rejects year ranges in the wrong order', () => {

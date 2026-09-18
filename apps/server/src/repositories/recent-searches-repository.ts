@@ -17,7 +17,7 @@ export function recentSearchKey(f: LotSearchFilters) {
   return [
     norm(f.make),
     norm(f.model),
-    `${f.yearFrom}-${f.yearTo}`,
+    `${f.yearFrom ?? ''}-${f.yearTo ?? ''}`,
     norm(f.trim),
     [...(f.iaaiMarkets ?? [])].sort().join(','),
     norm(f.bodyStyle),

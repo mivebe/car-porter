@@ -26,12 +26,13 @@ export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | 
   const errors: FilterErrors = {};
   if (!draft.make.trim()) errors.make = 'search.errors.makeRequired';
   if (!draft.model.trim()) errors.model = 'search.errors.modelRequired';
+  // years are optional: an empty end is open
   const from = Number(draft.yearFrom);
   const to = Number(draft.yearTo);
   const validYear = (y: number) => Number.isInteger(y) && y >= MIN_YEAR && y <= MAX_YEAR();
-  if (!draft.yearFrom || !validYear(from)) errors.yearFrom = 'search.errors.yearInvalid';
-  if (!draft.yearTo || !validYear(to)) errors.yearTo = 'search.errors.yearInvalid';
-  if (!errors.yearFrom && !errors.yearTo && from > to) errors.yearTo = 'search.errors.yearOrder';
+  if (draft.yearFrom && !validYear(from)) errors.yearFrom = 'search.errors.yearInvalid';
+  if (draft.yearTo && !validYear(to)) errors.yearTo = 'search.errors.yearInvalid';
+  if (draft.yearFrom && draft.yearTo && !errors.yearFrom && !errors.yearTo && from > to) errors.yearTo = 'search.errors.yearOrder';
   const engine = draft.engine.trim().replace(',', '.');
   if (engine && (!/^\d{1,2}(\.\d)?$/.test(engine) || Number(engine) <= 0)) errors.engine = 'search.errors.engineInvalid';
   if (Object.keys(errors).length) return { errors };
@@ -40,8 +41,8 @@ export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | 
     params: {
       make: draft.make.trim(),
       model: draft.model.trim(),
-      yearFrom: from,
-      yearTo: to,
+      ...(draft.yearFrom ? { yearFrom: from } : {}),
+      ...(draft.yearTo ? { yearTo: to } : {}),
       ...(trim ? { trim } : {}),
       iaaiMarkets: draft.iaaiMarkets,
       ...(draft.bodyStyle ? { bodyStyle: draft.bodyStyle } : {}),

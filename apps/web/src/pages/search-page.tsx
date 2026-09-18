@@ -24,9 +24,9 @@ const isDefaultMarkets = (markets: readonly string[] | undefined) =>
 function readParams(search: URLSearchParams): LotSearchParams | null {
   const make = search.get('make');
   const model = search.get('model');
-  const yearFrom = Number(search.get('yearFrom'));
-  const yearTo = Number(search.get('yearTo'));
-  if (!make || !model || !yearFrom || !yearTo) return null;
+  if (!make || !model) return null;
+  const yearFrom = Number(search.get('yearFrom')) || undefined;
+  const yearTo = Number(search.get('yearTo')) || undefined;
   const trim = search.get('trim')?.trim();
   const listed = search.get('iaaiMarkets')?.split(',') ?? [];
   const chosen = IAAI_MARKETS.filter((m) => listed.includes(m));
@@ -37,8 +37,8 @@ function readParams(search: URLSearchParams): LotSearchParams | null {
   return {
     make,
     model,
-    yearFrom,
-    yearTo,
+    ...(yearFrom ? { yearFrom } : {}),
+    ...(yearTo ? { yearTo } : {}),
     ...(trim ? { trim } : {}),
     iaaiMarkets,
     ...(bodyStyle ? { bodyStyle } : {}),
@@ -87,8 +87,8 @@ export function SearchPage() {
     setSearchParams({
       make: next.make,
       model: next.model,
-      yearFrom: String(next.yearFrom),
-      yearTo: String(next.yearTo),
+      ...(next.yearFrom ? { yearFrom: String(next.yearFrom) } : {}),
+      ...(next.yearTo ? { yearTo: String(next.yearTo) } : {}),
       ...(next.trim ? { trim: next.trim } : {}),
       ...(isDefaultMarkets(next.iaaiMarkets) ? {} : { iaaiMarkets: next.iaaiMarkets!.join(',') }),
       ...(next.bodyStyle ? { bodyStyle: next.bodyStyle } : {}),

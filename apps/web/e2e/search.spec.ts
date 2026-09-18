@@ -20,7 +20,9 @@ test.describe('lot search', () => {
     await page.getByRole('button', { name: 'Search', exact: true }).click();
     await expect(page.getByText('Choose a manufacturer.')).toBeVisible();
     await expect(page.getByText('Choose a model.')).toBeVisible();
-    await expect(page.getByText('Enter a valid year.')).toHaveCount(2);
+    // years are optional
+    await expect(page.getByText('Enter a valid year.')).toHaveCount(0);
+    await expect(page.getByRole('combobox', { name: 'Year from' })).toHaveText('Any');
 
     // "to" can't be earlier than "from", and follows it when "from" moves past it
     await pickYear(page, 'Year to', '2019');
@@ -36,7 +38,7 @@ test.describe('lot search', () => {
 
   test('searches Copart + IAAI, filters by source, sorts and loads more', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/Choose a manufacturer, model and year range/)).toBeVisible();
+    await expect(page.getByText(/Choose a manufacturer and model/)).toBeVisible();
 
     await pick(page, 'Manufacturer', 'toyo', 'Toyota');
     await pick(page, 'Model', 'cam', 'Camry');
@@ -122,6 +124,17 @@ test.describe('lot search', () => {
     await expect(page.getByRole('combobox', { name: 'Body style' })).toHaveText('Sedan');
     await expect(page.getByRole('combobox', { name: 'Transmission' })).toHaveText('Automatic');
     await expect(page.getByLabel('Engine, L')).toHaveValue('3.5');
+  });
+
+  test('searches every year when none are chosen, and a year can be set back to Any', async ({ page }) => {
+    await page.goto('/?make=Toyota&model=Camry&yearFrom=2019&yearTo=2019');
+    await page.getByRole('combobox', { name: 'Year from' }).click();
+    await page.getByRole('listbox', { name: 'Year from' }).getByRole('option', { name: 'Any' }).click();
+    await page.getByRole('combobox', { name: 'Year to' }).click();
+    await page.getByRole('listbox', { name: 'Year to' }).getByRole('option', { name: 'Any' }).click();
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page).toHaveURL(/\?make=Toyota&model=Camry$/);
+    await expect(page.getByTestId('lot-row')).toHaveCount(55);
   });
 
   test('narrowing to a single year only shows that year', async ({ page }) => {

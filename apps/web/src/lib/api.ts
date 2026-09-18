@@ -68,8 +68,9 @@ export interface LotSearchResponse {
 export interface LotSearchParams {
   make: string;
   model: string;
-  yearFrom: number;
-  yearTo: number;
+  /** missing = open-ended */
+  yearFrom?: number;
+  yearTo?: number;
   trim?: string;
   /** empty or missing = US only */
   iaaiMarkets?: IaaiMarket[];

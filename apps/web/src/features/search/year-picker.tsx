@@ -18,7 +18,10 @@ interface YearPickerProps {
   invalid?: boolean;
 }
 
-/** A year button opening a grid of years (newest first); a year can also be typed and confirmed with Enter. */
+/**
+ * A year button opening a grid of years (newest first); a year can also be typed and confirmed with
+ * Enter. "Any" at the top clears it.
+ */
 export function YearPicker({ id, ariaLabel, value, onChange, placeholder, min = MIN_YEAR, invalid }: YearPickerProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -29,8 +32,8 @@ export function YearPicker({ id, ariaLabel, value, onChange, placeholder, min = 
   const typedYear = Number(typed);
   const typedValid = typed.length === 4 && typedYear >= Math.max(min, MIN_YEAR) && typedYear <= max;
 
-  const pick = (year: number) => {
-    onChange(String(year));
+  const pick = (year: number | null) => {
+    onChange(year === null ? '' : String(year));
     setTyped('');
     setOpen(false);
   };
@@ -78,6 +81,18 @@ export function YearPicker({ id, ariaLabel, value, onChange, placeholder, min = 
             el?.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: 'center' });
           }}
         >
+          <button
+            type="button"
+            role="option"
+            aria-selected={!value}
+            onClick={() => pick(null)}
+            className={cn(
+              'col-span-4 rounded-md py-1.5 text-sm transition-colors hover:bg-accent',
+              !value && 'bg-primary text-primary-foreground hover:bg-primary/90',
+            )}
+          >
+            {t('search.any')}
+          </button>
           {years.map((year) => {
             const disabled = year < min;
             const isSelected = year === selected;

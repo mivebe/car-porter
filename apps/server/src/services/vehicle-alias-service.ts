@@ -9,6 +9,7 @@ import {
   type AliasMapping,
   type AuctionSource,
   type LotSearchFilters,
+  searchYears,
   siteEngineLiters,
 } from '@car-porter/core';
 import type { CacheRepository } from '../repositories/cache-repository.ts';
@@ -252,7 +253,7 @@ export function createVehicleAliasService(deps: {
     force = false,
   ): Promise<MatchedOptions> {
     if (!filters.bodyStyle && !filters.engine) return {};
-    const years = { yearFrom: filters.yearFrom, yearTo: filters.yearTo };
+    const years = searchYears(filters);
     const names = (list: string[]) => normalizeText([...list].sort().join('|'));
     const facets = await cachedFacets(
       adapter.source,
@@ -292,7 +293,7 @@ export function createVehicleAliasService(deps: {
    */
   async function resolve(adapter: AuctionSearchAdapter, filters: LotSearchFilters, force = false): Promise<MatchedNames> {
     const { source } = adapter;
-    const years = { yearFrom: filters.yearFrom, yearTo: filters.yearTo };
+    const years = searchYears(filters);
     const yearKey = `${years.yearFrom}-${years.yearTo}`;
     const make = await canonicalMakeName(filters.make);
 

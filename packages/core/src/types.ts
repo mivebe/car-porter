@@ -101,14 +101,20 @@ export interface MarketListing {
 /** IAAI's marketplaces: IAA United States, IAA Canada and Ritchie Bros. */
 export const IAAI_MARKETS = ['us', 'ca', 'rb'] as const;
 export type IaaiMarket = (typeof IAAI_MARKETS)[number];
+/** The year range a search covers: a missing end is open (1900 / next year). */
+export function searchYears(f: Pick<LotSearchFilters, 'yearFrom' | 'yearTo'>): { yearFrom: number; yearTo: number } {
+  return { yearFrom: f.yearFrom ?? 1900, yearTo: f.yearTo ?? new Date().getFullYear() + 1 };
+}
+
 /** Searched when no marketplace is chosen. */
 export const DEFAULT_IAAI_MARKETS: IaaiMarket[] = ['us'];
 
 export interface LotSearchFilters {
   make: string;
   model: string;
-  yearFrom: number;
-  yearTo: number;
+  /** missing = open-ended (see `searchYears`) */
+  yearFrom?: number;
+  yearTo?: number;
   /** Free text such as "C 63" or "ZL1", matched against each lot's model and trim. */
   trim?: string;
   /** IAAI marketplaces to search; empty or missing = DEFAULT_IAAI_MARKETS. */

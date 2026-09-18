@@ -13,6 +13,12 @@ import type { LotSearchParams } from '@/lib/api';
 import { formatRelative } from '@/lib/format';
 import { useRecentSearches } from './recent-search-hooks';
 
+/** "2019", "2018–2020", "2018–" / "–2020" for an open end, nothing for any year. */
+function yearRange({ yearFrom, yearTo }: LotSearchParams) {
+  if (!yearFrom && !yearTo) return '';
+  return yearFrom === yearTo ? String(yearFrom) : `${yearFrom ?? ''}–${yearTo ?? ''}`;
+}
+
 interface RecentSearchesProps {
   onSearch: (params: LotSearchParams) => void;
 }
@@ -52,10 +58,7 @@ export function RecentSearches({ onSearch }: RecentSearchesProps) {
             <DropdownMenuItem className="min-w-0 flex-1 flex-col items-start gap-0.5" onSelect={() => onSearch(s.filters)}>
               <span className="flex w-full items-baseline justify-between gap-2">
                 <span className="truncate font-medium">
-                  {s.filters.make} {s.filters.model}{' '}
-                  {s.filters.yearFrom === s.filters.yearTo
-                    ? s.filters.yearFrom
-                    : `${s.filters.yearFrom}–${s.filters.yearTo}`}
+                  {s.filters.make} {s.filters.model} {yearRange(s.filters)}
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">{formatRelative(s.searchedAt, i18n.language)}</span>
               </span>

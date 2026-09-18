@@ -13,8 +13,9 @@ const searchQuery = z
   .object({
     make: z.string().trim().min(1),
     model: z.string().trim().min(1),
-    yearFrom: z.coerce.number().int().min(1900),
-    yearTo: z.coerce.number().int().min(1900),
+    /** both optional: a missing end is open */
+    yearFrom: z.coerce.number().int().min(1900).optional(),
+    yearTo: z.coerce.number().int().min(1900).optional(),
     trim: z.string().trim().max(40).optional(),
     /** comma-separated, e.g. "us,ca"; missing = US only */
     iaaiMarkets: z
@@ -38,8 +39,11 @@ const searchQuery = z
       .optional()
       .transform((v) => v === '1' || v === 'true'),
   })
-  .refine((q) => q.yearFrom <= q.yearTo, { message: 'yearFrom must be <= yearTo', path: ['yearFrom'] })
-  .refine((q) => q.yearTo <= maxYear(), { message: 'yearTo is too far in the future', path: ['yearTo'] });
+  .refine((q) => q.yearFrom === undefined || q.yearTo === undefined || q.yearFrom <= q.yearTo, {
+    message: 'yearFrom must be <= yearTo',
+    path: ['yearFrom'],
+  })
+  .refine((q) => (q.yearTo ?? q.yearFrom ?? 0) <= maxYear(), { message: 'year is too far in the future', path: ['yearTo'] });
 
 export async function lotsRoutes(
   app: FastifyInstance,

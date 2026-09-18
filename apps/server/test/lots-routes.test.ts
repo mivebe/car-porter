@@ -189,6 +189,23 @@ describe('/api/lots/search', () => {
     expect(bodies.find((b) => b.name === 'Wagon')?.siteNames).toBe(1);
   });
 
+  it('searches every year when none are given, and from/to a single open end', async () => {
+    const seen: AuctionQuery[] = [];
+    const [copart] = createMockAuctionAdapters();
+    app = await withAdapters([{ ...copart!, search: (f, p) => (seen.push(f), copart!.search(f, p)) }]);
+    const next = new Date().getFullYear() + 1;
+    await app.inject({ method: 'GET', url: url({ make: 'Toyota', model: 'Camry' }) });
+    await app.inject({ method: 'GET', url: url({ make: 'Toyota', model: 'Camry', yearFrom: 2019 }) });
+    await app.inject({ method: 'GET', url: url({ make: 'Toyota', model: 'Camry', yearTo: 2019 }) });
+    expect(seen.map((q) => [q.yearFrom, q.yearTo])).toEqual([
+      [1900, next],
+      [2019, next],
+      [1900, 2019],
+    ]);
+    const recent = (await app.inject({ method: 'GET', url: '/api/searches/recent' })).json().items as { filters: object }[];
+    expect(recent.at(-1)?.filters).toEqual({ make: 'Toyota', model: 'Camry', iaaiMarkets: ['us'] });
+  });
+
   it('validates the query', async () => {
     app = await buildApp({ mockSources: true });
     const bad = [
