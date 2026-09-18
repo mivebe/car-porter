@@ -96,6 +96,31 @@ test.describe('lot search', () => {
     await expect(page.getByRole('button', { name: 'IAAI market' })).toHaveText('US, Canada');
   });
 
+  test('filters by body style, transmission and engine', async ({ page }) => {
+    await page.goto('/?make=Toyota&model=Camry&yearFrom=2018&yearTo=2020');
+    await expect(page.getByTestId('lot-row')).toHaveCount(55);
+
+    await page.getByRole('combobox', { name: 'Body style' }).click();
+    await page.getByRole('option', { name: 'Sedan' }).click();
+    await page.getByRole('combobox', { name: 'Transmission' }).click();
+    await page.getByRole('option', { name: 'Automatic' }).click();
+    await page.getByLabel('Engine, L').fill('9.99');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page.getByText('Liters, e.g. 2.0 or 6.2.')).toBeVisible();
+
+    await page.getByLabel('Engine, L').fill('3,5');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page).toHaveURL(/bodyStyle=Sedan&transmission=automatic&engine=3\.5/);
+    const rows = page.getByTestId('lot-row');
+    await expect(rows.first()).toBeVisible();
+    expect(await rows.count()).toBeLessThan(55);
+
+    await page.reload();
+    await expect(page.getByRole('combobox', { name: 'Body style' })).toHaveText('Sedan');
+    await expect(page.getByRole('combobox', { name: 'Transmission' })).toHaveText('Automatic');
+    await expect(page.getByLabel('Engine, L')).toHaveValue('3.5');
+  });
+
   test('narrowing to a single year only shows that year', async ({ page }) => {
     await page.goto('/?make=Toyota&model=Camry&yearFrom=2019&yearTo=2019');
     const rows = page.getByTestId('lot-row');

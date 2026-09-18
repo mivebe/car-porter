@@ -121,3 +121,30 @@ test('aliases: a running scan shows per-site progress between the filters and th
   expect((await page.getByRole('button', { name: 'Stop scan' }).boundingBox())!.y).toBeLessThan(progressBox.y);
   expect((await page.getByTestId('alias-pool').boundingBox())!.y).toBeGreaterThan(progressBox.y);
 });
+
+test('aliases: body style names map onto our body styles and can be moved', async ({ page }) => {
+  await page.goto('/aliases?kind=body&status=all');
+  await page.getByRole('button', { name: 'Scan all' }).click();
+  await expect(page.getByText('Scan finished')).toBeVisible();
+
+  const left = page.getByTestId('alias-canonical');
+  const middle = page.getByTestId('alias-assigned');
+  await expect(left.getByRole('heading')).toHaveText('Our body styles');
+  const item = (name: string) => left.locator(`[data-testid="alias-canonical-item"][data-name="${name}"]`);
+
+  await item('Sedan').click();
+  await expect(middle.getByRole('heading')).toHaveText('Searched as Sedan');
+  await expect(card(middle, 'SEDAN', 'copart')).toBeVisible();
+  await expect(card(middle, 'Sedan 4 Dr.', 'iaai')).toBeVisible();
+
+  // body styles without site names wait folded under the list
+  await left.getByRole('button', { name: '7 without site names' }).click();
+  await drag(page, card(middle, 'SEDAN', 'copart'), item('Wagon'), async () => {
+    await expect(page.getByTestId('alias-drop-label')).toHaveText('Move to Wagon');
+  });
+  await expect(card(middle, 'SEDAN', 'copart')).toHaveCount(0);
+  await item('Wagon').click();
+  await drag(page, card(middle, 'SEDAN', 'copart'), item('Sedan'));
+  await expect(card(middle, 'SEDAN', 'copart')).toHaveCount(0);
+  await expect(item('Sedan')).toContainText('4');
+});

@@ -58,6 +58,15 @@
     "yearTo": "Year to",
     "trim": "Trim",
     "trimPlaceholder": "C 63, ZL1…",
+    "bodyStyle": "Body style",
+    "transmission": "Transmission",
+    "engine": "Engine, L",
+    "enginePlaceholder": "6.2",
+    "any": "Any",
+    "transmissions": {
+      "automatic": "Automatic",
+      "manual": "Manual"
+    },
     "iaaiMarket": "IAAI market",
     "allMarkets": "All markets",
     "markets": {
@@ -95,7 +104,8 @@
       "makeRequired": "Choose a manufacturer.",
       "modelRequired": "Choose a model.",
       "yearInvalid": "Enter a valid year.",
-      "yearOrder": "Must be the same or later than “Year from”."
+      "yearOrder": "Must be the same or later than “Year from”.",
+      "engineInvalid": "Liters, e.g. 2.0 or 6.2."
     }
   },
   "lot": {
@@ -409,7 +419,8 @@
   "aliases": {
     "kind": {
       "make": "Makes",
-      "model": "Models"
+      "model": "Models",
+      "body": "Body styles"
     },
     "status": {
       "unassigned": "Unassigned",
@@ -444,6 +455,7 @@
       "phase": {
         "queued": "Waiting",
         "makes": "Reading makes",
+        "bodies": "Reading body styles",
         "models": "Reading models",
         "done": "Done",
         "failed": "Failed",
@@ -474,10 +486,16 @@
       "reset": "Reset to automatic"
     },
     "board": {
-      "ourMakes": "Our makes",
       "ourModels": "{{make}} models",
-      "findMake": "Find or create a make",
-      "findModel": "Find or create a model",
+      "our": {
+        "make": "Our makes",
+        "body": "Our body styles"
+      },
+      "find": {
+        "make": "Find or create a make",
+        "model": "Find or create a model",
+        "body": "Find or create a body style"
+      },
       "create": "Create \"{{name}}\"",
       "withoutSiteNames_one": "{{count}} without site names",
       "withoutSiteNames_other": "{{count}} without site names",
@@ -507,5 +525,15 @@
         "needs-selection": "Select a make or model on the left first"
       }
     }
+  },
+  "bodyStyles": {
+    "Sedan": "Sedan",
+    "Coupe": "Coupe",
+    "Convertible": "Convertible",
+    "Hatchback": "Hatchback",
+    "Wagon": "Wagon",
+    "SUV": "SUV",
+    "Pickup": "Pickup",
+    "Van": "Van"
   }
 }

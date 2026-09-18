@@ -58,6 +58,15 @@
     "yearTo": "Година до",
     "trim": "Версия",
     "trimPlaceholder": "C 63, ZL1…",
+    "bodyStyle": "Тип купе",
+    "transmission": "Скоростна кутия",
+    "engine": "Двигател, л",
+    "enginePlaceholder": "6.2",
+    "any": "Всички",
+    "transmissions": {
+      "automatic": "Автоматична",
+      "manual": "Ръчна"
+    },
     "iaaiMarket": "Пазар в IAAI",
     "allMarkets": "Всички пазари",
     "markets": {
@@ -95,7 +104,8 @@
       "makeRequired": "Изберете марка.",
       "modelRequired": "Изберете модел.",
       "yearInvalid": "Въведете валидна година.",
-      "yearOrder": "Трябва да е същата или по-късна от „Година от“."
+      "yearOrder": "Трябва да е същата или по-късна от „Година от“.",
+      "engineInvalid": "Литри, напр. 2.0 или 6.2."
     }
   },
   "lot": {
@@ -409,7 +419,8 @@
   "aliases": {
     "kind": {
       "make": "Марки",
-      "model": "Модели"
+      "model": "Модели",
+      "body": "Типове купе"
     },
     "status": {
       "unassigned": "Неразпределени",
@@ -444,6 +455,7 @@
       "phase": {
         "queued": "Изчаква",
         "makes": "Чете марки",
+        "bodies": "Четене на типове купе",
         "models": "Чете модели",
         "done": "Готово",
         "failed": "Неуспешно",
@@ -474,10 +486,16 @@
       "reset": "Върни автоматичното"
     },
     "board": {
-      "ourMakes": "Нашите марки",
       "ourModels": "Модели на {{make}}",
-      "findMake": "Намерете или създайте марка",
-      "findModel": "Намерете или създайте модел",
+      "our": {
+        "make": "Нашите марки",
+        "body": "Нашите типове купе"
+      },
+      "find": {
+        "make": "Намерете или създайте марка",
+        "model": "Намерете или създайте модел",
+        "body": "Намери или създай тип купе"
+      },
       "create": "Създай „{{name}}“",
       "withoutSiteNames_one": "{{count}} без имена от сайтовете",
       "withoutSiteNames_other": "{{count}} без имена от сайтовете",
@@ -507,5 +525,15 @@
         "needs-selection": "Първо изберете марка или модел вляво"
       }
     }
+  },
+  "bodyStyles": {
+    "Sedan": "Седан",
+    "Coupe": "Купе",
+    "Convertible": "Кабриолет",
+    "Hatchback": "Хечбек",
+    "Wagon": "Комби",
+    "SUV": "SUV",
+    "Pickup": "Пикап",
+    "Van": "Ван"
   }
 }

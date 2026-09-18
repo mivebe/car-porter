@@ -19,7 +19,7 @@ const ALL = 'all';
 export function AliasesPage() {
   const { t } = useTranslation();
   const [params, setParams] = useSearchParams();
-  const kind: AliasKind = params.get('kind') === 'model' ? 'model' : 'make';
+  const kind: AliasKind = (['model', 'body'] as const).find((k) => k === params.get('kind')) ?? 'make';
   const statusParam = params.get('status');
   const status = statusParam === ALL ? undefined : (STATUSES.find((s) => s === statusParam) ?? 'unassigned');
   const source = (['copart', 'iaai'] as const).find((s) => s === params.get('source'));
@@ -44,9 +44,9 @@ export function AliasesPage() {
       <PageHeader title={t('pages.aliases.title')} />
 
       <div className="flex flex-wrap items-center gap-2">
-        <Tabs value={kind} onValueChange={(v) => update({ kind: v === 'model' ? 'model' : null, make: null, sel: null })}>
+        <Tabs value={kind} onValueChange={(v) => update({ kind: v === 'make' ? null : v, make: null, sel: null })}>
           <TabsList>
-            {(['make', 'model'] as const).map((k) => (
+            {(['make', 'model', 'body'] as const).map((k) => (
               <TabsTrigger key={k} value={k} className="gap-1.5">
                 {t(`aliases.kind.${k}`)}
                 {!!summary.data?.unassigned[k] && (

@@ -19,7 +19,7 @@ export function AppLayout() {
   const { t } = useTranslation();
   useSyncPreferences();
   const aliasSummary = useAliasSummary();
-  const unassigned = aliasSummary.data ? aliasSummary.data.unassigned.make + aliasSummary.data.unassigned.model : 0;
+  const unassigned = aliasSummary.data ? Object.values(aliasSummary.data.unassigned).reduce((a, b) => a + b, 0) : 0;
 
   return (
     <div className="flex min-h-svh flex-col">

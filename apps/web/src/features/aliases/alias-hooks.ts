@@ -20,12 +20,12 @@ export const useAliases = (params: AliasListParams, enabled = true) =>
 export const useAliasMakes = (source?: AuctionSource) =>
   useQuery({ queryKey: [...ALIASES_KEY, 'makes', source], queryFn: () => api.aliasMakes(source) });
 
-/** Our makes, or the models of a make, with their site name counts. */
+/** Our makes, the models of a make, or our body styles, with their site name counts. */
 export const useCanonicalItems = (params: { kind: AliasKind; make?: string; source?: AuctionSource }) =>
   useQuery({
     queryKey: [...ALIASES_KEY, 'canonical', params],
     queryFn: () => api.aliasCanonical(params),
-    enabled: params.kind === 'make' || !!params.make,
+    enabled: params.kind !== 'model' || !!params.make,
     placeholderData: keepPreviousData,
   });
 

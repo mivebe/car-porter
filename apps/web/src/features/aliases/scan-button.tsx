@@ -43,10 +43,10 @@ export function ScanProgress() {
 
 function SourceProgress({ progress: p }: { progress: AliasScanSource }) {
   const { t } = useTranslation();
-  const active = p.phase === 'makes' || p.phase === 'models' || p.phase === 'queued';
+  const active = p.phase === 'makes' || p.phase === 'bodies' || p.phase === 'models' || p.phase === 'queued';
   const percent = p.phase === 'done' ? 100 : p.phase === 'models' && p.total > 0 ? Math.round((p.done / p.total) * 100) : null;
   const detail =
-    p.phase === 'makes'
+    p.phase === 'makes' || p.phase === 'bodies'
       ? t('aliases.scan.makesProgress', { count: p.requests, years: p.current ?? '' })
       : p.phase === 'models'
         ? `${p.done}/${p.total}${p.current ? ` · ${p.current}` : ''}`

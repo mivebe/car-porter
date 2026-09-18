@@ -2,7 +2,7 @@ import type { EstimateResponse } from '@/features/lot/estimate-hooks';
 import type { HistoryResponse } from '@/features/lot/history-hooks';
 import type { MarketResponse } from '@/features/lot/market-hooks';
 import type { TrackedLotsResponse } from '@/features/tracking/tracking-hooks';
-import type { AuctionSource, IaaiMarket, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
+import type { AuctionSource, IaaiMarket, Transmission, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
 
 export class ApiError extends Error {
   constructor(
@@ -73,6 +73,10 @@ export interface LotSearchParams {
   trim?: string;
   /** empty or missing = all */
   iaaiMarkets?: IaaiMarket[];
+  bodyStyle?: string;
+  transmission?: Transmission;
+  /** liters, e.g. "6.2" */
+  engine?: string;
 }
 
 export interface FxResponse {
@@ -82,7 +86,7 @@ export interface FxResponse {
   error?: SourceErrorInfo;
 }
 
-export type AliasKind = 'make' | 'model';
+export type AliasKind = 'make' | 'model' | 'body';
 /** non_car: recognised as an NHTSA motorcycle/trailer/bus make, so not waiting for assignment */
 export type AliasStatus = 'unassigned' | 'auto' | 'non_car' | 'manual' | 'ignored';
 export type AliasAutoMatch = 'exact' | 'rule' | 'fuzzy' | 'non_car';
@@ -137,12 +141,12 @@ export interface CanonicalItem {
 
 export interface AliasScanSource {
   source: AuctionSource;
-  phase: 'queued' | 'makes' | 'models' | 'done' | 'failed' | 'cancelled';
+  phase: 'queued' | 'makes' | 'bodies' | 'models' | 'done' | 'failed' | 'cancelled';
   done: number;
   total: number;
   /** requests sent to the site so far */
   requests: number;
-  /** makes phase: year range being read; models phase: the make */
+  /** makes / bodies phase: year range being read; models phase: the make */
   current: string | null;
   failed: { make: string; error: SourceErrorInfo }[];
   error?: SourceErrorInfo;

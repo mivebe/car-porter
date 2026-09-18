@@ -1,4 +1,4 @@
-import { IAAI_MARKETS, type IaaiMarket } from '@car-porter/core';
+import { IAAI_MARKETS, TRANSMISSIONS, type IaaiMarket, type Transmission } from '@car-porter/core';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Search } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
@@ -13,10 +13,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCanonicalItems } from '@/features/aliases/alias-hooks';
 import { api, type LotSearchParams } from '@/lib/api';
 import { validateFilters, type FilterDraft, type FilterErrors } from './validate-filters';
 import { Combobox } from './combobox';
 import { YearPicker } from './year-picker';
+
+/** Select value for "no filter" (Radix selects can't hold an empty value). */
+const ANY = 'any';
 
 interface SearchFiltersProps {
   initial: Partial<LotSearchParams>;
@@ -33,6 +38,9 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
     yearTo: initial.yearTo ? String(initial.yearTo) : '',
     trim: initial.trim ?? '',
     iaaiMarkets: initial.iaaiMarkets ?? [],
+    bodyStyle: initial.bodyStyle ?? '',
+    transmission: initial.transmission ?? '',
+    engine: initial.engine ?? '',
   });
   const [errors, setErrors] = useState<FilterErrors>({});
 
@@ -43,6 +51,8 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
     enabled: !!draft.make,
     staleTime: Infinity,
   });
+  const bodyStyles = useCanonicalItems({ kind: 'body' });
+  const bodyOptions = [...new Set([...(bodyStyles.data?.items ?? []).map((b) => b.name), draft.bodyStyle].filter(Boolean))];
 
   const update = (patch: Partial<FilterDraft>) => {
     setDraft((d) => ({ ...d, ...patch }));
@@ -78,7 +88,7 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
   return (
     <Card className="py-4">
       <CardContent>
-        <form onSubmit={submit} noValidate className="grid gap-4 md:grid-cols-3 md:items-start lg:grid-cols-[1.2fr_1.2fr_0.9fr_0.6fr_0.6fr_0.9fr_auto]">
+        <form onSubmit={submit} noValidate className="grid gap-4 md:grid-cols-3 md:items-start lg:grid-cols-[1.2fr_1.2fr_0.9fr_0.6fr_0.6fr_auto]">
           <div className="grid gap-1.5">
             <Label htmlFor="filter-make">{t('search.make')}</Label>
             <Combobox
@@ -151,6 +161,62 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
             {fieldError('yearTo')}
           </div>
           <div className="grid gap-1.5">
+            <Label className="invisible hidden md:block">{t('search.submit')}</Label>
+            <Button type="submit" disabled={searching} className="w-full md:w-auto">
+              <Search />
+              {t('search.submit')}
+            </Button>
+          </div>
+
+          <div className="grid gap-1.5 lg:col-start-1">
+            <Label htmlFor="filter-body">{t('search.bodyStyle')}</Label>
+            <Select value={draft.bodyStyle || ANY} onValueChange={(v) => update({ bodyStyle: v === ANY ? '' : v })}>
+              <SelectTrigger id="filter-body" className="w-full" aria-label={t('search.bodyStyle')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY}>{t('search.any')}</SelectItem>
+                {bodyOptions.map((b) => (
+                  <SelectItem key={b} value={b}>
+                    {t(`bodyStyles.${b}`, { defaultValue: b })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="filter-transmission">{t('search.transmission')}</Label>
+            <Select
+              value={draft.transmission || ANY}
+              onValueChange={(v) => update({ transmission: v === ANY ? '' : (v as Transmission) })}
+            >
+              <SelectTrigger id="filter-transmission" className="w-full" aria-label={t('search.transmission')}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={ANY}>{t('search.any')}</SelectItem>
+                {TRANSMISSIONS.map((x) => (
+                  <SelectItem key={x} value={x}>
+                    {t(`search.transmissions.${x}`)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-1.5">
+            <Label htmlFor="filter-engine">{t('search.engine')}</Label>
+            <Input
+              id="filter-engine"
+              value={draft.engine}
+              inputMode="decimal"
+              maxLength={4}
+              placeholder={t('search.enginePlaceholder')}
+              aria-invalid={!!errors.engine}
+              onChange={(e) => update({ engine: e.target.value })}
+            />
+            {fieldError('engine')}
+          </div>
+          <div className="grid gap-1.5 lg:col-span-2">
             <Label htmlFor="filter-iaai-market">{t('search.iaaiMarket')}</Label>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -176,13 +242,6 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-          <div className="grid gap-1.5">
-            <Label className="invisible hidden md:block">{t('search.submit')}</Label>
-            <Button type="submit" disabled={searching} className="w-full md:w-auto">
-              <Search />
-              {t('search.submit')}
-            </Button>
           </div>
         </form>
       </CardContent>

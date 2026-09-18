@@ -1,10 +1,10 @@
-import type { IaaiMarket } from '@car-porter/core';
+import type { IaaiMarket, Transmission } from '@car-porter/core';
 import type { LotSearchParams } from '@/lib/api';
 
 export const MIN_YEAR = 1950;
 export const MAX_YEAR = () => new Date().getFullYear() + 1;
 
-export type FilterErrors = Partial<Record<'make' | 'model' | 'yearFrom' | 'yearTo', string>>;
+export type FilterErrors = Partial<Record<'make' | 'model' | 'yearFrom' | 'yearTo' | 'engine', string>>;
 
 export interface FilterDraft {
   make: string;
@@ -14,6 +14,11 @@ export interface FilterDraft {
   trim: string;
   /** empty = all */
   iaaiMarkets: IaaiMarket[];
+  /** '' = any */
+  bodyStyle: string;
+  transmission: Transmission | '';
+  /** liters as typed, "6.2" or "6,2" */
+  engine: string;
 }
 
 /** Returns i18n error keys per field, or parsed params when valid. */
@@ -27,6 +32,8 @@ export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | 
   if (!draft.yearFrom || !validYear(from)) errors.yearFrom = 'search.errors.yearInvalid';
   if (!draft.yearTo || !validYear(to)) errors.yearTo = 'search.errors.yearInvalid';
   if (!errors.yearFrom && !errors.yearTo && from > to) errors.yearTo = 'search.errors.yearOrder';
+  const engine = draft.engine.trim().replace(',', '.');
+  if (engine && (!/^\d{1,2}(\.\d)?$/.test(engine) || Number(engine) <= 0)) errors.engine = 'search.errors.engineInvalid';
   if (Object.keys(errors).length) return { errors };
   const trim = draft.trim.trim();
   return {
@@ -37,6 +44,9 @@ export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | 
       yearTo: to,
       ...(trim ? { trim } : {}),
       ...(draft.iaaiMarkets.length ? { iaaiMarkets: draft.iaaiMarkets } : {}),
+      ...(draft.bodyStyle ? { bodyStyle: draft.bodyStyle } : {}),
+      ...(draft.transmission ? { transmission: draft.transmission } : {}),
+      ...(engine ? { engine: Number(engine).toFixed(1) } : {}),
     },
   };
 }

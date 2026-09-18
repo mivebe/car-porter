@@ -13,7 +13,7 @@ import { LotResults } from '@/features/search/lot-results';
 import { SearchFilters } from '@/features/search/search-filters';
 import { LOT_SORTS, sortAndFilterLots, uniqueLots, type LotSort, type SourceFilter } from '@/features/search/sort-lots';
 import { SourceStatusBadge } from '@/features/search/source-status';
-import { IAAI_MARKETS, type IaaiMarket } from '@car-porter/core';
+import { IAAI_MARKETS, TRANSMISSIONS, type IaaiMarket } from '@car-porter/core';
 import { api, type LotSearchParams, type LotSearchResponse } from '@/lib/api';
 
 function readParams(search: URLSearchParams): LotSearchParams | null {
@@ -26,7 +26,20 @@ function readParams(search: URLSearchParams): LotSearchParams | null {
   const iaaiMarkets = (search.get('iaaiMarkets')?.split(',') ?? []).filter((m): m is IaaiMarket =>
     (IAAI_MARKETS as readonly string[]).includes(m),
   );
-  return { make, model, yearFrom, yearTo, ...(trim ? { trim } : {}), ...(iaaiMarkets.length ? { iaaiMarkets } : {}) };
+  const bodyStyle = search.get('bodyStyle')?.trim();
+  const transmission = TRANSMISSIONS.find((x) => x === search.get('transmission'));
+  const engine = search.get('engine')?.trim();
+  return {
+    make,
+    model,
+    yearFrom,
+    yearTo,
+    ...(trim ? { trim } : {}),
+    ...(iaaiMarkets.length ? { iaaiMarkets } : {}),
+    ...(bodyStyle ? { bodyStyle } : {}),
+    ...(transmission ? { transmission } : {}),
+    ...(engine ? { engine } : {}),
+  };
 }
 
 export function SearchPage() {
@@ -70,6 +83,9 @@ export function SearchPage() {
       yearTo: String(next.yearTo),
       ...(next.trim ? { trim: next.trim } : {}),
       ...(next.iaaiMarkets?.length ? { iaaiMarkets: next.iaaiMarkets.join(',') } : {}),
+      ...(next.bodyStyle ? { bodyStyle: next.bodyStyle } : {}),
+      ...(next.transmission ? { transmission: next.transmission } : {}),
+      ...(next.engine ? { engine: next.engine } : {}),
     });
   };
 

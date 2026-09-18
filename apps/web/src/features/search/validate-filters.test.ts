@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateFilters, type FilterDraft } from './validate-filters';
 
-const draft: FilterDraft = { make: 'Toyota', model: 'Camry', yearFrom: '2018', yearTo: '2020', trim: '', iaaiMarkets: [] };
+const draft: FilterDraft = { make: 'Toyota', model: 'Camry', yearFrom: '2018', yearTo: '2020', trim: '', iaaiMarkets: [], bodyStyle: '', transmission: '', engine: '' };
 
 describe('validateFilters', () => {
   it('returns parsed params for valid input', () => {
@@ -14,6 +14,16 @@ describe('validateFilters', () => {
     expect(validateFilters({ ...draft, trim: ' ZL1 ', iaaiMarkets: ['us', 'ca'] })).toEqual({
       params: { make: 'Toyota', model: 'Camry', yearFrom: 2018, yearTo: 2020, trim: 'ZL1', iaaiMarkets: ['us', 'ca'] },
     });
+  });
+
+  it('passes body style, transmission and engine liters', () => {
+    expect(validateFilters({ ...draft, bodyStyle: 'Coupe', transmission: 'manual', engine: '6,2' })).toEqual({
+      params: { make: 'Toyota', model: 'Camry', yearFrom: 2018, yearTo: 2020, bodyStyle: 'Coupe', transmission: 'manual', engine: '6.2' },
+    });
+    expect(validateFilters({ ...draft, engine: '2' })).toMatchObject({ params: { engine: '2.0' } });
+    for (const engine of ['6.2L', '0', 'abc', '123']) {
+      expect(validateFilters({ ...draft, engine })).toEqual({ errors: { engine: 'search.errors.engineInvalid' } });
+    }
   });
 
   it('allows a single year (from = to)', () => {

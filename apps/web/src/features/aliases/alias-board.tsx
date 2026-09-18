@@ -76,7 +76,7 @@ interface DragState {
  */
 export function AliasBoard({ kind, make, source, status, q, active, onActiveChange, onMakeChange }: AliasBoardProps) {
   const { t } = useTranslation();
-  const scoped = kind === 'make' || !!make;
+  const scoped = kind !== 'model' || !!make;
   const modelMake = kind === 'model' ? make || undefined : undefined;
 
   const canonical = useCanonicalItems({ kind, make: modelMake, source });
@@ -414,7 +414,7 @@ function CanonicalColumn({
   return (
     <Column
       testId="alias-canonical"
-      title={kind === 'make' ? t('aliases.board.ourMakes') : t('aliases.board.ourModels', { make })}
+      title={kind === 'model' ? t('aliases.board.ourModels', { make }) : t(`aliases.board.our.${kind}`)}
       count={formatNumber(all.length, i18n.language)}
       header={
         <div className="relative">
@@ -422,8 +422,8 @@ function CanonicalColumn({
           <Input
             className="h-8 pl-8 text-sm"
             value={search}
-            placeholder={t(kind === 'make' ? 'aliases.board.findMake' : 'aliases.board.findModel')}
-            aria-label={t(kind === 'make' ? 'aliases.board.findMake' : 'aliases.board.findModel')}
+            placeholder={t(`aliases.board.find.${kind}`)}
+            aria-label={t(`aliases.board.find.${kind}`)}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
