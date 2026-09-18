@@ -1,3 +1,4 @@
+import { DEFAULT_IAAI_MARKETS, IAAI_MARKETS } from '@car-porter/core';
 import { History, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -27,7 +28,12 @@ export function RecentSearches({ onSearch }: RecentSearchesProps) {
       f.bodyStyle && t(`bodyStyles.${f.bodyStyle}`, { defaultValue: f.bodyStyle }),
       f.transmission && t(`search.transmissions.${f.transmission}`),
       f.engine && `${f.engine} L`,
-      f.iaaiMarkets?.length && f.iaaiMarkets.map((m) => t(`search.markets.${m}`)).join(', '),
+      // US only is the default and goes unmentioned
+      f.iaaiMarkets?.length &&
+        f.iaaiMarkets.join(',') !== DEFAULT_IAAI_MARKETS.join(',') &&
+        (f.iaaiMarkets.length === IAAI_MARKETS.length
+          ? t('search.allMarkets')
+          : f.iaaiMarkets.map((m) => t(`search.markets.${m}`)).join(', ')),
     ]
       .filter(Boolean)
       .join(' · ');

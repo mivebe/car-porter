@@ -15,8 +15,11 @@ import { RecentSearches } from '@/features/search/recent-searches';
 import { SearchFilters } from '@/features/search/search-filters';
 import { LOT_SORTS, sortAndFilterLots, uniqueLots, type LotSort, type SourceFilter } from '@/features/search/sort-lots';
 import { SourceStatusBadge } from '@/features/search/source-status';
-import { IAAI_MARKETS, TRANSMISSIONS, type IaaiMarket } from '@car-porter/core';
+import { DEFAULT_IAAI_MARKETS, IAAI_MARKETS, TRANSMISSIONS } from '@car-porter/core';
 import { api, type LotSearchParams, type LotSearchResponse } from '@/lib/api';
+
+const isDefaultMarkets = (markets: readonly string[] | undefined) =>
+  !markets?.length || markets.join(',') === DEFAULT_IAAI_MARKETS.join(',');
 
 function readParams(search: URLSearchParams): LotSearchParams | null {
   const make = search.get('make');
@@ -25,9 +28,9 @@ function readParams(search: URLSearchParams): LotSearchParams | null {
   const yearTo = Number(search.get('yearTo'));
   if (!make || !model || !yearFrom || !yearTo) return null;
   const trim = search.get('trim')?.trim();
-  const iaaiMarkets = (search.get('iaaiMarkets')?.split(',') ?? []).filter((m): m is IaaiMarket =>
-    (IAAI_MARKETS as readonly string[]).includes(m),
-  );
+  const listed = search.get('iaaiMarkets')?.split(',') ?? [];
+  const chosen = IAAI_MARKETS.filter((m) => listed.includes(m));
+  const iaaiMarkets = chosen.length ? chosen : DEFAULT_IAAI_MARKETS;
   const bodyStyle = search.get('bodyStyle')?.trim();
   const transmission = TRANSMISSIONS.find((x) => x === search.get('transmission'));
   const engine = search.get('engine')?.trim();
@@ -37,7 +40,7 @@ function readParams(search: URLSearchParams): LotSearchParams | null {
     yearFrom,
     yearTo,
     ...(trim ? { trim } : {}),
-    ...(iaaiMarkets.length ? { iaaiMarkets } : {}),
+    iaaiMarkets,
     ...(bodyStyle ? { bodyStyle } : {}),
     ...(transmission ? { transmission } : {}),
     ...(engine ? { engine } : {}),
@@ -87,7 +90,7 @@ export function SearchPage() {
       yearFrom: String(next.yearFrom),
       yearTo: String(next.yearTo),
       ...(next.trim ? { trim: next.trim } : {}),
-      ...(next.iaaiMarkets?.length ? { iaaiMarkets: next.iaaiMarkets.join(',') } : {}),
+      ...(isDefaultMarkets(next.iaaiMarkets) ? {} : { iaaiMarkets: next.iaaiMarkets!.join(',') }),
       ...(next.bodyStyle ? { bodyStyle: next.bodyStyle } : {}),
       ...(next.transmission ? { transmission: next.transmission } : {}),
       ...(next.engine ? { engine: next.engine } : {}),

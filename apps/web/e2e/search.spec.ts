@@ -79,8 +79,10 @@ test.describe('lot search', () => {
     await expect(page.getByTestId('lot-row')).toHaveCount(55);
 
     await page.getByLabel('Trim').fill('XSE');
+    // US only unless more are ticked
+    await expect(page.getByRole('button', { name: 'IAAI market' })).toHaveText('US');
     await page.getByRole('button', { name: 'IAAI market' }).click();
-    await page.getByRole('menuitemcheckbox', { name: 'Ritchie Bros.' }).click();
+    await page.getByRole('menuitemcheckbox', { name: 'Canada' }).click();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('button', { name: 'IAAI market' })).toHaveText('US, Canada');
     await page.getByRole('button', { name: 'Search', exact: true }).click();

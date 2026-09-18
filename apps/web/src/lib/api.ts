@@ -71,7 +71,7 @@ export interface LotSearchParams {
   yearFrom: number;
   yearTo: number;
   trim?: string;
-  /** empty or missing = all */
+  /** empty or missing = US only */
   iaaiMarkets?: IaaiMarket[];
   bodyStyle?: string;
   transmission?: Transmission;

@@ -1,4 +1,6 @@
 import {
+  DEFAULT_IAAI_MARKETS,
+  IAAI_MARKETS,
   lotMatchesTrim,
   trimKeyword,
   trimWords,
@@ -41,10 +43,16 @@ export interface LotSearchResponse {
 // v2: results are searched through the alias table and carry `matched`
 export const LOT_SEARCH_CACHE_PREFIX = 'lots:v2:';
 
+/** The IAAI marketplaces to filter by, in IAAI_MARKETS order; undefined when every one is chosen. */
+function iaaiMarketFilter(f: LotSearchFilters) {
+  const chosen = f.iaaiMarkets?.length ? f.iaaiMarkets : DEFAULT_IAAI_MARKETS;
+  return chosen.length >= IAAI_MARKETS.length ? undefined : IAAI_MARKETS.filter((m) => chosen.includes(m));
+}
+
 export function lotSearchCacheKey(source: string, f: LotSearchFilters, page: number) {
   const norm = (s: string) => s.trim().toLowerCase();
   const trim = trimWords(f.trim ?? '', f.make, f.model).join(' ');
-  const markets = source === 'iaai' ? [...(f.iaaiMarkets ?? [])].sort().join(',') : '';
+  const markets = source === 'iaai' ? (iaaiMarketFilter(f) ?? []).join(',') : '';
   const options = [
     trim && `t=${trim}`,
     markets && `m=${markets}`,
@@ -65,7 +73,8 @@ export function createLotSearchService(deps: {
   async function searchSource(adapter: AuctionSearchAdapter, filters: LotSearchFilters, page: number, force: boolean) {
     // site names are re-read on an explicit refresh of the first page only
     const matched = await deps.aliases.resolve(adapter, filters, force && page === 1);
-    const { yearFrom, yearTo, iaaiMarkets, transmission } = filters;
+    const { yearFrom, yearTo, transmission } = filters;
+    const iaaiMarkets = adapter.source === 'iaai' ? iaaiMarketFilter(filters) : undefined;
     // the site narrows by one trim word, every word is then checked here
     const words = trimWords(filters.trim ?? '', filters.make, filters.model);
     const keyword = trimKeyword(words);
@@ -76,7 +85,7 @@ export function createLotSearchService(deps: {
       yearFrom,
       yearTo,
       ...(keyword ? { keyword } : {}),
-      ...(iaaiMarkets?.length ? { iaaiMarkets } : {}),
+      ...(iaaiMarkets ? { iaaiMarkets } : {}),
       ...(transmission ? { transmission } : {}),
       ...options,
     };

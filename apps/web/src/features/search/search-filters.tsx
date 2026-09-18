@@ -1,4 +1,4 @@
-import { IAAI_MARKETS, TRANSMISSIONS, type IaaiMarket, type Transmission } from '@car-porter/core';
+import { DEFAULT_IAAI_MARKETS, IAAI_MARKETS, TRANSMISSIONS, type IaaiMarket, type Transmission } from '@car-porter/core';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Search } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
@@ -37,7 +37,7 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
     yearFrom: initial.yearFrom ? String(initial.yearFrom) : '',
     yearTo: initial.yearTo ? String(initial.yearTo) : '',
     trim: initial.trim ?? '',
-    iaaiMarkets: initial.iaaiMarkets ?? [],
+    iaaiMarkets: initial.iaaiMarkets?.length ? initial.iaaiMarkets : DEFAULT_IAAI_MARKETS,
     bodyStyle: initial.bodyStyle ?? '',
     transmission: initial.transmission ?? '',
     engine: initial.engine ?? '',
@@ -63,12 +63,12 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
     });
   };
 
-  /** Unticking the last market is ignored; ticking every market is the same as none. */
+  /** Unticking the last market is ignored. */
   const toggleMarket = (market: IaaiMarket) => {
-    const current = draft.iaaiMarkets.length ? draft.iaaiMarkets : [...IAAI_MARKETS];
+    const current = draft.iaaiMarkets;
     const next = current.includes(market) ? current.filter((m) => m !== market) : [...current, market];
     if (next.length === 0) return;
-    update({ iaaiMarkets: next.length === IAAI_MARKETS.length ? [] : IAAI_MARKETS.filter((m) => next.includes(m)) });
+    update({ iaaiMarkets: IAAI_MARKETS.filter((m) => next.includes(m)) });
   };
 
   const submit = (event: FormEvent) => {
@@ -222,9 +222,9 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
               <DropdownMenuTrigger asChild>
                 <Button id="filter-iaai-market" variant="outline" className="justify-between font-normal">
                   <span className="truncate">
-                    {draft.iaaiMarkets.length
-                      ? draft.iaaiMarkets.map((m) => t(`search.markets.${m}`)).join(', ')
-                      : t('search.allMarkets')}
+                    {draft.iaaiMarkets.length === IAAI_MARKETS.length
+                      ? t('search.allMarkets')
+                      : draft.iaaiMarkets.map((m) => t(`search.markets.${m}`)).join(', ')}
                   </span>
                   <ChevronDown className="opacity-50" />
                 </Button>
@@ -233,7 +233,7 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
                 {IAAI_MARKETS.map((m) => (
                   <DropdownMenuCheckboxItem
                     key={m}
-                    checked={draft.iaaiMarkets.length === 0 || draft.iaaiMarkets.includes(m)}
+                    checked={draft.iaaiMarkets.includes(m)}
                     onCheckedChange={() => toggleMarket(m)}
                     onSelect={(e) => e.preventDefault()}
                   >

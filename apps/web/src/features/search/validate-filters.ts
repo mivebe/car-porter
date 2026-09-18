@@ -12,7 +12,7 @@ export interface FilterDraft {
   yearFrom: string;
   yearTo: string;
   trim: string;
-  /** empty = all */
+  /** never empty */
   iaaiMarkets: IaaiMarket[];
   /** '' = any */
   bodyStyle: string;
@@ -43,7 +43,7 @@ export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | 
       yearFrom: from,
       yearTo: to,
       ...(trim ? { trim } : {}),
-      ...(draft.iaaiMarkets.length ? { iaaiMarkets: draft.iaaiMarkets } : {}),
+      iaaiMarkets: draft.iaaiMarkets,
       ...(draft.bodyStyle ? { bodyStyle: draft.bodyStyle } : {}),
       ...(draft.transmission ? { transmission: draft.transmission } : {}),
       ...(engine ? { engine: Number(engine).toFixed(1) } : {}),

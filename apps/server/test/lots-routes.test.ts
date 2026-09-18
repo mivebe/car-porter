@@ -132,19 +132,23 @@ describe('/api/lots/search', () => {
       },
     });
     app = await withAdapters([recording(copart!), recording(iaai!)]);
-    const res = await app.inject({ method: 'GET', url: url({ ...camry, trim: 'Camry SE Hybrid', iaaiMarkets: 'us,ca' }) });
+    const res = await app.inject({ method: 'GET', url: url({ ...camry, trim: 'Camry SE Hybrid', iaaiMarkets: 'ca,us' }) });
     expect(seen.map((q) => [q.keyword, q.iaaiMarkets])).toEqual([
-      ['hybrid', ['us', 'ca']],
+      ['hybrid', undefined],
       ['hybrid', ['us', 'ca']],
     ]);
     const lots = res.json().lots as { trim: string }[];
     expect(lots.map((l) => l.trim)).toEqual(['SE HYBRID', 'SE HYBRID']);
 
-    // a different trim or market set is a different cache entry; all markets = none
+    // a different trim or market set is a different cache entry; no markets = US only, all = no filter
     await app.inject({ method: 'GET', url: url({ ...camry, trim: 'LE', iaaiMarkets: 'us,ca' }) });
-    await app.inject({ method: 'GET', url: url({ ...camry, iaaiMarkets: 'us,ca,rb' }) });
     await app.inject({ method: 'GET', url: url(camry) });
+    await app.inject({ method: 'GET', url: url({ ...camry, iaaiMarkets: 'us' }) });
     expect(seen).toHaveLength(6);
+    expect(seen.at(-1)?.iaaiMarkets).toEqual(['us']);
+    // Copart has no markets, so only IAAI is searched again
+    await app.inject({ method: 'GET', url: url({ ...camry, iaaiMarkets: 'rb,us,ca' }) });
+    expect(seen).toHaveLength(7);
     expect(seen.at(-1)).not.toHaveProperty('iaaiMarkets');
   });
 

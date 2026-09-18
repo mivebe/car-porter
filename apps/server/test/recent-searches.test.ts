@@ -22,7 +22,7 @@ describe('/api/searches/recent', () => {
     const items = await list();
     expect(items.map((s: { filters: { model: string } }) => s.filters.model)).toEqual(['camry', 'RAV4']);
     expect(items[1]).toMatchObject({
-      filters: { yearFrom: 2019, yearTo: 2019, iaaiMarkets: ['ca', 'us'], transmission: 'automatic', engine: '2.0' },
+      filters: { yearFrom: 2019, yearTo: 2019, iaaiMarkets: ['us', 'ca'], transmission: 'automatic', engine: '2.0' },
       searchedAt: expect.any(String),
     });
   });

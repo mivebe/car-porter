@@ -1,4 +1,4 @@
-import { IAAI_MARKETS, lotInputsPatchSchema, TRANSMISSIONS } from '@car-porter/core';
+import { DEFAULT_IAAI_MARKETS, IAAI_MARKETS, lotInputsPatchSchema, TRANSMISSIONS } from '@car-porter/core';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { LotInputsRepository } from '../repositories/lot-inputs-repository.ts';
@@ -16,14 +16,13 @@ const searchQuery = z
     yearFrom: z.coerce.number().int().min(1900),
     yearTo: z.coerce.number().int().min(1900),
     trim: z.string().trim().max(40).optional(),
-    /** comma-separated, e.g. "us,ca" */
+    /** comma-separated, e.g. "us,ca"; missing = US only */
     iaaiMarkets: z
       .string()
       .optional()
-      .transform((v) => [...new Set(v?.split(',').filter(Boolean) ?? [])])
+      .transform((v) => v?.split(',').filter(Boolean) ?? [])
       .pipe(z.array(z.enum(IAAI_MARKETS)))
-      // all of them = no filter, so both share one cache entry
-      .transform((v) => (v.length === IAAI_MARKETS.length ? [] : v)),
+      .transform((v) => (v.length ? IAAI_MARKETS.filter((m) => v.includes(m)) : DEFAULT_IAAI_MARKETS)),
     bodyStyle: z.string().trim().min(1).max(40).optional(),
     transmission: z.enum(TRANSMISSIONS as ['automatic', 'manual']).optional(),
     /** liters, e.g. "6.2" or "2" */

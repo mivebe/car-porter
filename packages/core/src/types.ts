@@ -101,6 +101,8 @@ export interface MarketListing {
 /** IAAI's marketplaces: IAA United States, IAA Canada and Ritchie Bros. */
 export const IAAI_MARKETS = ['us', 'ca', 'rb'] as const;
 export type IaaiMarket = (typeof IAAI_MARKETS)[number];
+/** Searched when no marketplace is chosen. */
+export const DEFAULT_IAAI_MARKETS: IaaiMarket[] = ['us'];
 
 export interface LotSearchFilters {
   make: string;
@@ -109,7 +111,7 @@ export interface LotSearchFilters {
   yearTo: number;
   /** Free text such as "C 63" or "ZL1", matched against each lot's model and trim. */
   trim?: string;
-  /** IAAI marketplaces to search; empty or missing = all. */
+  /** IAAI marketplaces to search; empty or missing = DEFAULT_IAAI_MARKETS. */
   iaaiMarkets?: IaaiMarket[];
   /** One of our body styles (see the body aliases), e.g. "Coupe". */
   bodyStyle?: string;
