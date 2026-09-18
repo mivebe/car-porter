@@ -46,7 +46,7 @@ export function LotDetailSheet({ lotId, onClose }: LotDetailSheetProps) {
   if (desktop) {
     return (
       <Dialog open={!!lotId} onOpenChange={onOpenChange}>
-        <DialogContent className="flex h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-none flex-col gap-0 overflow-y-auto p-0 sm:max-w-none">
+        <DialogContent className="flex h-[calc(100dvh-2rem)] w-[calc(min(100vw,96rem)-2rem)] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none">
           {body}
         </DialogContent>
       </Dialog>
@@ -54,7 +54,7 @@ export function LotDetailSheet({ lotId, onClose }: LotDetailSheetProps) {
   }
   return (
     <Sheet open={!!lotId} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-2xl">{body}</SheetContent>
+      <SheetContent className="w-full gap-0 overflow-hidden p-0 sm:max-w-2xl">{body}</SheetContent>
     </Sheet>
   );
 }
@@ -188,7 +188,7 @@ function LotDetail({ lotId, columns }: { lotId: string; columns: 1 | 2 }) {
 
   return (
     <>
-      <SheetHeader className="gap-2 border-b p-6 pr-12">
+      <SheetHeader className="shrink-0 gap-2 border-b p-6 pr-12">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <SheetTitle className="text-xl">{lotTitle(data)}</SheetTitle>
           <Button
@@ -218,31 +218,34 @@ function LotDetail({ lotId, columns }: { lotId: string; columns: 1 | 2 }) {
         </SheetDescription>
       </SheetHeader>
 
-      {columns === 2 ? (
-        <div className="grid grid-cols-2 gap-8 p-6" data-testid="lot-detail-columns">
-          <Stack>
+      {/* only the body scrolls: the header and the close button stay in view */}
+      <div className="min-h-0 flex-1 overflow-y-auto" data-testid="lot-detail-body">
+        {columns === 2 ? (
+          <div className="grid grid-cols-2 gap-8 p-6" data-testid="lot-detail-columns">
+            <Stack>
+              {photos}
+              {vehicleInputs}
+              {estimateSection}
+              {historySection}
+            </Stack>
+            <Stack className="border-l pl-8">
+              {verdictSection}
+              {costSection}
+              {marketSection}
+            </Stack>
+          </div>
+        ) : (
+          <Stack className="p-6">
             {photos}
             {vehicleInputs}
             {estimateSection}
             {historySection}
-          </Stack>
-          <Stack className="border-l pl-8">
-            {verdictSection}
             {costSection}
             {marketSection}
+            {verdictSection}
           </Stack>
-        </div>
-      ) : (
-        <Stack className="p-6">
-          {photos}
-          {vehicleInputs}
-          {estimateSection}
-          {historySection}
-          {costSection}
-          {marketSection}
-          {verdictSection}
-        </Stack>
-      )}
+        )}
+      </div>
     </>
   );
 }
