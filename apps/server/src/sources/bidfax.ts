@@ -14,6 +14,9 @@ export interface BidfaxListingPage {
   linkedPages: number[];
 }
 
+/** Photos stay on the main domain, also on en.bidfax.info pages. */
+const IMAGE_ORIGIN = 'https://bidfax.info';
+
 /** "Mercedes-Benz" → "mercedes-benz", "Land Rover" → "land-rover". */
 export function bidfaxSlug(name: string): string {
   return name
@@ -54,12 +57,13 @@ export function parseBidfaxModels(html: string, makeSlug: string): BidfaxModelLi
   return [...seen.values()];
 }
 
+/** English labels, plus the Russian/Ukrainian ones of bidfax.info. */
 const LABELS = {
-  lot: /Номер\s+лот[уа]\s*:/i,
-  condition: /(Стан|Состояние)\s*:/i,
-  damage: /(Пошкодження|Повреждение)\s*:/i,
-  mileage: /(Пробіг|Пробег)\s*:/i,
-  saleDate: /Дата\s+продаж[уи]\s*:/i,
+  lot: /(Lot\s+number|Номер\s+лот[уа])\s*:/i,
+  condition: /(Condition|Стан|Состояние)\s*:/i,
+  damage: /(Damage|Пошкодження|Повреждение)\s*:/i,
+  mileage: /(Mileage|Пробіг|Пробег)\s*:/i,
+  saleDate: /(Date\s+of\s+sale|Дата\s+продаж[уи])\s*:/i,
 };
 
 /**
@@ -67,9 +71,9 @@ const LABELS = {
  * `prefix` is the "Make Model" part to strip to get the trim.
  */
 export function parseBidfaxTitle(title: string, prefix: string | string[]) {
-  // engine is "2.5L" or "2.5L 4" (liters + cylinders)
+  // engine is "2.5L", "2.5L 4" (liters + cylinders) or whole liters ("4L")
   const m = title.match(
-    /^(.*?)\s+((?:19|20)\d{2})\s+(.*?)\s*(?:(\d{1,2}\.\d)\s*L(?:\s+(\d{1,2}))?)?\s*vin:\s*([A-Z0-9*]+)\s*$/i,
+    /^(.*?)\s+((?:19|20)\d{2})\s+(.*?)\s*(?:(\d{1,2}(?:\.\d)?)\s*L(?:\s+(\d{1,2}))?)?\s*vin:\s*([A-Z0-9*]+)\s*$/i,
   );
   if (!m) return null;
   const [, head, year, color, liters, cylinders, vin] = m;
@@ -80,7 +84,7 @@ export function parseBidfaxTitle(title: string, prefix: string | string[]) {
     year: Number(year),
     trim: trim || null,
     color: color || null,
-    engine: liters ? `${liters}L${cylinders ? ` ${cylinders}` : ''}` : null,
+    engine: liters ? `${Number(liters).toFixed(1)}L${cylinders ? ` ${cylinders}` : ''}` : null,
     vin: vin!.toUpperCase(),
   };
 }
@@ -111,9 +115,16 @@ export function parseBidfaxRecordUrl(url: string) {
   return m ? { makeSlug: m[1]!, modelSlug: m[2]!, externalId: m[3]! } : null;
 }
 
-/** Title prefixes a slug can appear as: "land-rover" → "land rover" / "land-rover". */
-const slugPrefixes = (makeSlug: string, modelSlug: string) =>
-  [`${makeSlug} ${modelSlug}`, `${makeSlug.replace(/-/g, ' ')} ${modelSlug.replace(/-/g, ' ')}`];
+/**
+ * Title prefixes a slug can appear as: "land-rover" → "land rover" / "land-rover". The make alone
+ * comes last, for cards whose title doesn't start with the model ("G 63 Amg" under "AMG").
+ */
+const slugPrefixes = (makeSlug: string, modelSlug: string) => [
+  `${makeSlug} ${modelSlug}`,
+  `${makeSlug.replace(/-/g, ' ')} ${modelSlug.replace(/-/g, ' ')}`,
+  makeSlug,
+  makeSlug.replace(/-/g, ' '),
+];
 
 /**
  * Sale cards (`.thumbnail.offer`), shared by listing and search pages. Make/model are the slugs
@@ -169,7 +180,7 @@ function parseCards($: cheerio.CheerioAPI, prefixes?: string[]): AuctionRecord[]
             ? 'on_approval'
             : null,
       location: card.find('.short-storyup .blackfont').first().text().trim() || null,
-      imageUrl: image ? new URL(image, BIDFAX_ORIGIN).toString() : null,
+      imageUrl: image ? new URL(image, IMAGE_ORIGIN).toString() : null,
     });
   });
 

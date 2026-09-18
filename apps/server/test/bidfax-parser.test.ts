@@ -23,10 +23,10 @@ describe('bidfax helpers', () => {
     expect(bidfaxSlug('Mercedes-Benz')).toBe('mercedes-benz');
     expect(bidfaxSlug('LAND ROVER')).toBe('land-rover');
     expect(bidfaxListingUrl('toyota', 'camry', 2019)).toBe(
-      'https://bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/',
+      'https://en.bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/',
     );
     expect(bidfaxListingUrl('toyota', 'camry', 2019, 3)).toBe(
-      'https://bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/page/3/',
+      'https://en.bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/page/3/',
     );
   });
 
@@ -130,6 +130,20 @@ describe('bidfax parsers (real recorded pages)', () => {
     const p2 = parseBidfaxListing(fixture('toyota-camry-2019-p2.html'), camry).records.map((r) => r.id);
     expect(p2.length).toBeGreaterThan(0);
     expect(p2.filter((id) => p1.includes(id))).toEqual([]);
+  });
+
+  it('parses an en.bidfax.info page: English labels, models kept in the trim', () => {
+    const amg = { makeSlug: 'mercedes-benz', modelSlug: 'amg-gt', makeName: 'MERCEDES-BENZ', modelName: 'AMG' };
+    const { records } = parseBidfaxListing(fixture('en-mercedes-amg-2017-p2.html'), amg);
+    expect(records.length).toBeGreaterThan(5);
+    const c63 = records.find((r) => r.vin === 'WDDWK8HB7HF494445');
+    expect(c63).toMatchObject({ model: 'amg-gt', trim: 'C 63 S', engine: '4.0L', year: 2017 });
+    for (const r of records) {
+      expect(r.lotNumber).toMatch(/^\d+$/);
+      expect(r.saleDate).not.toBeNull();
+      expect(r.odometerMiles).toBeGreaterThan(0);
+      expect(r.trim).not.toBeNull();
+    }
   });
 
   it('flags the 429 trap page and unknown markup', () => {

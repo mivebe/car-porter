@@ -6,7 +6,8 @@ import type { SourceQueue } from '../scraping/source-queue.ts';
 
 export type { HtmlFetcher } from '../scraping/page-fetcher.ts';
 
-export const BIDFAX_ORIGIN = 'https://bidfax.info';
+/** The English site: its titles and labels are cleaner than the Russian default. */
+export const BIDFAX_ORIGIN = 'https://en.bidfax.info';
 const PROFILE = 'bidfax';
 
 /** Runs bidfax's site search for a VIN or lot number and returns the results page HTML. */

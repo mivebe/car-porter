@@ -26,11 +26,11 @@ const browser = createBrowserManager({ profilesDir: mkdtempSync(path.join(tmpdir
 const fetchHtml = createBidfaxFetcher(browser, createSourceQueue({ delay: () => ({ minMs: 1500, maxMs: 3000 }) }));
 
 const pages: [string, string][] = [
-  ['home.html', 'https://bidfax.info/'],
-  ['make-toyota.html', 'https://bidfax.info/toyota/'],
-  ['toyota-camry-2019-p1.html', 'https://bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/'],
-  ['toyota-camry-2019-p2.html', 'https://bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/page/2/'],
-  ['toyota-camry-2019-p999.html', 'https://bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/page/999/'],
+  ['home.html', 'https://en.bidfax.info/'],
+  ['make-toyota.html', 'https://en.bidfax.info/toyota/'],
+  ['toyota-camry-2019-p1.html', 'https://en.bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/'],
+  ['toyota-camry-2019-p2.html', 'https://en.bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/page/2/'],
+  ['toyota-camry-2019-p999.html', 'https://en.bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/page/999/'],
 ];
 try {
   for (const [file, url] of pages) {

@@ -41,7 +41,7 @@ const lot: Lot = {
 const P1 = bidfaxListingUrl('toyota', 'camry', 2019, 1);
 const P2 = bidfaxListingUrl('toyota', 'camry', 2019, 2);
 const P3 = bidfaxListingUrl('toyota', 'camry', 2019, 3);
-const MAKE = 'https://bidfax.info/toyota/';
+const MAKE = 'https://en.bidfax.info/toyota/';
 
 describe('pickBidfaxModel', () => {
   const models = [

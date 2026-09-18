@@ -20,7 +20,7 @@ test('bidfax estimate: matches, include/exclude, feeds the cost calculation', as
   await expect(section.getByTestId('estimate-scan')).toContainText('no more results');
   await expect(section.getByRole('link', { name: /Open the search on bidfax/ })).toHaveAttribute(
     'href',
-    'https://bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/',
+    'https://en.bidfax.info/toyota/camry/f/from-year=2019/to-year=2019/',
   );
   // lot trim is SE → every match is an SE with a link to its bidfax page
   for (let i = 0; i < 13; i++) {

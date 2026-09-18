@@ -45,7 +45,7 @@ export const MOCK_ERROR_YEAR = 2018;
  */
 export const mockBidfaxFetcher: HtmlFetcher = async (url) => {
   const routes: Record<string, string> = {
-    'https://bidfax.info/toyota/': 'bidfax/make-toyota.html',
+    'https://en.bidfax.info/toyota/': 'bidfax/make-toyota.html',
     [bidfaxListingUrl('toyota', 'camry', 2019, 1)]: 'bidfax/toyota-camry-2019-p1.html',
     [bidfaxListingUrl('toyota', 'camry', 2019, 2)]: 'bidfax/toyota-camry-2019-p2.html',
     [bidfaxListingUrl('toyota', 'camry', MOCK_ERROR_YEAR, 1)]: 'bidfax/rate-limit-429.html',
