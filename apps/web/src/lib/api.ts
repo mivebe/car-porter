@@ -2,7 +2,7 @@ import type { EstimateResponse } from '@/features/lot/estimate-hooks';
 import type { HistoryResponse } from '@/features/lot/history-hooks';
 import type { MarketResponse } from '@/features/lot/market-hooks';
 import type { TrackedLotsResponse } from '@/features/tracking/tracking-hooks';
-import type { AuctionSource, IaaiMarket, Transmission, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
+import type { AliasSource, AuctionSource, IaaiMarket, Transmission, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
 
 export class ApiError extends Error {
   constructor(
@@ -98,9 +98,9 @@ export type AliasKind = 'make' | 'model' | 'body';
 export type AliasStatus = 'unassigned' | 'auto' | 'non_car' | 'manual' | 'ignored';
 export type AliasAutoMatch = 'exact' | 'rule' | 'fuzzy' | 'non_car';
 
-/** A make or model name as an auction site spells it, and what it maps to in our catalog. */
+/** A make or model name as a site spells it, and what it maps to in our catalog. */
 export interface AliasEntry {
-  source: AuctionSource;
+  source: AliasSource;
   kind: AliasKind;
   externalName: string;
   /** models: the make the site listed it under; '' for makes */
@@ -116,7 +116,7 @@ export interface AliasEntry {
 
 export interface AliasListParams {
   kind: AliasKind;
-  source?: AuctionSource;
+  source?: AliasSource;
   make?: string;
   status?: AliasStatus;
   /** only site names searched as this make/model */
@@ -141,8 +141,8 @@ export type AliasChange = AliasKey &
 export interface CanonicalItem {
   name: string;
   siteNames: number;
-  /** site names per auction site */
-  bySource: Record<AuctionSource, number>;
+  /** site names per site */
+  bySource: Record<AliasSource, number>;
   lots: number;
 }
 
@@ -201,9 +201,9 @@ export const api = {
   makes: () => request<CatalogResponse>('/api/catalog/makes'),
   models: (make: string) => request<CatalogResponse>(`/api/catalog/models?${query({ make })}`),
   aliases: (params: AliasListParams) => request<AliasListResponse>(`/api/aliases?${query({ ...params })}`),
-  aliasMakes: (source?: AuctionSource) =>
+  aliasMakes: (source?: AliasSource) =>
     request<{ items: { name: string; unassigned: number }[] }>(`/api/aliases/makes?${query({ source })}`),
-  aliasCanonical: (params: { kind: AliasKind; make?: string; source?: AuctionSource }) =>
+  aliasCanonical: (params: { kind: AliasKind; make?: string; source?: AliasSource }) =>
     request<{ items: CanonicalItem[] }>(`/api/aliases/canonical?${query({ ...params })}`),
   aliasSummary: () => request<{ unassigned: Record<AliasKind, number> }>('/api/aliases/summary'),
   changeAliases: (changes: AliasChange[]) =>

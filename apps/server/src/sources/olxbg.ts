@@ -8,9 +8,6 @@ import {
   BGN_PER_EUR,
   cachedCatalog,
   cleanText,
-  notFound,
-  pickMake,
-  pickModel,
   type CatalogEntry,
   type MarketAdapter,
 } from './market-adapter.ts';
@@ -135,31 +132,23 @@ export function parseOlxOffers(json: string, context: { make: string }): { listi
 }
 
 export function createOlxAdapter(fetchRaw: HtmlFetcher, cache: CacheRepository): MarketAdapter {
+  const makePage = (make: CatalogEntry) =>
+    cachedCatalog(cache, `make:${make.value}`, 'olxBg', async () => parseOlxMakePage(await fetchRaw(olxMakeUrl(make.value))));
   return {
     site: 'olxBg',
-    async scan(query, { maxPages }) {
-      const makes = await cachedCatalog(cache, 'makes', 'olxBg', async () => parseOlxMakes(await fetchRaw(olxCarsUrl())));
-      const makeEntry = pickMake(makes, query.make) ?? notFound('olxBg', `make "${query.make}"`);
-      const make = await cachedCatalog(cache, `make:${makeEntry.value}`, 'olxBg', async () =>
-        parseOlxMakePage(await fetchRaw(olxMakeUrl(makeEntry.value))),
-      );
-      if (make.models.length === 0) notFound('olxBg', `models of "${query.make}"`);
-      const model = pickModel(make.models, query.model) ?? notFound('olxBg', `model "${query.model}"`);
-
+    catalog: {
+      makes: () => cachedCatalog(cache, 'makes', 'olxBg', async () => parseOlxMakes(await fetchRaw(olxCarsUrl()))),
+      models: async (make) => (await makePage(make)).models,
+    },
+    async scan({ make, model, year }, { maxPages }) {
+      const { categoryId } = await makePage(make);
       const listings: MarketListing[] = [];
       let page = 1;
       for (;;) {
-        const result = parseOlxOffers(await fetchRaw(olxOffersUrl(make.categoryId, model.value, query.year, page)), {
-          make: makeEntry.label,
-        });
+        const result = parseOlxOffers(await fetchRaw(olxOffersUrl(categoryId, model.value, year, page)), { make: make.label });
         listings.push(...result.listings);
         if (!result.hasNextPage || page >= maxPages) {
-          return {
-            listings,
-            pagesScanned: page,
-            complete: !result.hasNextPage,
-            searchUrl: olxSearchPageUrl(makeEntry.value, model.value, query.year),
-          };
+          return { listings, pagesScanned: page, complete: !result.hasNextPage, searchUrl: olxSearchPageUrl(make.value, model.value, year) };
         }
         page++;
       }

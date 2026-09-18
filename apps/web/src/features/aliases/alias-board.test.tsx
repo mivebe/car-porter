@@ -19,8 +19,8 @@ const entry = (name: string): AliasEntry => ({
 
 const POOL = Array.from({ length: 250 }, (_, i) => entry(`SITE NAME ${i + 1}`));
 const CANONICAL: CanonicalItem[] = [
-  { name: 'Acura', siteNames: 3, bySource: { copart: 2, iaai: 1 }, lots: 40 },
-  { name: 'Alfa Romeo', siteNames: 1, bySource: { copart: 1, iaai: 0 }, lots: 5 },
+  { name: 'Acura', siteNames: 3, bySource: { copart: 2, iaai: 1, mobileBg: 0, carsBg: 0, olxBg: 0 }, lots: 40 },
+  { name: 'Alfa Romeo', siteNames: 1, bySource: { copart: 1, iaai: 0, mobileBg: 0, carsBg: 0, olxBg: 0 }, lots: 5 },
 ];
 
 vi.mock('./alias-hooks', async (importOriginal) => ({

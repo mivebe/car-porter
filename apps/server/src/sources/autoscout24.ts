@@ -93,19 +93,21 @@ export function createAutoscout24Adapter(fetchHtml: HtmlFetcher): MarketAdapter 
   return {
     site: 'autoscout24',
     async scan(query, { maxPages }) {
+      const make = query.make.label;
+      const model = query.model.label;
       const listings: MarketListing[] = [];
       let page = 1;
       for (;;) {
-        const result = parseAutoscout24Listing(await fetchHtml(autoscout24SearchUrl(query.make, query.model, query.year, page)));
+        const result = parseAutoscout24Listing(await fetchHtml(autoscout24SearchUrl(make, model, query.year, page)));
         // an unknown make/model slug falls back to a broader search instead of an error
-        if (!result.modelKnown) notFound('autoscout24', `model "${query.make} ${query.model}"`);
+        if (!result.modelKnown) notFound('autoscout24', `model "${make} ${model}"`);
         listings.push(...result.listings);
         if (page >= result.numberOfPages || page >= maxPages) {
           return {
             listings,
             pagesScanned: page,
             complete: page >= result.numberOfPages,
-            searchUrl: autoscout24SearchUrl(query.make, query.model, query.year),
+            searchUrl: autoscout24SearchUrl(make, model, query.year),
           };
         }
         page++;

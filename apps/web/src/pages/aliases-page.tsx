@@ -1,3 +1,4 @@
+import { ALIAS_SOURCES } from '@car-porter/core';
 import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
@@ -22,7 +23,7 @@ export function AliasesPage() {
   const kind: AliasKind = (['model', 'body'] as const).find((k) => k === params.get('kind')) ?? 'make';
   const statusParam = params.get('status');
   const status = statusParam === ALL ? undefined : (STATUSES.find((s) => s === statusParam) ?? 'unassigned');
-  const source = (['copart', 'iaai'] as const).find((s) => s === params.get('source'));
+  const source = ALIAS_SOURCES.find((s) => s === params.get('source'));
   const make = kind === 'model' ? (params.get('make') ?? '') : '';
   const q = params.get('q') ?? '';
   const active = params.get('sel');
@@ -79,8 +80,11 @@ export function AliasesPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>{t('aliases.filters.allSites')}</SelectItem>
-            <SelectItem value="copart">{t('sources.copart')}</SelectItem>
-            <SelectItem value="iaai">{t('sources.iaai')}</SelectItem>
+            {ALIAS_SOURCES.map((s) => (
+              <SelectItem key={s} value={s}>
+                {t(`sources.${s}`)}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

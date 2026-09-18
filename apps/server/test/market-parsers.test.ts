@@ -4,7 +4,7 @@ import { openDatabase, type Database } from '../src/db/client.ts';
 import { createCacheRepository } from '../src/repositories/cache-repository.ts';
 import { autoscout24SearchUrl, createAutoscout24Adapter, parseAutoscout24Listing } from '../src/sources/autoscout24.ts';
 import { carsBgSearchUrl, createCarsBgAdapter, parseCarsBgBrands, parseCarsBgListing, parseCarsBgModels } from '../src/sources/carsbg.ts';
-import { parseKm, parsePriceEurCents, pickMake, pickModel } from '../src/sources/market-adapter.ts';
+import { parseKm, parsePriceEurCents, type CatalogEntry } from '../src/sources/market-adapter.ts';
 import {
   createMobileBgAdapter,
   mobileBgSearchUrl,
@@ -27,25 +27,6 @@ describe('market helpers', () => {
     expect(parseKm(' 189 084 км')).toBe(189_084);
     expect(parseKm('189000 км.')).toBe(189_000);
     expect(parseKm('86 200 km')).toBe(86_200);
-  });
-
-  it('picks makes and models by name, ignoring punctuation and listing counts', () => {
-    const makes = [
-      { value: 'mercedes-benz', label: 'Mercedes-Benz' },
-      { value: 'vw', label: 'VW' },
-    ];
-    expect(pickMake(makes, 'MERCEDES-BENZ')?.value).toBe('mercedes-benz');
-    expect(pickMake(makes, 'VOLKSWAGEN')?.value).toBe('vw');
-    const models = [
-      { value: 'rav4', label: 'Rav4' },
-      { value: 'c-300', label: 'C 300' },
-      { value: 'camry-solara', label: 'Camry Solara' },
-      { value: 'camry', label: 'Camry' },
-    ];
-    expect(pickModel(models, 'RAV 4')?.value).toBe('rav4');
-    expect(pickModel(models, 'C300')?.value).toBe('c-300');
-    expect(pickModel(models, 'CAMRY')?.value).toBe('camry');
-    expect(pickModel(models, 'Supra')).toBeNull();
   });
 });
 
@@ -202,52 +183,59 @@ describe('market adapters', () => {
   });
   afterEach(() => database.close());
 
-  it('mobile.bg: resolves slugs from the catalog, reads linked pages up to the limit', async () => {
+  const entry = (value: string, label = value): CatalogEntry => ({ value, label });
+
+  it('mobile.bg: lists makes and models, reads linked pages up to the limit', async () => {
     const fetch = vi.fn(fetchers.mobileBg);
     const adapter = createMobileBgAdapter(fetch, createCacheRepository(database.db));
-    const scan = await adapter.scan({ make: 'TOYOTA', model: 'RAV4', year: 2019 }, { maxPages: 1 });
+    expect(await adapter.catalog!.makes()).toContainEqual({ value: 'toyota', label: 'Toyota' });
+    expect(await adapter.catalog!.models(entry('toyota'))).toContainEqual({ value: 'rav4', label: 'Rav4' });
+    const scan = await adapter.scan({ make: entry('toyota'), model: entry('rav4'), year: 2019 }, { maxPages: 1 });
     expect(fetch.mock.calls.map((c) => c[0]).slice(2)).toEqual([mobileBgSearchUrl('toyota', 'rav4', 2019)]);
     expect(scan).toMatchObject({ pagesScanned: 1, complete: false, searchUrl: mobileBgSearchUrl('toyota', 'rav4', 2019) });
     expect(scan.listings).toHaveLength(20);
 
     // page 2 (not recorded: empty) is linked from page 1
     fetch.mockClear();
-    const all = await adapter.scan({ make: 'TOYOTA', model: 'RAV4', year: 2019 }, { maxPages: 5 });
+    const all = await adapter.scan({ make: entry('toyota'), model: entry('rav4'), year: 2019 }, { maxPages: 5 });
     expect(fetch.mock.calls.map((c) => c[0])).toEqual([mobileBgSearchUrl('toyota', 'rav4', 2019), mobileBgSearchUrl('toyota', 'rav4', 2019, 2)]);
     expect(all).toMatchObject({ pagesScanned: 2, complete: true });
 
     // catalogs are cached
     fetch.mockClear();
-    await adapter.scan({ make: 'Toyota', model: 'Camry', year: 2019 }, { maxPages: 2 });
-    expect(fetch.mock.calls.map((c) => c[0])).toEqual([mobileBgSearchUrl('toyota', 'camry', 2019)]);
-    await expect(adapter.scan({ make: 'Toyota', model: 'Nope', year: 2019 }, { maxPages: 2 })).rejects.toMatchObject({ code: 'not_found' });
+    await adapter.catalog!.makes();
+    await adapter.catalog!.models(entry('toyota'));
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it('cars.bg: stops at an empty page even though a next page is always linked', async () => {
     const fetch = vi.fn(fetchers.carsBg);
-    const scan = await createCarsBgAdapter(fetch, createCacheRepository(database.db)).scan(
-      { make: 'TOYOTA', model: 'CAMRY', year: 2019 },
-      { maxPages: 5 },
-    );
+    const adapter = createCarsBgAdapter(fetch, createCacheRepository(database.db));
+    const toyota = (await adapter.catalog!.makes()).find((m) => m.label === 'Toyota')!;
+    const camry = (await adapter.catalog!.models(toyota)).find((m) => m.label === 'Camry')!;
+    const scan = await adapter.scan({ make: toyota, model: camry, year: 2019 }, { maxPages: 5 });
     expect(fetch.mock.calls.map((c) => c[0]).slice(2)).toEqual([carsBgSearchUrl('80', '1374', 2019), carsBgSearchUrl('80', '1374', 2019, 2)]);
     expect(scan).toMatchObject({ pagesScanned: 2, complete: true });
     expect(scan.listings).toHaveLength(3);
   });
 
-  it('AutoScout24: reads every page', async () => {
+  it('AutoScout24: searches the names as given, reads every page', async () => {
     const fetch = vi.fn(fetchers.autoscout24);
-    const scan = await createAutoscout24Adapter(fetch).scan({ make: 'TOYOTA', model: 'CAMRY', year: 2019 }, { maxPages: 5 });
+    const adapter = createAutoscout24Adapter(fetch);
+    expect(adapter.catalog).toBeUndefined();
+    const scan = await adapter.scan({ make: entry('TOYOTA'), model: entry('CAMRY'), year: 2019 }, { maxPages: 5 });
     expect(fetch.mock.calls.map((c) => c[0])).toEqual([autoscout24SearchUrl('toyota', 'camry', 2019), autoscout24SearchUrl('toyota', 'camry', 2019, 2)]);
     expect(scan).toMatchObject({ pagesScanned: 2, complete: true });
     expect(scan.listings).toHaveLength(26);
   });
 
-  it('OLX: resolves the make category and model value', async () => {
+  it('OLX: lists the models of a make from its category page, searches by category id', async () => {
     const fetch = vi.fn(fetchers.olxBg);
     const adapter = createOlxAdapter(fetch, createCacheRepository(database.db));
-    const scan = await adapter.scan({ make: 'TOYOTA', model: 'RAV4', year: 2020 }, { maxPages: 5 });
+    const toyota = (await adapter.catalog!.makes()).find((m) => m.label === 'Toyota')!;
+    const rav4 = (await adapter.catalog!.models(toyota)).find((m) => m.value === 'rav-4')!;
+    const scan = await adapter.scan({ make: toyota, model: rav4, year: 2020 }, { maxPages: 5 });
     expect(fetch.mock.calls.at(-1)![0]).toBe(olxOffersUrl(1181, 'rav-4', 2020));
     expect(scan.listings).toHaveLength(2);
-    await expect(adapter.scan({ make: 'TOYOTA', model: 'Nope', year: 2020 }, { maxPages: 5 })).rejects.toMatchObject({ code: 'not_found' });
   });
 });

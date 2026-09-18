@@ -177,19 +177,19 @@ describe('/api/aliases', () => {
     expect(models.find((m) => m.name === 'C-Class')).toEqual({
       name: 'C-Class',
       siteNames: 3,
-      bySource: { copart: 2, iaai: 1 },
+      bySource: { copart: 2, iaai: 1, mobileBg: 0, carsBg: 0, olxBg: 0 },
       lots: 407,
     });
     expect(models.find((m) => m.name === 'C 63 AMG')).toEqual({
       name: 'C 63 AMG',
       siteNames: 1,
-      bySource: { copart: 0, iaai: 1 },
+      bySource: { copart: 0, iaai: 1, mobileBg: 0, carsBg: 0, olxBg: 0 },
       lots: 7,
     });
     expect(models.find((m) => m.name === 'G-Class')).toEqual({
       name: 'G-Class',
       siteNames: 0,
-      bySource: { copart: 0, iaai: 0 },
+      bySource: { copart: 0, iaai: 0, mobileBg: 0, carsBg: 0, olxBg: 0 },
       lots: 0,
     });
 

@@ -1,4 +1,4 @@
-import type { AuctionSource } from '@car-porter/core';
+import type { AliasSource } from '@car-porter/core';
 import { and, asc, eq, inArray, ne, type SQL } from 'drizzle-orm';
 import type { Db } from '../db/client.ts';
 import { vehicleAliases } from '../db/schema.ts';
@@ -10,7 +10,7 @@ export type AutoMatch = 'exact' | 'rule' | 'fuzzy' | 'non_car';
 export type ManualState = 'assigned' | 'ignored' | 'unassigned';
 
 export interface VehicleAlias {
-  source: AuctionSource;
+  source: AliasSource;
   kind: AliasKind;
   externalName: string;
   /** make rows: the make it maps to ('' = none); model rows: the make it was listed under; '' for body rows */
@@ -28,7 +28,7 @@ export type AutoAliasInput = Pick<VehicleAlias, 'externalName' | 'canonicalMake'
 
 /** Identifies one site name: models are scoped by the make they were listed under. */
 export interface AliasKey {
-  source: AuctionSource;
+  source: AliasSource;
   kind: AliasKind;
   externalName: string;
   /** required for models */
@@ -48,7 +48,7 @@ export function createVehicleAliasesRepository(db: Db) {
     );
 
   /** Replaces the auto rows of the given site names with freshly computed ones. */
-  async function replaceAuto(scope: { source: AuctionSource; kind: AliasKind; make?: string }, rows: AutoAliasInput[]) {
+  async function replaceAuto(scope: { source: AliasSource; kind: AliasKind; make?: string }, rows: AutoAliasInput[]) {
     const names = [...new Set(rows.map((r) => r.externalName))];
     const now = new Date();
     for (let i = 0; i < names.length; i += CHUNK) {
@@ -96,7 +96,7 @@ export function createVehicleAliasesRepository(db: Db) {
   }
 
   async function list(
-    filter: { source?: AuctionSource; kind?: AliasKind; canonicalMake?: string; origin?: AliasOrigin } = {},
+    filter: { source?: AliasSource; kind?: AliasKind; canonicalMake?: string; origin?: AliasOrigin } = {},
   ): Promise<VehicleAlias[]> {
     const where = [
       filter.source && eq(vehicleAliases.source, filter.source),

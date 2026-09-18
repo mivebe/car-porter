@@ -1,7 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import type { AuctionSource } from '@car-porter/core';
+import type { AliasSource } from '@car-porter/core';
 import { api, type AliasChange, type AliasEntry, type AliasKind, type AliasListParams } from '@/lib/api';
 
 export const ALIASES_KEY = ['aliases'];
@@ -17,11 +17,11 @@ export const useAliases = (params: AliasListParams, enabled = true) =>
     enabled,
   });
 
-export const useAliasMakes = (source?: AuctionSource) =>
+export const useAliasMakes = (source?: AliasSource) =>
   useQuery({ queryKey: [...ALIASES_KEY, 'makes', source], queryFn: () => api.aliasMakes(source) });
 
 /** Our makes, the models of a make, or our body styles, with their site name counts. */
-export const useCanonicalItems = (params: { kind: AliasKind; make?: string; source?: AuctionSource }) =>
+export const useCanonicalItems = (params: { kind: AliasKind; make?: string; source?: AliasSource }) =>
   useQuery({
     queryKey: [...ALIASES_KEY, 'canonical', params],
     queryFn: () => api.aliasCanonical(params),

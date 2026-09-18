@@ -14,7 +14,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import type { AuctionSource } from '@car-porter/core';
+import { ALIAS_SOURCES, CATALOG_MARKET_SOURCES, type AliasSource } from '@car-porter/core';
 import { ChevronDown, ChevronRight, MousePointerClick, Plus, Search } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -30,6 +30,9 @@ import { AliasCard, CardFace, type CardAction } from './alias-card';
 import { useAliases, useAliasMakes, useCanonicalItems, useChangeAliases } from './alias-hooks';
 import { cardId, planDrop, type AliasColumn, type DropOutcome, type DropTarget } from './drop-plan';
 import { siteColor } from './site-color';
+
+/** Per-site counts next to a make or model: the auctions first, then the BG marketplaces. */
+const BADGE_ORDER: AliasSource[] = ['iaai', 'copart', ...CATALOG_MARKET_SOURCES];
 
 const CANONICAL_PREFIX = 'canonical:';
 const norm = (s: string) => s.trim().toLowerCase();
@@ -57,7 +60,7 @@ interface AliasBoardProps {
   kind: AliasKind;
   /** models: the make whose models are shown ('' = none chosen) */
   make: string;
-  source?: AuctionSource;
+  source?: AliasSource;
   status?: AliasStatus;
   q: string;
   active: string | null;
@@ -387,7 +390,7 @@ function CanonicalColumn({
     const list = [...(items ?? [])];
     for (const name of [...created, ...(active ? [active] : [])]) {
       if (!list.some((i) => norm(i.name) === norm(name))) {
-        list.push({ name, siteNames: 0, bySource: { copart: 0, iaai: 0 }, lots: 0 });
+        list.push({ name, siteNames: 0, bySource: Object.fromEntries(ALIAS_SOURCES.map((s) => [s, 0])) as Record<AliasSource, number>, lots: 0 });
       }
     }
     return list;
@@ -506,7 +509,7 @@ function CanonicalRow({
       <span className="truncate">{item.name}</span>
       {item.siteNames > 0 && (
         <span className="flex shrink-0 items-center gap-1 text-xs tabular-nums">
-          {(['iaai', 'copart'] as const).map(
+          {BADGE_ORDER.map(
             (source) =>
               item.bySource[source] > 0 && (
                 <span
@@ -673,7 +676,7 @@ function PoolColumn({
 }
 
 /** Models tab without a make: pick one, makes with unassigned models first. */
-function MakePicker({ source, onPick }: { source?: AuctionSource; onPick: (make: string) => void }) {
+function MakePicker({ source, onPick }: { source?: AliasSource; onPick: (make: string) => void }) {
   const { t, i18n } = useTranslation();
   const makes = useAliasMakes(source);
   const items = [...(makes.data?.items ?? [])].sort((a, b) => b.unassigned - a.unassigned || a.name.localeCompare(b.name));

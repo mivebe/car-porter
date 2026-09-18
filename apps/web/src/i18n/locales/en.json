@@ -33,7 +33,10 @@
   },
   "sources": {
     "copart": "Copart",
-    "iaai": "IAAI"
+    "iaai": "IAAI",
+    "mobileBg": "mobile.bg",
+    "carsBg": "cars.bg",
+    "olxBg": "OLX.bg"
   },
   "sourceErrors": {
     "blocked": "blocked",

@@ -8,13 +8,16 @@ import { createLotsRepository } from '../src/repositories/lots-repository.ts';
 import { createMarketListingsRepository } from '../src/repositories/market-listings-repository.ts';
 import { createSelectionsRepository } from '../src/repositories/selections-repository.ts';
 import { createSettingsRepository } from '../src/repositories/settings-repository.ts';
+import { createVehicleAliasesRepository } from '../src/repositories/vehicle-aliases-repository.ts';
 import { SourceError } from '../src/scraping/errors.ts';
 import { createMarketService } from '../src/services/market-service.ts';
+import { createVehicleAliasService } from '../src/services/vehicle-alias-service.ts';
 import { createAutoscout24Adapter } from '../src/sources/autoscout24.ts';
 import { createCarsBgAdapter } from '../src/sources/carsbg.ts';
 import type { MarketAdapter, MarketScan } from '../src/sources/market-adapter.ts';
 import { createMobileBgAdapter } from '../src/sources/mobilebg.ts';
-import { createMockMarketFetchers } from '../src/sources/mock-fetchers.ts';
+import { createMockMarketFetchers, mockNhtsaFetcher } from '../src/sources/mock-fetchers.ts';
+import { createCatalogService } from '../src/sources/nhtsa.ts';
 import { createOlxAdapter } from '../src/sources/olxbg.ts';
 
 const lot = {
@@ -51,13 +54,18 @@ describe('market service', () => {
   let database: Database;
   let clock: Date;
 
-  async function setup(adapters?: MarketAdapter[]) {
+  async function setup(adapters?: MarketAdapter[], lots_: Lot[] = []) {
     database = await openDatabase(':memory:');
     clock = new Date('2026-09-16T12:00:00Z');
     const cache = createCacheRepository(database.db, () => clock);
     const fetchers = createMockMarketFetchers();
     const lots = createLotsRepository(database.db);
-    await lots.upsertMany([lot]);
+    await lots.upsertMany([lot, ...lots_]);
+    const aliases = createVehicleAliasService({
+      catalog: createCatalogService(cache, mockNhtsaFetcher),
+      cache,
+      aliases: createVehicleAliasesRepository(database.db),
+    });
     const inputs = createLotInputsRepository(database.db);
     const service = createMarketService({
       adapters: adapters ?? [
@@ -66,6 +74,7 @@ describe('market service', () => {
         createAutoscout24Adapter(fetchers.autoscout24),
         createOlxAdapter(fetchers.olxBg, cache),
       ],
+      aliases,
       cache,
       lots,
       inputs,
@@ -74,7 +83,7 @@ describe('market service', () => {
       settings: createSettingsRepository(database.db),
       now: () => clock,
     });
-    return { service, inputs };
+    return { service, inputs, aliases };
   }
 
   afterEach(() => database?.close());
@@ -107,6 +116,45 @@ describe('market service', () => {
 
     // stored: GET returns the same listings without searching
     expect((await service.get(lot.id)).listings).toHaveLength(12);
+  });
+
+  it('searches every site model the lot model maps to, and counts their listings as the lot model', async () => {
+    const entry = (value: string, label: string) => ({ value, label });
+    const scan = vi.fn(async ({ model }: { model: { value: string } }) => ({
+      listings: [{ ...listing(`https://www.mobile.bg/${model.value}`, 5_000_000), model: model.value }],
+      pagesScanned: 1,
+      complete: true,
+      searchUrl: `https://www.mobile.bg/${model.value}`,
+    }));
+    const mobileBg: MarketAdapter = {
+      site: 'mobileBg',
+      catalog: {
+        makes: async () => [entry('toyota', 'Toyota'), entry('mercedes-benz', 'Mercedes-Benz')],
+        models: async () => [entry('c-200', 'C 200'), entry('c-43-amg', 'C 43 AMG'), entry('c-63-amg', 'C 63 AMG'), entry('cla-45-amg', 'CLA 45 AMG')],
+      },
+      scan,
+    };
+    const c63 = { ...lot, id: 'iaai:2', lotNumber: '2', make: 'MERCEDES-BENZ', model: 'AMG C 63', year: 2017 };
+    const cClass = { ...c63, id: 'iaai:3', lotNumber: '3', model: 'C-CLASS' };
+    const sprinter = { ...c63, id: 'iaai:4', lotNumber: '4', model: 'SPRINTER' };
+    const { service, aliases } = await setup([mobileBg], [c63, cClass, sprinter]);
+
+    const res = await service.run(c63.id);
+    expect(scan.mock.calls.map(([q]) => q.model.value)).toEqual(['c-63-amg']);
+    expect(res.listings).toEqual([expect.objectContaining({ site: 'mobileBg', model: 'AMG C 63' })]);
+
+    scan.mockClear();
+    await service.run(cClass.id);
+    expect(scan.mock.calls.map(([q]) => q.model.value)).toEqual(['c-200', 'c-43-amg', 'c-63-amg']);
+
+    // a manual alias counts too, and drops the cached search of that site
+    await aliases.assign([{ source: 'mobileBg', kind: 'model', externalName: 'C 43 AMG', make: 'Mercedes-Benz', action: 'assign', targets: ['AMG C 63'] }]);
+    scan.mockClear();
+    await service.run(c63.id);
+    expect(scan.mock.calls.map(([q]) => q.model.value).sort()).toEqual(['c-43-amg', 'c-63-amg']);
+
+    // no site model maps to it
+    expect((await service.run(sprinter.id)).sites[0]).toMatchObject({ error: { code: 'not_found' } });
   });
 
   it('uses the lot’s own marketplace choice', async () => {

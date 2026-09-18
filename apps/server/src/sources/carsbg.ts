@@ -8,11 +8,8 @@ import type { SourceQueue } from '../scraping/source-queue.ts';
 import {
   cachedCatalog,
   cleanText,
-  notFound,
   parseKm,
   parsePriceEurCents,
-  pickMake,
-  pickModel,
   type CatalogEntry,
   type MarketAdapter,
 } from './market-adapter.ts';
@@ -105,18 +102,16 @@ export function parseCarsBgListing(
 export function createCarsBgAdapter(fetchHtml: HtmlFetcher, cache: CacheRepository): MarketAdapter {
   return {
     site: 'carsBg',
-    async scan(query, { maxPages }) {
-      const brands = await cachedCatalog(cache, 'makes', 'carsBg', async () => parseCarsBgBrands(await fetchHtml(carsBgHomeUrl())));
-      const brand = pickMake(brands, query.make) ?? notFound('carsBg', `make "${query.make}"`);
-      const models = await cachedCatalog(cache, `models:${brand.value}`, 'carsBg', async () =>
-        parseCarsBgModels(await fetchHtml(carsBgBrandUrl(brand.value))),
-      );
-      const model = pickModel(models, query.model) ?? notFound('carsBg', `model "${query.model}"`);
-
+    catalog: {
+      makes: () => cachedCatalog(cache, 'makes', 'carsBg', async () => parseCarsBgBrands(await fetchHtml(carsBgHomeUrl()))),
+      models: (brand) =>
+        cachedCatalog(cache, `models:${brand.value}`, 'carsBg', async () => parseCarsBgModels(await fetchHtml(carsBgBrandUrl(brand.value)))),
+    },
+    async scan({ make: brand, model, year }, { maxPages }) {
       const listings: MarketListing[] = [];
       let page = 1;
       for (;;) {
-        const result = parseCarsBgListing(await fetchHtml(carsBgSearchUrl(brand.value, model.value, query.year, page)), {
+        const result = parseCarsBgListing(await fetchHtml(carsBgSearchUrl(brand.value, model.value, year, page)), {
           make: brand.label,
           model: model.label,
         });
@@ -126,7 +121,7 @@ export function createCarsBgAdapter(fetchHtml: HtmlFetcher, cache: CacheReposito
             listings,
             pagesScanned: page,
             complete: !result.hasNextPage || result.listings.length === 0,
-            searchUrl: carsBgSearchUrl(brand.value, model.value, query.year),
+            searchUrl: carsBgSearchUrl(brand.value, model.value, year),
           };
         }
         page++;

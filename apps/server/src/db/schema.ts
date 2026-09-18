@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import type { LotSearchFilters } from '@car-porter/core';
+import { ALIAS_SOURCES, type LotSearchFilters } from '@car-porter/core';
 
 const now = sql`(unixepoch() * 1000)`;
 const timestamp = (name: string) => integer(name, { mode: 'timestamp_ms' });
@@ -153,7 +153,7 @@ export const scrapeCache = sqliteTable('scrape_cache', {
 export const vehicleAliases = sqliteTable(
   'vehicle_aliases',
   {
-    source: text('source', { enum: ['copart', 'iaai'] }).notNull(),
+    source: text('source', { enum: ALIAS_SOURCES }).notNull(),
     kind: text('kind', { enum: ['make', 'model', 'body'] }).notNull(),
     externalName: text('external_name').notNull(),
     canonicalMake: text('canonical_make').notNull(),

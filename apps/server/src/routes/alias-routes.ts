@@ -1,4 +1,4 @@
-import { AUCTION_SOURCES } from '@car-porter/core';
+import { ALIAS_SOURCES } from '@car-porter/core';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { ScanRunningError, type AliasScanService } from '../services/alias-scan-service.ts';
@@ -7,7 +7,7 @@ import { ALIAS_STATUSES, type AliasStatus, type VehicleAliasService } from '../s
 const kind = z.enum(['make', 'model', 'body']);
 const listQuery = z.object({
   kind,
-  source: z.enum(AUCTION_SOURCES).optional(),
+  source: z.enum(ALIAS_SOURCES).optional(),
   make: z.string().trim().optional(),
   status: z.enum(ALIAS_STATUSES as [AliasStatus, ...AliasStatus[]]).optional(),
   target: z.string().trim().min(1).optional(),
@@ -16,7 +16,7 @@ const listQuery = z.object({
 });
 const aliasKey = z
   .object({
-    source: z.enum(AUCTION_SOURCES),
+    source: z.enum(ALIAS_SOURCES),
     kind,
     externalName: z.string().min(1),
     make: z.string().trim().optional(),
@@ -40,7 +40,7 @@ const assignmentBody = z.object({
 const canonicalQuery = z.object({
   kind,
   make: z.string().trim().optional(),
-  source: z.enum(AUCTION_SOURCES).optional(),
+  source: z.enum(ALIAS_SOURCES).optional(),
 });
 const scanBody = z.object({ make: z.string().trim().min(1).nullish() });
 
@@ -56,7 +56,7 @@ export async function aliasRoutes(
 
   /** Makes that have site models recorded under them, with unassigned counts (for the models filter). */
   app.get('/api/aliases/makes', async (req) => {
-    const source = z.enum(AUCTION_SOURCES).optional().safeParse((req.query as { source?: string }).source);
+    const source = z.enum(ALIAS_SOURCES).optional().safeParse((req.query as { source?: string }).source);
     return { items: await opts.aliases.modelMakes(source.success ? source.data : undefined) };
   });
 

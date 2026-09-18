@@ -1,4 +1,4 @@
-import { modelMatches, normalizeMake, normalizeText, roundHalfUp, type MarketListing, type MarketSource } from '@car-porter/core';
+import { roundHalfUp, type MarketListing, type MarketSource } from '@car-porter/core';
 import type { CacheRepository } from '../repositories/cache-repository.ts';
 import { cached } from '../scraping/cached.ts';
 import { SourceError } from '../scraping/errors.ts';
@@ -9,9 +9,16 @@ export const CATALOG_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 /** The Bulgarian lev is pegged to the euro: 1 € = 1.95583 лв. */
 export const BGN_PER_EUR = 1.95583;
 
+/** A make or model as a marketplace lists it: its identifier in URLs/filters and its label. */
+export interface CatalogEntry {
+  value: string;
+  label: string;
+}
+
+/** A search for one site make + model and an exact year. */
 export interface MarketQuery {
-  make: string;
-  model: string;
+  make: CatalogEntry;
+  model: CatalogEntry;
   year: number;
 }
 
@@ -24,33 +31,18 @@ export interface MarketScan {
   searchUrl: string;
 }
 
+/** A site's own make and model lists, which the alias table maps to our names. */
+export interface MarketCatalog {
+  makes(): Promise<CatalogEntry[]>;
+  models(make: CatalogEntry): Promise<CatalogEntry[]>;
+}
+
 export interface MarketAdapter {
   site: MarketSource;
+  /** Without one (AutoScout24), the lot's own make and model are searched as given. */
+  catalog?: MarketCatalog;
   /** Searches make + model + exact year; throws `not_found` when the site doesn't know them. */
   scan(query: MarketQuery, options: { maxPages: number }): Promise<MarketScan>;
-}
-
-/** A make or model as a marketplace lists it: its identifier in URLs/filters and its label. */
-export interface CatalogEntry {
-  value: string;
-  label: string;
-}
-
-const compact = (s: string) => normalizeText(s).replace(/[\s.]/g, '');
-
-export function pickMake(entries: CatalogEntry[], make: string): CatalogEntry | null {
-  const wanted = normalizeMake(make);
-  return entries.find((e) => normalizeMake(e.label) === wanted || normalizeMake(e.value.replace(/-/g, ' ')) === wanted) ?? null;
-}
-
-/** Exact (ignoring spaces/punctuation) before "one name starts the other" ("RAV4" = "RAV 4"). */
-export function pickModel(entries: CatalogEntry[], model: string): CatalogEntry | null {
-  const wanted = compact(model);
-  return (
-    entries.find((e) => compact(e.label) === wanted || compact(e.value) === wanted) ??
-    entries.find((e) => modelMatches(e.label, model)) ??
-    null
-  );
 }
 
 /** Loads and caches a catalog, throwing the loader's error when there is nothing cached. */

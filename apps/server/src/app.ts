@@ -198,6 +198,7 @@ export async function buildApp({
       createAutoscout24Adapter(marketFetchers.autoscout24),
       createOlxAdapter(marketFetchers.olxBg, repos.cache),
     ],
+    aliases,
     cache: repos.cache,
     lots: repos.lots,
     inputs: repos.lotInputs,
