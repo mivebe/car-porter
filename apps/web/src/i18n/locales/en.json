@@ -198,6 +198,8 @@
     "range": "Range",
     "included": "Included",
     "allExcluded": "All matches are excluded. Tick at least one to get an estimate.",
+    "sales_one": "{{count}} past sale",
+    "sales_other": "{{count}} past sales",
     "include": "Include {{price}} sale from {{date}} in the average",
     "unknown": "Not shown on bidfax: {{fields}}",
     "status": {

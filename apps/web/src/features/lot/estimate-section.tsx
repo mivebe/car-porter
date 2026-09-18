@@ -1,4 +1,5 @@
-import { AlertTriangle, ExternalLink, Gavel, Loader2, RefreshCw, Search } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, ExternalLink, Gavel, Loader2, RefreshCw, Search } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,7 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
   const summary = estimateSummary(data);
   const excluded = new Set(data?.excludedIds ?? []);
   const hasScan = !!data?.scan;
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <Section
@@ -90,7 +92,21 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
       )}
 
       {data && data.matches.length > 0 && (
-        <ul className="divide-y rounded-lg border" data-testid="estimate-matches">
+        <button
+          type="button"
+          className="flex items-center gap-1 justify-self-start text-xs font-medium text-muted-foreground hover:text-foreground"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          aria-controls="estimate-matches"
+          data-testid="estimate-matches-toggle"
+        >
+          {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+          {t('estimate.sales', { count: data.matches.length })}
+        </button>
+      )}
+
+      {data && data.matches.length > 0 && expanded && (
+        <ul id="estimate-matches" className="divide-y rounded-lg border" data-testid="estimate-matches">
           {data.matches.map(({ record: r, unknown }) => {
             const included = !excluded.has(r.id);
             return (

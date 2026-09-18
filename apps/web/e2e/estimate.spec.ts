@@ -14,7 +14,13 @@ test('bidfax estimate: matches, include/exclude, feeds the cost calculation', as
 
   await section.getByRole('button', { name: 'Estimate price' }).click();
 
+  // the list of sales starts collapsed
   const matches = section.getByTestId('estimate-match');
+  const toggle = section.getByTestId('estimate-matches-toggle');
+  await expect(toggle).toHaveText('13 past sales');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(matches).toHaveCount(0);
+  await toggle.click();
   await expect(matches).toHaveCount(13);
   await expect(section.getByTestId('estimate-scan')).toContainText('Scanned 3 page(s)');
   await expect(section.getByTestId('estimate-scan')).toContainText('no more results');
@@ -44,6 +50,8 @@ test('bidfax estimate: matches, include/exclude, feeds the cost calculation', as
   await expect(section.getByRole('button', { name: 'Refresh' })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('dialog').getByTestId('estimate-count')).toHaveText('12 / 13');
+  await expect(page.getByRole('dialog').getByTestId('estimate-match')).toHaveCount(0);
+  await page.getByRole('dialog').getByTestId('estimate-matches-toggle').click();
   await expect(page.getByRole('dialog').getByTestId('estimate-match').first().getByRole('checkbox')).not.toBeChecked();
 });
 
