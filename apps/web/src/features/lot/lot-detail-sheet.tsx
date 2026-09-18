@@ -1,5 +1,6 @@
 import { effectiveMarketSources, evaluateLot, summarizeMarket, type Lot } from '@car-porter/core';
 import { Bookmark, BookmarkCheck, ExternalLink, ImageOff, Info, Wrench } from 'lucide-react';
+import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -12,6 +13,7 @@ import { SourceBadge } from '@/features/search/source-badge';
 import { useSetTracked } from '@/features/tracking/tracking-hooks';
 import { formatDateTime, formatMoney, formatNumber, sentenceCase } from '@/lib/format';
 import { useMediaQuery } from '@/lib/use-media-query';
+import { cn } from '@/lib/utils';
 import { CostSection } from './cost-section';
 import { estimateSummary, useEstimate, useRunEstimate, useToggleEstimateRecord } from './estimate-hooks';
 import { EstimateSection } from './estimate-section';
@@ -32,16 +34,24 @@ interface LotDetailSheetProps {
 
 /** Desktop widths get a large centred modal; narrower screens keep the side sheet. */
 const DESKTOP = '(min-width: 64rem)';
+/** Wide enough to put the car and the numbers side by side. */
+const WIDE = '(min-width: 80rem)';
 
 export function LotDetailSheet({ lotId, onClose }: LotDetailSheetProps) {
   const desktop = useMediaQuery(DESKTOP);
+  const wide = useMediaQuery(WIDE);
   const onOpenChange = (open: boolean) => !open && onClose();
-  const body = lotId && <LotDetail lotId={lotId} />;
+  const body = lotId && <LotDetail lotId={lotId} columns={wide ? 2 : 1} />;
 
   if (desktop) {
     return (
       <Dialog open={!!lotId} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[calc(100dvh-4rem)] w-[calc(100vw-4rem)] max-w-5xl flex-col gap-0 overflow-y-auto p-0 sm:max-w-5xl">
+        <DialogContent
+          className={cn(
+            'flex max-h-[calc(100dvh-4rem)] w-[calc(100vw-4rem)] flex-col gap-0 overflow-y-auto p-0',
+            wide ? 'max-w-[96rem] sm:max-w-[96rem]' : 'max-w-5xl sm:max-w-5xl',
+          )}
+        >
           {body}
         </DialogContent>
       </Dialog>
@@ -54,7 +64,7 @@ export function LotDetailSheet({ lotId, onClose }: LotDetailSheetProps) {
   );
 }
 
-function LotDetail({ lotId }: { lotId: string }) {
+function LotDetail({ lotId, columns }: { lotId: string; columns: 1 | 2 }) {
   const { t, i18n } = useTranslation();
   const lot = useLot(lotId);
   const inputs = useLotInputs(lotId);
@@ -109,6 +119,78 @@ function LotDetail({ lotId }: { lotId: string }) {
     marketAverageEurCents: marketSummary.overall?.average ?? null,
   });
 
+  const photos = (
+    <>
+      <Photos lot={data} />
+      <Facts lot={data} />
+    </>
+  );
+  const vehicleInputs = (
+    <div className="grid gap-4 sm:grid-cols-2">
+      <VinField
+        lotVin={data.vin}
+        override={inputs.data.vinOverride}
+        onCommit={(vinOverride) => updateInputs.mutate({ vinOverride })}
+      />
+      <div className="grid content-start gap-2">
+        <Label htmlFor="repair-estimate" className="flex items-center gap-2">
+          <Wrench className="size-4" />
+          {t('lotDetail.repairEstimate')}
+        </Label>
+        <MoneyInput
+          id="repair-estimate"
+          currency="EUR"
+          valueCents={inputs.data.repairEstimateEurCents}
+          onCommit={(cents) => updateInputs.mutate({ repairEstimateEurCents: cents ?? 0 })}
+        />
+      </div>
+    </div>
+  );
+  const estimateSection = (
+    <EstimateSection
+      data={estimate.data}
+      running={runEstimate.isPending}
+      runFailed={runEstimate.isError}
+      onRun={(refresh) => runEstimate.mutate(refresh)}
+      onToggle={(recordId, included) => toggleEstimate.mutate({ recordId, included })}
+    />
+  );
+  const historySection = (
+    <HistorySection
+      lot={data}
+      data={history.data}
+      running={runHistory.isPending}
+      runFailed={runHistory.isError}
+      onRun={(refresh) => runHistory.mutate(refresh)}
+    />
+  );
+  const costSection = (
+    <CostSection
+      inputs={inputs.data}
+      settings={settings.data}
+      fx={fx.data}
+      fxError={fx.isError}
+      evaluation={evaluation}
+      onChange={(patch) => updateInputs.mutate(patch)}
+    />
+  );
+  const marketSection = (
+    <MarketSection
+      lot={data}
+      inputs={inputs.data}
+      settings={settings.data}
+      data={market.data}
+      sites={marketSites}
+      summary={marketSummary}
+      running={runMarket.isPending}
+      runFailed={runMarket.isError}
+      onRun={(refresh) => runMarket.mutate(refresh)}
+      onToggle={(listingId, included) => toggleMarket.mutate({ listingId, included })}
+      onChange={(patch) => updateInputs.mutate(patch)}
+    />
+  );
+  const verdictSection = <VerdictSection evaluation={evaluation} />;
+
   return (
     <>
       <SheetHeader className="gap-2 border-b p-6 pr-12">
@@ -141,72 +223,46 @@ function LotDetail({ lotId }: { lotId: string }) {
         </SheetDescription>
       </SheetHeader>
 
-      <div className="grid gap-6 p-6">
-        <Photos lot={data} />
-        <Facts lot={data} />
-        <Separator />
-        <div className="grid gap-4 sm:grid-cols-2">
-          <VinField
-            lotVin={data.vin}
-            override={inputs.data.vinOverride}
-            onCommit={(vinOverride) => updateInputs.mutate({ vinOverride })}
-          />
-          <div className="grid content-start gap-2">
-            <Label htmlFor="repair-estimate" className="flex items-center gap-2">
-              <Wrench className="size-4" />
-              {t('lotDetail.repairEstimate')}
-            </Label>
-            <MoneyInput
-              id="repair-estimate"
-              currency="EUR"
-              valueCents={inputs.data.repairEstimateEurCents}
-              onCommit={(cents) => updateInputs.mutate({ repairEstimateEurCents: cents ?? 0 })}
-            />
-          </div>
+      {columns === 2 ? (
+        <div className="grid grid-cols-2 gap-8 p-6" data-testid="lot-detail-columns">
+          <Stack>
+            {photos}
+            {vehicleInputs}
+            {estimateSection}
+            {historySection}
+          </Stack>
+          <Stack className="border-l pl-8">
+            {verdictSection}
+            {costSection}
+            {marketSection}
+          </Stack>
         </div>
-        <Separator />
-        <EstimateSection
-          data={estimate.data}
-          running={runEstimate.isPending}
-          runFailed={runEstimate.isError}
-          onRun={(refresh) => runEstimate.mutate(refresh)}
-          onToggle={(recordId, included) => toggleEstimate.mutate({ recordId, included })}
-        />
-        <Separator />
-        <HistorySection
-          lot={data}
-          data={history.data}
-          running={runHistory.isPending}
-          runFailed={runHistory.isError}
-          onRun={(refresh) => runHistory.mutate(refresh)}
-        />
-        <Separator />
-        <CostSection
-          inputs={inputs.data}
-          settings={settings.data}
-          fx={fx.data}
-          fxError={fx.isError}
-          evaluation={evaluation}
-          onChange={(patch) => updateInputs.mutate(patch)}
-        />
-        <Separator />
-        <MarketSection
-          lot={data}
-          inputs={inputs.data}
-          settings={settings.data}
-          data={market.data}
-          sites={marketSites}
-          summary={marketSummary}
-          running={runMarket.isPending}
-          runFailed={runMarket.isError}
-          onRun={(refresh) => runMarket.mutate(refresh)}
-          onToggle={(listingId, included) => toggleMarket.mutate({ listingId, included })}
-          onChange={(patch) => updateInputs.mutate(patch)}
-        />
-        <Separator />
-        <VerdictSection evaluation={evaluation} />
-      </div>
+      ) : (
+        <Stack className="p-6">
+          {photos}
+          {vehicleInputs}
+          {estimateSection}
+          {historySection}
+          {costSection}
+          {marketSection}
+          {verdictSection}
+        </Stack>
+      )}
     </>
+  );
+}
+
+/** Blocks one under another with a separator between them. */
+function Stack({ children, className }: { children: ReactNode[]; className?: string }) {
+  return (
+    <div className={cn('grid min-w-0 content-start gap-6', className)}>
+      {children.map((child, i) => (
+        <Fragment key={i}>
+          {i > 0 && <Separator />}
+          {child}
+        </Fragment>
+      ))}
+    </div>
   );
 }
 
