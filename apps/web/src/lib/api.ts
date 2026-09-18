@@ -2,7 +2,7 @@ import type { EstimateResponse } from '@/features/lot/estimate-hooks';
 import type { HistoryResponse } from '@/features/lot/history-hooks';
 import type { MarketResponse } from '@/features/lot/market-hooks';
 import type { TrackedLotsResponse } from '@/features/tracking/tracking-hooks';
-import type { AliasSource, AuctionSource, IaaiMarket, Transmission, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
+import type { AliasSource, AuctionSource, IaaiMarket, Transmission, Lot, LotEvaluation, LotInputs, LotInputsPatch, PriceSummary, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
 
 export class ApiError extends Error {
   constructor(
@@ -78,6 +78,18 @@ export interface LotSearchParams {
   transmission?: Transmission;
   /** liters, e.g. "6.2" */
   engine?: string;
+}
+
+/** Stored estimate, history, cost and verdict of a lot (computed without scraping). */
+export interface LotInsights {
+  lotId: string;
+  /** Prior auction appearances of the vehicle; null until the history was checked. */
+  historyCount: number | null;
+  /** Included bidfax matches (USD). */
+  estimate: PriceSummary | null;
+  /** Included BG market listings (EUR). */
+  market: PriceSummary | null;
+  evaluation: LotEvaluation;
 }
 
 export interface RecentSearch {
@@ -219,6 +231,11 @@ export const api = {
     request<LotSearchResponse>(
       `/api/lots/search?${query({ ...params, iaaiMarkets: params.iaaiMarkets?.join(','), refresh: params.refresh ? 1 : undefined })}`,
     ),
+  lotInsights: (lotIds: string[]) =>
+    request<{ items: LotInsights[]; usdToEur: number | null }>('/api/lots/insights', {
+      method: 'POST',
+      body: JSON.stringify({ lotIds }),
+    }),
   lot: (id: string) =>
     request<{ lot: Lot; fetchedAt: string; trackedAt: string | null }>(`/api/lots/${encodeURIComponent(id)}`),
   tracked: () => request<TrackedLotsResponse>('/api/tracked'),

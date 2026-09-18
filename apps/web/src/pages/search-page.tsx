@@ -8,7 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSettings } from '@/features/lot/hooks';
 import { LotDetailSheet } from '@/features/lot/lot-detail-sheet';
+import { ColumnPicker } from '@/features/search/column-picker';
+import { LOT_INSIGHTS_KEY, useLotInsights } from '@/features/search/insights-hooks';
+import { INSIGHT_COLUMNS, resolveLotColumns } from '@/features/search/lot-columns';
 import { LotResults } from '@/features/search/lot-results';
 import { RECENT_SEARCHES_KEY } from '@/features/search/recent-search-hooks';
 import { RecentSearches } from '@/features/search/recent-searches';
@@ -17,6 +21,7 @@ import { LOT_SORTS, sortAndFilterLots, uniqueLots, type LotSort, type SourceFilt
 import { SourceStatusBadge } from '@/features/search/source-status';
 import { DEFAULT_IAAI_MARKETS, IAAI_MARKETS, TRANSMISSIONS } from '@car-porter/core';
 import { api, type LotSearchParams, type LotSearchResponse } from '@/lib/api';
+import { useUpdatePreferences } from '@/lib/preferences';
 
 const isDefaultMarkets = (markets: readonly string[] | undefined) =>
   !markets?.length || markets.join(',') === DEFAULT_IAAI_MARKETS.join(',');
@@ -82,6 +87,14 @@ export function SearchPage() {
   const firstPage = results.data?.pages[0];
   const latestSources = results.data?.pages.at(-1)?.sources ?? [];
   const totalLoaded = results.data ? uniqueLots(results.data.pages.map((p) => p.lots)).length : 0;
+
+  const { setLotColumns } = useUpdatePreferences();
+  const columns = resolveLotColumns(useSettings().data?.ui.lotColumns ?? []);
+  const visibleColumns = columns.filter((c) => c.visible).map((c) => c.id);
+  const insights = useLotInsights(
+    results.data?.pages.map((p) => p.lots) ?? [],
+    visibleColumns.some((id) => INSIGHT_COLUMNS.has(id)),
+  );
 
   const runSearch = (next: LotSearchParams) => {
     setSearchParams({
@@ -177,6 +190,7 @@ export function SearchPage() {
                   ))}
                 </SelectContent>
               </Select>
+              <ColumnPicker columns={columns} onChange={setLotColumns} onReset={() => setLotColumns([])} />
               <Button variant="outline" size="icon" onClick={refresh} disabled={results.isFetching} aria-label={t('search.refresh')}>
                 <RefreshCw className={results.isFetching ? 'animate-spin' : undefined} />
               </Button>
@@ -197,7 +211,13 @@ export function SearchPage() {
               <p className="text-sm">{t('search.noResults')}</p>
             </div>
           ) : (
-            <LotResults lots={lots} selectedId={selectedLotId} onSelect={(lot) => setSelectedLot(lot.id)} />
+            <LotResults
+              lots={lots}
+              columns={visibleColumns}
+              insights={insights}
+              selectedId={selectedLotId}
+              onSelect={(lot) => setSelectedLot(lot.id)}
+            />
           )}
 
           {results.hasNextPage && (
@@ -214,7 +234,14 @@ export function SearchPage() {
         </div>
       )}
 
-      <LotDetailSheet lotId={selectedLotId} onClose={() => setSelectedLot(null)} />
+      <LotDetailSheet
+        lotId={selectedLotId}
+        onClose={() => {
+          setSelectedLot(null);
+          // scans, inputs and exclusions may have changed in the sheet
+          void queryClient.invalidateQueries({ queryKey: LOT_INSIGHTS_KEY });
+        }}
+      />
     </div>
   );
 }

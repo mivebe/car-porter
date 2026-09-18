@@ -11,7 +11,10 @@ describe('POST /api/lots/insights', () => {
 
   async function setup() {
     app = await buildApp({ mockSources: true });
-    await app.inject({ method: 'GET', url: '/api/lots/search?make=Toyota&model=Camry&yearFrom=2018&yearTo=2020' });
+    await app.inject({
+      method: 'GET',
+      url: '/api/lots/search?make=Toyota&model=Camry&yearFrom=2018&yearTo=2020',
+    });
   }
   const insights = async (lotIds: string[]) =>
     app.inject({ method: 'POST', url: '/api/lots/insights', payload: { lotIds } });
@@ -24,12 +27,17 @@ describe('POST /api/lots/insights', () => {
 
     await app.inject({ method: 'POST', url: `/api/lots/${enc(SE_2019)}/estimate`, payload: {} });
     await app.inject({ method: 'POST', url: `/api/lots/${enc(SE_2019)}/history`, payload: {} });
-    const history = (await app.inject({ method: 'GET', url: `/api/lots/${enc(SE_2019)}/history` })).json();
+    const history = (
+      await app.inject({ method: 'GET', url: `/api/lots/${enc(SE_2019)}/history` })
+    ).json();
 
     const [se] = (await insights([SE_2019])).json().items;
     expect(se.estimate).toMatchObject({ count: 13 });
     expect(se.historyCount).toBe(history.entries.length);
-    expect(se.evaluation).toMatchObject({ bidSource: 'estimate', cost: { totalEurCents: 992_392 } });
+    expect(se.evaluation).toMatchObject({
+      bidSource: 'estimate',
+      cost: { totalEurCents: 992_392 },
+    });
   });
 
   it('rejects a malformed body', async () => {

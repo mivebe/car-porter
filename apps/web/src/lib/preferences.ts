@@ -51,5 +51,6 @@ export function useUpdatePreferences() {
     setLanguage: (language: Ui['language']) => update({ language }),
     setTheme: (theme: Ui['theme']) => update({ theme }),
     setPalette: (palette: Ui['palette']) => update({ palette }),
+    setLotColumns: (lotColumns: Ui['lotColumns']) => update({ lotColumns }),
   };
 }

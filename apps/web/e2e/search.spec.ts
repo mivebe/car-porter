@@ -171,4 +171,37 @@ test.describe('lot search', () => {
     await page.getByRole('menuitem', { name: 'Clear all' }).click();
     await expect(page.getByRole('button', { name: 'Recent' })).toBeDisabled();
   });
+
+  test('shows, hides and reorders result columns, kept across reloads', async ({ page }) => {
+    await page.goto('/?make=Toyota&model=Camry&yearFrom=2018&yearTo=2020');
+    await expect(page.getByTestId('lot-row')).toHaveCount(55);
+    const headers = page.getByRole('columnheader');
+    await expect(headers).toHaveText(['', 'Vehicle', 'Odometer', 'Damage / title', 'Location', 'Sale date', 'Price']);
+
+    await page.getByRole('button', { name: 'Columns' }).click();
+    const picker = page.getByTestId('column-picker');
+    await expect(picker.getByRole('checkbox', { name: 'Vehicle' })).toBeDisabled();
+    await picker.getByRole('checkbox', { name: 'Odometer' }).click();
+    await picker.getByRole('checkbox', { name: 'Cost to BG' }).click();
+    await picker.getByRole('checkbox', { name: 'Past auctions' }).click();
+    await picker.getByRole('button', { name: 'Move Price up' }).click();
+    await page.keyboard.press('Escape');
+
+    const expected = ['', 'Vehicle', 'Damage / title', 'Location', 'Price', 'Sale date', 'Past auctions', 'Cost to BG'];
+    await expect(headers).toHaveText(expected);
+    // other specs' scans are shared, so the values depend on what ran before
+    const row = page
+      .getByTestId('lot-row')
+      .filter({ has: page.locator('[data-column="price"]', { hasText: 'current bid' }) })
+      .first();
+    await expect(row.locator('[data-column="history"]')).toHaveText(/^(-|\d+)$/);
+    await expect(row.locator('[data-column="costBg"]')).toHaveText(/^€[\d,]+bid \$[\d,]+ \(/);
+
+    await page.reload();
+    await expect(headers).toHaveText(expected);
+
+    await page.getByRole('button', { name: 'Columns' }).click();
+    await page.getByRole('button', { name: 'Reset columns' }).click();
+    await expect(headers).toHaveText(['', 'Vehicle', 'Odometer', 'Damage / title', 'Location', 'Sale date', 'Price']);
+  });
 });

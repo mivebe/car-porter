@@ -81,8 +81,13 @@ export function createLotInsightsService(deps: {
   async function forLots(lotIds: string[]) {
     const found = await Promise.all(lotIds.map((id) => deps.lots.get(id)));
     const lots = found.flatMap((f) => (f ? [f.lot] : []));
-    const [settings, rate] = await Promise.all([deps.settings.get(), lots.length ? usdToEur() : null]);
-    const rows = await Promise.all(lots.map(async (lot) => ({ lot, insights: await one(lot, settings, rate) })));
+    const [settings, rate] = await Promise.all([
+      deps.settings.get(),
+      lots.length ? usdToEur() : null,
+    ]);
+    const rows = await Promise.all(
+      lots.map(async (lot) => ({ lot, insights: await one(lot, settings, rate) })),
+    );
     return { rows, usdToEur: rate };
   }
 

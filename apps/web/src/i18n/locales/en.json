@@ -112,6 +112,26 @@
       "title": "Recent",
       "remove": "Remove",
       "clear": "Clear all"
+    },
+    "columns": {
+      "title": "Columns",
+      "reset": "Reset columns",
+      "moveUp": "Move {{column}} up",
+      "moveDown": "Move {{column}} down",
+      "photo": "Photo",
+      "vehicle": "Vehicle",
+      "odometer": "Odometer",
+      "damage": "Damage / title",
+      "location": "Location",
+      "saleDate": "Sale date",
+      "price": "Price",
+      "history": "Past auctions",
+      "sales": "Similar sales",
+      "avgSold": "Avg. sold price",
+      "costBg": "Cost to BG",
+      "market": "BG market",
+      "margin": "Margin",
+      "verdict": "Verdict"
     }
   },
   "lot": {
