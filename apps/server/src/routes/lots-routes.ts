@@ -1,4 +1,4 @@
-import { lotInputsPatchSchema } from '@car-porter/core';
+import { IAAI_MARKETS, lotInputsPatchSchema } from '@car-porter/core';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { LotInputsRepository } from '../repositories/lot-inputs-repository.ts';
@@ -14,6 +14,15 @@ const searchQuery = z
     model: z.string().trim().min(1),
     yearFrom: z.coerce.number().int().min(1900),
     yearTo: z.coerce.number().int().min(1900),
+    trim: z.string().trim().max(40).optional(),
+    /** comma-separated, e.g. "us,ca" */
+    iaaiMarkets: z
+      .string()
+      .optional()
+      .transform((v) => [...new Set(v?.split(',').filter(Boolean) ?? [])])
+      .pipe(z.array(z.enum(IAAI_MARKETS)))
+      // all of them = no filter, so both share one cache entry
+      .transform((v) => (v.length === IAAI_MARKETS.length ? [] : v)),
     page: z.coerce.number().int().min(1).max(100).default(1),
     refresh: z
       .enum(['0', '1', 'true', 'false'])
@@ -30,8 +39,8 @@ export async function lotsRoutes(
   app.get('/api/lots/search', async (req, reply) => {
     const q = searchQuery.safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: 'invalid_query', issues: q.error.issues });
-    const { make, model, yearFrom, yearTo, page, refresh } = q.data;
-    return opts.search.search({ make, model, yearFrom, yearTo }, page, refresh);
+    const { page, refresh, ...filters } = q.data;
+    return opts.search.search(filters, page, refresh);
   });
 
   app.get<{ Params: { id: string } }>('/api/lots/:id', async (req, reply) => {

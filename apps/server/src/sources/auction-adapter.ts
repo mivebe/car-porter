@@ -1,4 +1,4 @@
-import type { AuctionSource, LotSearchPage } from '@car-porter/core';
+import type { AuctionSource, IaaiMarket, LotSearchPage } from '@car-porter/core';
 
 export const AUCTION_PAGE_SIZE = 100;
 
@@ -17,6 +17,10 @@ export interface YearRange {
 export interface AuctionQuery extends YearRange {
   makes: string[];
   models: string[];
+  /** One word for the site's keyword search, e.g. a trim ("ZL1"). */
+  keyword?: string | null;
+  /** IAAI only; empty or missing = all marketplaces. */
+  iaaiMarkets?: IaaiMarket[];
 }
 
 export interface AuctionSearchAdapter {

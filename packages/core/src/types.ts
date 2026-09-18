@@ -97,9 +97,17 @@ export interface MarketListing {
   importOffer: boolean;
 }
 
+/** IAAI's marketplaces: IAA United States, IAA Canada and Ritchie Bros. */
+export const IAAI_MARKETS = ['us', 'ca', 'rb'] as const;
+export type IaaiMarket = (typeof IAAI_MARKETS)[number];
+
 export interface LotSearchFilters {
   make: string;
   model: string;
   yearFrom: number;
   yearTo: number;
+  /** Free text such as "C 63" or "ZL1", matched against each lot's model and trim. */
+  trim?: string;
+  /** IAAI marketplaces to search; empty or missing = all. */
+  iaaiMarkets?: IaaiMarket[];
 }

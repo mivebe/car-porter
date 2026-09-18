@@ -44,7 +44,7 @@ export function copartFilter(query: Partial<Pick<AuctionQuery, 'makes' | 'models
 /** Request body for Copart's internal `POST /public/lots/search-results` API. */
 export function buildCopartSearchBody(query: AuctionQuery, page: number, size = AUCTION_PAGE_SIZE) {
   return {
-    query: ['*'],
+    query: [query.keyword?.trim() || '*'],
     filter: copartFilter(query),
     sort: ['auction_date_utc asc'],
     page: page - 1,

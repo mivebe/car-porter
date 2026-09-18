@@ -1,4 +1,13 @@
-import type { AuctionSource, Lot, LotSearchFilters, LotSearchPage, SourceErrorInfo } from '@car-porter/core';
+import {
+  lotMatchesTrim,
+  trimKeyword,
+  trimWords,
+  type AuctionSource,
+  type Lot,
+  type LotSearchFilters,
+  type LotSearchPage,
+  type SourceErrorInfo,
+} from '@car-porter/core';
 import type { CacheRepository } from '../repositories/cache-repository.ts';
 import type { LotsRepository } from '../repositories/lots-repository.ts';
 import { cached } from '../scraping/cached.ts';
@@ -34,7 +43,10 @@ export const LOT_SEARCH_CACHE_PREFIX = 'lots:v2:';
 
 export function lotSearchCacheKey(source: string, f: LotSearchFilters, page: number) {
   const norm = (s: string) => s.trim().toLowerCase();
-  return `${LOT_SEARCH_CACHE_PREFIX}${source}:${norm(f.make)}:${norm(f.model)}:${f.yearFrom}-${f.yearTo}:p${page}`;
+  const trim = trimWords(f.trim ?? '', f.make, f.model).join(' ');
+  const markets = source === 'iaai' ? [...(f.iaaiMarkets ?? [])].sort().join(',') : '';
+  const extra = `${trim ? `:t=${trim}` : ''}${markets ? `:m=${markets}` : ''}`;
+  return `${LOT_SEARCH_CACHE_PREFIX}${source}:${norm(f.make)}:${norm(f.model)}:${f.yearFrom}-${f.yearTo}${extra}:p${page}`;
 }
 
 export function createLotSearchService(deps: {
@@ -46,12 +58,16 @@ export function createLotSearchService(deps: {
   async function searchSource(adapter: AuctionSearchAdapter, filters: LotSearchFilters, page: number, force: boolean) {
     // site names are re-read on an explicit refresh of the first page only
     const matched = await deps.aliases.resolve(adapter, filters, force && page === 1);
-    const { yearFrom, yearTo } = filters;
+    const { yearFrom, yearTo, iaaiMarkets } = filters;
+    // the site narrows by one trim word, every word is then checked here
+    const words = trimWords(filters.trim ?? '', filters.make, filters.model);
+    const keyword = trimKeyword(words);
+    const query = { ...matched, yearFrom, yearTo, ...(keyword ? { keyword } : {}), ...(iaaiMarkets?.length ? { iaaiMarkets } : {}) };
     const result: LotSearchPage =
       matched.makes.length > 0 && matched.models.length > 0
-        ? await adapter.search({ ...matched, yearFrom, yearTo }, page)
+        ? await adapter.search(query, page)
         : { lots: [], total: 0, page, pageSize: AUCTION_PAGE_SIZE };
-    return { ...result, matched };
+    return { ...result, lots: result.lots.filter((l) => lotMatchesTrim(l, words)), matched };
   }
 
   async function search(filters: LotSearchFilters, page: number, force = false): Promise<LotSearchResponse> {

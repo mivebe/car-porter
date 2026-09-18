@@ -1,4 +1,4 @@
-import type { Lot, LotSearchPage } from '@car-porter/core';
+import type { IaaiMarket, Lot, LotSearchPage } from '@car-porter/core';
 import * as cheerio from 'cheerio';
 import type { Page } from 'patchright';
 import type { BrowserManager } from '../scraping/browser.ts';
@@ -38,20 +38,30 @@ const CAR_INVENTORY_TYPES = [
   'Rental Vehicles',
 ];
 
+/** Values of IAAI's "Market" facet (verified live 2026-09-18). */
+export const IAAI_MARKET_NAMES: Record<IaaiMarket, string> = {
+  us: 'IAA United States',
+  ca: 'IAA Canada',
+  rb: 'Ritchie Bros.',
+};
+
 /**
  * Request body for IAAI's `POST /Search?c=<ts>` endpoint (returns an HTML results page).
  * Facets inside one `Searches` entry are OR'ed, separate entries are AND'ed.
  */
 export function buildIaaiSearchBody(
-  query: Partial<Pick<AuctionQuery, 'makes' | 'models'>> & YearRange,
+  query: Partial<Pick<AuctionQuery, 'makes' | 'models' | 'keyword' | 'iaaiMarkets'>> & YearRange,
   page: number,
   size = AUCTION_PAGE_SIZE,
 ) {
+  const keyword = query.keyword?.trim();
   return {
     Searches: [
       facetSearch('InventoryTypes', CAR_INVENTORY_TYPES),
       ...(query.makes?.length ? [facetSearch('Make', query.makes)] : []),
       ...(query.models?.length ? [facetSearch('Model', query.models)] : []),
+      ...(query.iaaiMarkets?.length ? [facetSearch('Market', query.iaaiMarkets.map((m) => IAAI_MARKET_NAMES[m]))] : []),
+      ...(keyword ? [{ Facets: null, FullSearch: keyword, LongRanges: null }] : []),
       {
         Facets: null,
         FullSearch: null,

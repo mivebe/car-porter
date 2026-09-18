@@ -8,6 +8,7 @@ export * from './money.ts';
 export * from './settings.ts';
 export * from './sources.ts';
 export * from './stats.ts';
+export * from './trim.ts';
 export * from './types.ts';
 export * from './vehicle-aliases.ts';
 export * from './verdict.ts';

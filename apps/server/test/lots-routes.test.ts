@@ -120,6 +120,34 @@ describe('/api/lots/search', () => {
     expect(spy).toHaveBeenCalledTimes(1); // the C-Class search; G-Class has no site names
   });
 
+  it('narrows by a trim word on the site and keeps only lots with every trim word', async () => {
+    const seen: AuctionQuery[] = [];
+    const [copart, iaai] = createMockAuctionAdapters();
+    const recording = (adapter: AuctionSearchAdapter): AuctionSearchAdapter => ({
+      ...adapter,
+      search: async (f, p) => {
+        seen.push(f);
+        const page = await adapter.search(f, p);
+        return { ...page, lots: page.lots.map((l, i) => ({ ...l, trim: i === 0 ? 'SE HYBRID' : 'LE' })) };
+      },
+    });
+    app = await withAdapters([recording(copart!), recording(iaai!)]);
+    const res = await app.inject({ method: 'GET', url: url({ ...camry, trim: 'Camry SE Hybrid', iaaiMarkets: 'us,ca' }) });
+    expect(seen.map((q) => [q.keyword, q.iaaiMarkets])).toEqual([
+      ['hybrid', ['us', 'ca']],
+      ['hybrid', ['us', 'ca']],
+    ]);
+    const lots = res.json().lots as { trim: string }[];
+    expect(lots.map((l) => l.trim)).toEqual(['SE HYBRID', 'SE HYBRID']);
+
+    // a different trim or market set is a different cache entry; all markets = none
+    await app.inject({ method: 'GET', url: url({ ...camry, trim: 'LE', iaaiMarkets: 'us,ca' }) });
+    await app.inject({ method: 'GET', url: url({ ...camry, iaaiMarkets: 'us,ca,rb' }) });
+    await app.inject({ method: 'GET', url: url(camry) });
+    expect(seen).toHaveLength(6);
+    expect(seen.at(-1)).not.toHaveProperty('iaaiMarkets');
+  });
+
   it('validates the query', async () => {
     app = await buildApp({ mockSources: true });
     const bad = [
@@ -128,6 +156,8 @@ describe('/api/lots/search', () => {
       { ...camry, yearTo: 2999 },
       { ...camry, page: 0 },
       { ...camry, yearFrom: 'abc' },
+      { ...camry, iaaiMarkets: 'us,mx' },
+      { ...camry, trim: 'x'.repeat(41) },
     ];
     for (const q of bad) {
       expect((await app.inject({ method: 'GET', url: url(q) })).statusCode, JSON.stringify(q)).toBe(400);

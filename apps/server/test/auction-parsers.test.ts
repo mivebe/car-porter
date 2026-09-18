@@ -27,6 +27,10 @@ describe('copart', () => {
     expect(body).toMatchObject({ page: 2, size: 100, start: 200, query: ['*'] });
   });
 
+  it('hands a trim word to the keyword search', () => {
+    expect(buildCopartSearchBody({ ...filters, keyword: 'ZL1' }, 1).query).toEqual(['ZL1']);
+  });
+
   it('parses a real recorded search response', () => {
     const result = parseCopartSearch(fixture('copart/search-toyota-camry-2018-2020.json'), 1);
     expect(result.total).toBe(1661);
@@ -107,6 +111,21 @@ describe('iaai', () => {
       { Facets: null, FullSearch: null, LongRanges: [{ From: 2018, Name: 'Year', To: 2020 }] },
     ]);
     expect(body).toMatchObject({ PageSize: 100, CurrentPage: 2 });
+  });
+
+  it('adds the marketplace facet and a trim keyword', () => {
+    const body = buildIaaiSearchBody({ ...filters, keyword: '63', iaaiMarkets: ['ca', 'rb'] }, 1);
+    expect(body.Searches.slice(3, 5)).toEqual([
+      {
+        Facets: [
+          { Group: 'Market', Value: 'IAA Canada' },
+          { Group: 'Market', Value: 'Ritchie Bros.' },
+        ],
+        FullSearch: null,
+        LongRanges: null,
+      },
+      { Facets: null, FullSearch: '63', LongRanges: null },
+    ]);
   });
 
   it('parses a real recorded results page', () => {
