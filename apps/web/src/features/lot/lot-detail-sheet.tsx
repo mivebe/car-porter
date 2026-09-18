@@ -2,6 +2,7 @@ import { effectiveMarketSources, evaluateLot, summarizeMarket, type Lot } from '
 import { Bookmark, BookmarkCheck, ExternalLink, ImageOff, Info, Wrench } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -10,6 +11,7 @@ import { lotTitle } from '@/features/search/lot-title';
 import { SourceBadge } from '@/features/search/source-badge';
 import { useSetTracked } from '@/features/tracking/tracking-hooks';
 import { formatDateTime, formatMoney, formatNumber, sentenceCase } from '@/lib/format';
+import { useMediaQuery } from '@/lib/use-media-query';
 import { CostSection } from './cost-section';
 import { estimateSummary, useEstimate, useRunEstimate, useToggleEstimateRecord } from './estimate-hooks';
 import { EstimateSection } from './estimate-section';
@@ -28,12 +30,26 @@ interface LotDetailSheetProps {
   onClose: () => void;
 }
 
+/** Desktop widths get a large centred modal; narrower screens keep the side sheet. */
+const DESKTOP = '(min-width: 64rem)';
+
 export function LotDetailSheet({ lotId, onClose }: LotDetailSheetProps) {
+  const desktop = useMediaQuery(DESKTOP);
+  const onOpenChange = (open: boolean) => !open && onClose();
+  const body = lotId && <LotDetail lotId={lotId} />;
+
+  if (desktop) {
+    return (
+      <Dialog open={!!lotId} onOpenChange={onOpenChange}>
+        <DialogContent className="flex max-h-[calc(100dvh-4rem)] w-[calc(100vw-4rem)] max-w-5xl flex-col gap-0 overflow-y-auto p-0 sm:max-w-5xl">
+          {body}
+        </DialogContent>
+      </Dialog>
+    );
+  }
   return (
-    <Sheet open={!!lotId} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-2xl">
-        {lotId && <LotDetail lotId={lotId} />}
-      </SheetContent>
+    <Sheet open={!!lotId} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full gap-0 overflow-y-auto p-0 sm:max-w-2xl">{body}</SheetContent>
     </Sheet>
   );
 }
