@@ -58,7 +58,7 @@ export const parseMobileBgModels = (html: string, make: string) => categoryLinks
 /**
  * Search results: `.item` cards with title, price, a params row ("юли 2019 г.", "189 084 км",
  * colour, fuel, power, transmission, body) and the seller location. Cars still abroad say
- * "Намира се в САЩ" — import offers rather than BG market prices.
+ * "Намира се в САЩ" - import offers rather than BG market prices.
  */
 export function parseMobileBgListing(
   html: string,

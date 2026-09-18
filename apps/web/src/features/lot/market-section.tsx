@@ -91,7 +91,7 @@ export function MarketSection({ lot, inputs, settings, data, sites, summary, run
               <Label htmlFor={`market-match-${criterion}`} className="font-normal">
                 {t(`market.match.${criterion}`, {
                   range: formatNumber(settings.market.mileageRangeKm, lang),
-                  km: lot.odometerMiles != null ? formatNumber(Math.round(lot.odometerMiles * 1.609344), lang) : '—',
+                  km: lot.odometerMiles != null ? formatNumber(Math.round(lot.odometerMiles * 1.609344), lang) : '-',
                 })}
               </Label>
               <Switch

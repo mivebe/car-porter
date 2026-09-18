@@ -46,7 +46,7 @@ describe('summarizeIncluded', () => {
   });
 });
 
-describe('computeVerdict — plan reference cases', () => {
+describe('computeVerdict - plan reference cases', () => {
   const total = 980_000; // 9800 € (full fees reference)
   const threshold = 3000;
 

@@ -96,6 +96,6 @@ test('settings: language, mode and theme are saved on the server; Copart login w
 
   await page.getByRole('button', { name: 'Отвори прозорец за вход в Copart' }).click();
   await expect(page.getByTestId('copart-login-status')).toHaveText(
-    'Прозорецът за вход е отворен — влезте там и затворете прозореца.',
+    'Прозорецът за вход е отворен. Влезте там и затворете прозореца.',
   );
 });

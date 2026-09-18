@@ -73,15 +73,15 @@ export function LotResults({ lots, selectedId, onSelect }: LotResultsProps) {
                 </div>
               </TableCell>
               <TableCell className="hidden tabular-nums lg:table-cell">
-                {lot.odometerMiles != null ? t('units.miles', { value: formatNumber(lot.odometerMiles, lang) }) : '—'}
+                {lot.odometerMiles != null ? t('units.miles', { value: formatNumber(lot.odometerMiles, lang) }) : '-'}
               </TableCell>
               <TableCell className="hidden md:table-cell">
                 <div className="flex flex-col text-sm">
-                  <span>{sentenceCase(lot.primaryDamage) || '—'}</span>
+                  <span>{sentenceCase(lot.primaryDamage) || '-'}</span>
                   {lot.titleType && <span className="text-xs text-muted-foreground">{sentenceCase(lot.titleType)}</span>}
                 </div>
               </TableCell>
-              <TableCell className="hidden text-sm xl:table-cell">{lot.location ?? '—'}</TableCell>
+              <TableCell className="hidden text-sm xl:table-cell">{lot.location ?? '-'}</TableCell>
               <TableCell className="hidden text-sm whitespace-nowrap sm:table-cell">{formatDateTime(lot.saleDate, lang)}</TableCell>
               <TableCell className="text-right whitespace-nowrap">
                 {lot.currentBidUsdCents != null ? (
@@ -100,7 +100,7 @@ export function LotResults({ lots, selectedId, onSelect }: LotResultsProps) {
                     <span className="text-xs">{t('lot.acv')}</span>
                   </div>
                 ) : (
-                  <span className="text-muted-foreground">—</span>
+                  <span className="text-muted-foreground">-</span>
                 )}
               </TableCell>
             </TableRow>

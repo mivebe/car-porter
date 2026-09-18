@@ -69,13 +69,13 @@ The web dev server reads `WEB_PORT` (default `5173`) and `API_URL` (default `htt
 
 ## Using it
 
-1. **Search** — pick manufacturer, model and a year range; Copart and IAAI results are merged. Each
+1. **Search**: pick manufacturer, model and a year range; Copart and IAAI results are merged. Each
    source shows a status badge (count, cache age, or a typed error such as _blocked_).
-2. **Open a lot** — the side sheet has manual buttons, so nothing is scraped until you ask:
+2. **Open a lot**: the side sheet has manual buttons, so nothing is scraped until you ask:
    - **Estimate price**: past bidfax sales of the same make, model, exact year and trim/engine
      (last 12 months, up to 20 matches / 20 pages by default). Untick outliers; the average becomes
      the purchase price.
-   - **Check history**: earlier auctions of this VIN / lot number. Listings often mask the VIN — paste
+   - **Check history**: earlier auctions of this VIN / lot number. Listings often mask the VIN; paste
      it from the photos.
    - **Import cost**: bid + fees (10 % + 20 % + 10 %, or reduced ÷3) + shipping to Rotterdam, converted
      with the ECB rate, + Rotterdam → Sofia + optional Sofia → anywhere in BG.
@@ -84,7 +84,7 @@ The web dev server reads `WEB_PORT` (default `5173`) and `API_URL` (default `htt
    - **Verdict**: margin = BG average − landed cost − repair estimate; _Worth it_ from €3,000.
 3. **Track** a lot to see all tracked lots with their estimate, cost, market price and verdict on the
    **Tracking** page (always recalculated from stored data and current settings).
-4. **Settings** — every rate, amount, limit and default, the manual exchange rate, language and theme.
+4. **Settings**: every rate, amount, limit and default, the manual exchange rate, language and theme.
 
 Scraped data is cached: lot searches 30 min, estimate/history/market searches 24 h (each section has
 a **Refresh** button that bypasses it), past sales and history permanently.
@@ -106,11 +106,11 @@ pnpm e2e         # Playwright: web + server in mock mode, in-memory DB
 
 Layout:
 
-- `packages/core` — pure shared logic: types, cost calculation (integer cents), matching rules,
+- `packages/core`: pure shared logic, including types, cost calculation (integer cents), matching rules,
   averages, verdict, settings schema.
-- `apps/server` — Fastify API, SQLite (`node:sqlite` + Drizzle; migrations in `drizzle/`, applied on
+- `apps/server`: Fastify API, SQLite (`node:sqlite` + Drizzle; migrations in `drizzle/`, applied on
   start), source adapters (`src/sources/`) with network fetching separated from pure parsers.
-- `apps/web` — Vite + React + Tailwind/shadcn UI, TanStack Query, i18next (`src/i18n/locales/`).
+- `apps/web`: Vite + React + Tailwind/shadcn UI, TanStack Query, i18next (`src/i18n/locales/`).
 
 Conventions:
 

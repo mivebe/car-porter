@@ -175,7 +175,7 @@ function AliasDetails({ entry, actions, onAction }: { entry: AliasEntry; actions
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
         {entry.kind === 'model' && row(t('aliases.details.make'), entry.make)}
-        {row(t('aliases.details.lots'), entry.lotCount == null ? '—' : formatNumber(entry.lotCount, i18n.language))}
+        {row(t('aliases.details.lots'), entry.lotCount == null ? '-' : formatNumber(entry.lotCount, i18n.language))}
         {row(t('aliases.details.status'), t(`aliases.status.${entry.status}`))}
         {row(t('aliases.details.searchedAs'), effectiveTargets(entry).join(', ') || t('aliases.details.none'))}
         {row(t('aliases.details.automatic'), auto)}

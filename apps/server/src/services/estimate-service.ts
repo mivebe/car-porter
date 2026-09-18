@@ -183,7 +183,7 @@ export function createEstimateService(deps: {
    * Stops at: an empty page, a page reaching the covered range when the stored data is enough for
    * this lot (incremental; skipped when forced), a page entirely older than the time window, enough
    * matches, the page limit, or the last linked page. A scan younger than 24 h is reused unless
-   * `force` — or unless it stopped at another lot's match limit while this lot still lacks matches
+   * `force` - or unless it stopped at another lot's match limit while this lot still lacks matches
    * (scans are shared by every lot of the model/year; match counts depend on the lot's trim).
    */
   async function run(lotId: string, force = false): Promise<EstimateResponse> {

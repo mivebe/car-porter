@@ -45,7 +45,7 @@ test('vehicle history: lot-number search, VIN paste, merged timeline across site
   await expect(entries.nth(0)).toContainText('Sep 22, 2026');
   await expect(entries.nth(0)).toContainText('#46026832');
   await expect(entries.nth(0)).toContainText('Upcoming');
-  await expect(entries.nth(0).getByTestId('history-price')).toHaveText('—');
+  await expect(entries.nth(0).getByTestId('history-price')).toHaveText('-');
   await expect(entries.nth(1)).toContainText('Sep 15, 2026');
   await expect(entries.nth(1)).toContainText('Not sold');
   await expect(entries.nth(1)).toContainText('Left Rear · 78,003 mi · Fontana (CA)');

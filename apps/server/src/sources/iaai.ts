@@ -25,8 +25,8 @@ const facetSearch = (group: string, values: string[]) => ({
 });
 
 /**
- * The inventory types worth importing. Without them the make facet holds ~1100 names — boat,
- * trailer and RV builders — instead of ~150 (verified live 2026-09-17). Fleet and rental vehicles
+ * The inventory types worth importing. Without them the make facet holds ~1100 names - boat,
+ * trailer and RV builders - instead of ~150 (verified live 2026-09-17). Fleet and rental vehicles
  * are cars filed under their own type, so they stay in.
  */
 const CAR_INVENTORY_TYPES = [

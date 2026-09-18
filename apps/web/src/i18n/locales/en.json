@@ -85,7 +85,7 @@
     "loading": "Loading lots",
     "requestFailed": "The search request failed. Is the local server running?",
     "noResults": "No lots match these filters.",
-    "allSourcesFailed": "No source could be searched — hover the badges for details, then try Refresh.",
+    "allSourcesFailed": "No source could be searched. Hover the badges for details, then try Refresh.",
     "loadedCount_one": "{{count}} lot loaded",
     "loadedCount_other": "{{count}} lots loaded",
     "allSources": "All",
@@ -133,10 +133,10 @@
     "vinPlaceholder": "Paste the full 17-character VIN",
     "vinInvalid": "Not a valid VIN ({{length}}/17 characters, no I, O or Q).",
     "vinCheckDigit": "Valid format, but the check digit does not match (common for non-US VINs).",
-    "vinMismatch": "Doesn't match the VIN shown in the listing — check that it's the same car.",
-    "vinValid": "Valid VIN — used for history lookups.",
+    "vinMismatch": "Doesn't match the VIN shown in the listing. Check that it's the same car.",
+    "vinValid": "Valid VIN, used for history lookups.",
     "vinUsingLot": "Using the VIN from the listing.",
-    "vinMasked": "The listing VIN is masked — paste it from the photos to enable VIN history.",
+    "vinMasked": "The listing VIN is masked. Paste it from the photos to enable VIN history.",
     "repairEstimate": "Repair estimate",
     "facts": {
       "vin": "VIN",
@@ -161,13 +161,13 @@
     "bidSource": {
       "override": "Your price.",
       "estimate": "Average of past bidfax sales.",
-      "buyNow": "Buy Now price — no estimate yet.",
-      "currentBid": "Current bid — no estimate yet; the final price is usually higher.",
+      "buyNow": "Buy Now price. No estimate yet.",
+      "currentBid": "Current bid. No estimate yet; the final price is usually higher.",
       "none": "No price yet."
     },
     "feesReduced": "Reduced fees (÷{{divisor}})",
     "includeSofiaToBg": "Sofia → anywhere in BG ({{amount}})",
-    "fxUnavailable": "Exchange rate unavailable — set a manual USD→EUR rate in Settings.",
+    "fxUnavailable": "Exchange rate unavailable. Set a manual USD→EUR rate in Settings.",
     "enterBid": "Enter a purchase price to calculate the cost.",
     "rows": {
       "bid": "Bid",
@@ -185,7 +185,7 @@
     "title": "Price estimate (bidfax)",
     "run": "Estimate price",
     "refresh": "Refresh",
-    "scanning": "Scanning bidfax for past sales of this exact model and year — this can take up to a minute…",
+    "scanning": "Scanning bidfax for past sales of this exact model and year. This can take up to a minute…",
     "requestFailed": "The estimate request failed. Is the local server running?",
     "scanInfo": "Scanned {{pages}} page(s) {{when}} · {{reason}}",
     "openSearch": "Open the search on bidfax",
@@ -194,7 +194,7 @@
     "median": "Median",
     "range": "Range",
     "included": "Included",
-    "allExcluded": "All matches are excluded — tick at least one to get an estimate.",
+    "allExcluded": "All matches are excluded. Tick at least one to get an estimate.",
     "include": "Include {{price}} sale from {{date}} in the average",
     "unknown": "Not shown on bidfax: {{fields}}",
     "status": {
@@ -299,9 +299,9 @@
       "insufficient": "Not enough data"
     },
     "missing": {
-      "bid": "No purchase price — run the price estimate or enter a bid.",
-      "fx": "No USD→EUR exchange rate — set a manual rate in Settings.",
-      "marketAverage": "No BG market price — check the BG market (with at least one included listing)."
+      "bid": "No purchase price. Run the price estimate or enter a bid.",
+      "fx": "No USD→EUR exchange rate. Set a manual rate in Settings.",
+      "marketAverage": "No BG market price. Check the BG market (with at least one included listing)."
     },
     "rows": {
       "marketAverage": "BG market average",
@@ -408,7 +408,7 @@
     "copart": {
       "title": "Copart account",
       "open": "Open Copart login window",
-      "windowOpen": "The login window is open — log in there, then close the window.",
+      "windowOpen": "The login window is open. Log in there, then close the window.",
       "windowClosed": "No login window is open.",
       "openFailed": "Could not open the browser window. Is Google Chrome installed?"
     }

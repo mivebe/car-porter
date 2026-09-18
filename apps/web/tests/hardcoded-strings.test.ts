@@ -7,7 +7,7 @@ const SRC = path.resolve(import.meta.dirname, '../src');
 /** Generated shadcn/ui primitives carry no app copy. */
 const IGNORED_DIRS = [path.join(SRC, 'components', 'ui')];
 const TEXT_ATTRIBUTES = new Set(['aria-label', 'title', 'placeholder', 'alt', 'label']);
-/** Letters in any script; symbols, numbers and punctuation ("·", "—", "#", "%") are fine. */
+/** Letters in any script; symbols, numbers and punctuation ("·", "-", "#", "%") are fine. */
 const HAS_WORDS = /\p{L}{2,}/u;
 /** `a && 'x'` renders 'x'; `a === 'x'` doesn't. */
 const RENDERING_OPERATORS = new Set<ts.SyntaxKind>([
@@ -83,7 +83,7 @@ describe('no hardcoded UI strings', () => {
   it('detects JSX text and text attributes', () => {
     const code = [
       `export const A = () => <div title="Hello" aria-label={'World'} className="flex">Save {x} · <b>{t('ok')}</b></div>;`,
-      "export const B = () => <p>{ok ? t(`a.${k}`) : 'Failed'}{`${n} miles`}{n && '—'}</p>;",
+      "export const B = () => <p>{ok ? t(`a.${k}`) : 'Failed'}{`${n} miles`}{n && '-'}</p>;",
     ].join('\n');
     expect(findHardcodedStrings(path.join(SRC, 'x.tsx'), code)).toEqual([
       'x.tsx:1 "Hello"',

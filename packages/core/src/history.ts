@@ -3,7 +3,7 @@ import { normalizeVin } from './vin.ts';
 
 /** One auction appearance of a vehicle, merged across history sites. */
 export interface HistoryEntry {
-  /** `${auction}:${lotNumber}:${yyyy-mm-dd}` — the dedup key. */
+  /** `${auction}:${lotNumber}:${yyyy-mm-dd}` - the dedup key. */
   key: string;
   auction: string | null;
   lotNumber: string | null;
@@ -47,8 +47,8 @@ export function historyKey(record: AuctionRecord): string {
 }
 
 /**
- * Whether a stored record is an appearance of this lot's vehicle: same VIN, or — when found by
- * lot number, which auctions reuse — same auction and lot number with a VIN that doesn't
+ * Whether a stored record is an appearance of this lot's vehicle: same VIN, or - when found by
+ * lot number, which auctions reuse - same auction and lot number with a VIN that doesn't
  * contradict the lot's (masked) VIN.
  */
 export function isLotHistoryRecord(lot: Lot, vin: string | null, record: AuctionRecord): boolean {

@@ -6,12 +6,12 @@ describe('format', () => {
     expect(formatMoney(980_000, 'EUR', 'en')).toBe('€9,800');
     expect(formatMoney(123_456, 'USD', 'en', { decimals: true })).toBe('$1,234.56');
     expect(formatMoney(980_000, 'EUR', 'bg').replace(/\s/g, ' ')).toBe('9800 €');
-    expect(formatMoney(null, 'USD', 'en')).toBe('—');
+    expect(formatMoney(null, 'USD', 'en')).toBe('-');
   });
 
   it('formats numbers', () => {
     expect(formatNumber(148715, 'en')).toBe('148,715');
-    expect(formatNumber(undefined, 'en')).toBe('—');
+    expect(formatNumber(undefined, 'en')).toBe('-');
   });
 
   it('formats relative times', () => {

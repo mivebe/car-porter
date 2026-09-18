@@ -21,7 +21,7 @@ describe('money', () => {
   });
 });
 
-describe('calculateCost — plan reference case (bid $5000, 1 USD = 0.90 €)', () => {
+describe('calculateCost - plan reference case (bid $5000, 1 USD = 0.90 €)', () => {
   it('full fees: 9800.00 €', () => {
     const r = calculateCost({ ...base, bidUsdCents: 500_000 });
     expect(r.feesUsdCents).toBe(200_000);
@@ -56,7 +56,7 @@ describe('calculateCost — plan reference case (bid $5000, 1 USD = 0.90 €)', 
   });
 });
 
-describe('calculateCost — general', () => {
+describe('calculateCost - general', () => {
   it('fee parts always sum to the fee total', () => {
     for (const bid of [1, 99, 12_345, 777_777, 1_000_001]) {
       for (const feesReduced of [false, true]) {

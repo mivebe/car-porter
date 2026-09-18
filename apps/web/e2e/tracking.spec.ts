@@ -42,7 +42,7 @@ test('tracking: track from the sheet, list with verdicts, reopen, update and rem
   await expect(se.getByTestId('tracked-margin')).toHaveText('€8,012');
   await expect(se.getByTestId('verdict-status')).toHaveText('Worth it');
   await expect(rows.nth(1).getByTestId('verdict-status')).toHaveText('Not enough data');
-  await expect(rows.nth(1).getByTestId('tracked-margin')).toHaveText('—');
+  await expect(rows.nth(1).getByTestId('tracked-margin')).toHaveText('-');
 
   // open the lot from the list, change the repair estimate, close → the list updates
   await se.click();

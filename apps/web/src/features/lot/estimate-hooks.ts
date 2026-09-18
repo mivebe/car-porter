@@ -69,7 +69,7 @@ export function useToggleEstimateRecord(lotId: string) {
   });
 }
 
-/** Summary of included matches — the lot's estimated final price. */
+/** Summary of included matches - the lot's estimated final price. */
 export function estimateSummary(data: EstimateResponse | undefined): PriceSummary | null {
   if (!data) return null;
   return summarizeIncluded(

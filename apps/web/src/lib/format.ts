@@ -6,7 +6,7 @@ export function formatMoney(
   language: string,
   options: { decimals?: boolean } = {},
 ): string {
-  if (cents == null) return '—';
+  if (cents == null) return '-';
   const digits = options.decimals ? 2 : 0;
   return new Intl.NumberFormat(intlLocale(language), {
     style: 'currency',
@@ -19,7 +19,7 @@ export function formatMoney(
 const numberFormats = new Map<string, Intl.NumberFormat>();
 
 export function formatNumber(value: number | null | undefined, language: string): string {
-  if (value == null) return '—';
+  if (value == null) return '-';
   const locale = intlLocale(language);
   let format = numberFormats.get(locale);
   if (!format) numberFormats.set(locale, (format = new Intl.NumberFormat(locale)));
@@ -27,9 +27,9 @@ export function formatNumber(value: number | null | undefined, language: string)
 }
 
 export function formatDateTime(iso: string | null | undefined, language: string): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '-';
   return new Intl.DateTimeFormat(intlLocale(language), {
     day: 'numeric',
     month: 'short',
@@ -40,9 +40,9 @@ export function formatDateTime(iso: string | null | undefined, language: string)
 }
 
 export function formatDate(iso: string | null | undefined, language: string): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '-';
   return new Intl.DateTimeFormat(intlLocale(language), { day: 'numeric', month: 'short', year: 'numeric' }).format(
     date,
   );
@@ -58,7 +58,7 @@ const UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
 
 /** "5 minutes ago" / "преди 5 минути"; under a minute → "now". */
 export function formatRelative(iso: string | null | undefined, language: string, now = new Date()): string {
-  if (!iso) return '—';
+  if (!iso) return '-';
   const seconds = Math.round((new Date(iso).getTime() - now.getTime()) / 1000);
   const rtf = new Intl.RelativeTimeFormat(intlLocale(language), { numeric: 'auto' });
   for (const [unit, size] of UNITS) {
