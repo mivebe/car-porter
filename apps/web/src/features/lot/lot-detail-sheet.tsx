@@ -46,12 +46,7 @@ export function LotDetailSheet({ lotId, onClose }: LotDetailSheetProps) {
   if (desktop) {
     return (
       <Dialog open={!!lotId} onOpenChange={onOpenChange}>
-        <DialogContent
-          className={cn(
-            'flex max-h-[calc(100dvh-4rem)] w-[calc(100vw-4rem)] flex-col gap-0 overflow-y-auto p-0',
-            wide ? 'max-w-[96rem] sm:max-w-[96rem]' : 'max-w-5xl sm:max-w-5xl',
-          )}
-        >
+        <DialogContent className="flex h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-none flex-col gap-0 overflow-y-auto p-0 sm:max-w-none">
           {body}
         </DialogContent>
       </Dialog>
