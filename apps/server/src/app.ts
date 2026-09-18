@@ -16,6 +16,7 @@ import { catalogRoutes } from './routes/catalog-routes.ts';
 import { copartRoutes } from './routes/copart-routes.ts';
 import { estimateRoutes } from './routes/estimate-routes.ts';
 import { historyRoutes } from './routes/history-routes.ts';
+import { insightsRoutes } from './routes/insights-routes.ts';
 import { fxRoutes } from './routes/fx-routes.ts';
 import { lotsRoutes } from './routes/lots-routes.ts';
 import { marketRoutes } from './routes/market-routes.ts';
@@ -27,6 +28,7 @@ import { createSourceQueue } from './scraping/source-queue.ts';
 import { createAliasScanService } from './services/alias-scan-service.ts';
 import { createEstimateService } from './services/estimate-service.ts';
 import { createHistoryService } from './services/history-service.ts';
+import { createLotInsightsService } from './services/lot-insights-service.ts';
 import { createLotSearchService } from './services/lot-search-service.ts';
 import { createMarketService } from './services/market-service.ts';
 import { createTrackingService } from './services/tracking-service.ts';
@@ -170,18 +172,17 @@ export async function buildApp({
   });
   await app.register(estimateRoutes, { estimate });
 
-  await app.register(historyRoutes, {
-    history: createHistoryService({
-      searchBidfax:
-        overrides.bidfaxSearcher ?? (mockSources ? mockBidfaxSearcher : createBidfaxSearcher(browser, queue)),
-      fetchStatVin:
-        overrides.statVinFetcher ?? (mockSources ? mockStatVinFetcher : createStatVinFetcher(browser, queue)),
-      cache: repos.cache,
-      lots: repos.lots,
-      inputs: repos.lotInputs,
-      records: repos.auctionRecords,
-    }),
+  const history = createHistoryService({
+    searchBidfax:
+      overrides.bidfaxSearcher ?? (mockSources ? mockBidfaxSearcher : createBidfaxSearcher(browser, queue)),
+    fetchStatVin:
+      overrides.statVinFetcher ?? (mockSources ? mockStatVinFetcher : createStatVinFetcher(browser, queue)),
+    cache: repos.cache,
+    lots: repos.lots,
+    inputs: repos.lotInputs,
+    records: repos.auctionRecords,
   });
+  await app.register(historyRoutes, { history });
 
   const marketFetchers = mockSources
     ? createMockMarketFetchers()
@@ -208,16 +209,18 @@ export async function buildApp({
   });
   await app.register(marketRoutes, { market });
 
+  const insights = createLotInsightsService({
+    lots: repos.lots,
+    inputs: repos.lotInputs,
+    settings: repos.settings,
+    estimate,
+    market,
+    history,
+    fx,
+  });
+  await app.register(insightsRoutes, { insights });
   await app.register(trackingRoutes, {
-    tracking: createTrackingService({
-      tracked: repos.tracked,
-      lots: repos.lots,
-      inputs: repos.lotInputs,
-      settings: repos.settings,
-      estimate,
-      market,
-      fx,
-    }),
+    tracking: createTrackingService({ tracked: repos.tracked, lots: repos.lots, insights }),
   });
 
   return app;

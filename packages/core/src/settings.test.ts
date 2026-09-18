@@ -13,7 +13,7 @@ describe('settings', () => {
     });
     expect(DEFAULT_SETTINGS.verdict.worthThresholdEur).toBe(3000);
     expect(DEFAULT_SETTINGS.bidfax).toEqual({ maxMonths: 12, maxMatches: 20, maxPages: 30 });
-    expect(DEFAULT_SETTINGS.ui).toEqual({ language: 'en', theme: 'dark', palette: 'champagne' });
+    expect(DEFAULT_SETTINGS.ui).toEqual({ language: 'en', theme: 'dark', palette: 'champagne', lotColumns: [] });
   });
 
   it('merges nested patches without dropping siblings', () => {

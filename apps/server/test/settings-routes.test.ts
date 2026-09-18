@@ -29,7 +29,7 @@ describe('/api/settings', () => {
     expect(res.json().verdict.worthThresholdEur).toBe(2500);
 
     const after = await app.inject({ method: 'GET', url: '/api/settings' });
-    expect(after.json().ui).toEqual({ language: 'bg', theme: 'dark', palette: 'champagne' });
+    expect(after.json().ui).toEqual({ language: 'bg', theme: 'dark', palette: 'champagne', lotColumns: [] });
     expect(after.json().cost).toEqual(DEFAULT_SETTINGS.cost);
   });
 
@@ -40,8 +40,20 @@ describe('/api/settings', () => {
       app.inject({ method: 'PATCH', url: '/api/settings', payload: { verdict: { worthThresholdEur: 1 } } }),
     ]);
     const after = (await app.inject({ method: 'GET', url: '/api/settings' })).json();
-    expect(after.ui).toEqual({ language: 'bg', theme: 'light', palette: 'champagne' });
+    expect(after.ui).toEqual({ language: 'bg', theme: 'light', palette: 'champagne', lotColumns: [] });
     expect(after.verdict.worthThresholdEur).toBe(1);
+  });
+
+  it('PATCH replaces the lot columns list', async () => {
+    const patch = (lotColumns: unknown) =>
+      app.inject({ method: 'PATCH', url: '/api/settings', payload: { ui: { lotColumns } } });
+    await patch([
+      { id: 'price', visible: true },
+      { id: 'odometer', visible: false },
+    ]);
+    const res = await patch([{ id: 'odometer', visible: true }]);
+    expect(res.json().ui.lotColumns).toEqual([{ id: 'odometer', visible: true }]);
+    expect((await patch([{ id: 'odometer' }])).statusCode).toBe(400);
   });
 
   it('PATCH with invalid values returns 400', async () => {

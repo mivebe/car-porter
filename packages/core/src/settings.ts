@@ -47,6 +47,8 @@ export const settingsSchema = z.object({
     language: z.enum(['en', 'bg']),
     theme: z.enum(['dark', 'light']),
     palette: z.enum(PALETTES),
+    /** Search results columns in display order; empty = the default layout. Unknown ids are ignored. */
+    lotColumns: z.array(z.object({ id: z.string().min(1).max(40), visible: z.boolean() })).max(50),
   }),
 });
 
@@ -69,7 +71,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   fx: { usdToEurOverride: null },
   scraping: { minDelayMs: 1500, maxDelayMs: 4000 },
-  ui: { language: 'en', theme: 'dark', palette: 'champagne' },
+  ui: { language: 'en', theme: 'dark', palette: 'champagne', lotColumns: [] },
 };
 
 type DeepPartial<T> = T extends unknown[]

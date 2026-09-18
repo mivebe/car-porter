@@ -1,20 +1,8 @@
-import {
-  effectiveMarketSources,
-  evaluateLot,
-  summarizeIncluded,
-  summarizeMarket,
-  type Lot,
-  type LotEvaluation,
-  type PriceSummary,
-} from '@car-porter/core';
-import type { LotInputsRepository } from '../repositories/lot-inputs-repository.ts';
+import type { Lot, LotEvaluation, PriceSummary } from '@car-porter/core';
 import type { LotsRepository } from '../repositories/lots-repository.ts';
-import type { SettingsRepository } from '../repositories/settings-repository.ts';
 import type { TrackedLotsRepository } from '../repositories/tracked-lots-repository.ts';
-import type { FxService } from '../sources/ecb.ts';
-import type { EstimateService } from './estimate-service.ts';
+import type { LotInsightsService } from './lot-insights-service.ts';
 import { LotNotFoundError } from './lot-not-found.ts';
-import type { MarketService } from './market-service.ts';
 
 export interface TrackedLotRow {
   lot: Lot;
@@ -36,59 +24,22 @@ export interface TrackedLotsResponse {
 export function createTrackingService(deps: {
   tracked: TrackedLotsRepository;
   lots: LotsRepository;
-  inputs: LotInputsRepository;
-  settings: SettingsRepository;
-  estimate: EstimateService;
-  market: MarketService;
-  fx: FxService;
+  insights: LotInsightsService;
 }) {
   async function list(): Promise<TrackedLotsResponse> {
-    const [tracked, settings] = await Promise.all([deps.tracked.list(), deps.settings.get()]);
-    const usdToEur = tracked.length
-      ? await deps.fx.get().then(
-          (r) => r.usdToEur,
-          () => null,
-        )
-      : null;
-
-    const rows = await Promise.all(
-      tracked.map(async ({ lotId, createdAt }): Promise<TrackedLotRow | null> => {
-        const found = await deps.lots.get(lotId);
-        if (!found) return null;
-        const lot = found.lot;
-        const [inputs, estimate, market] = await Promise.all([
-          deps.inputs.get(lotId),
-          deps.estimate.get(lotId),
-          deps.market.get(lotId),
-        ]);
-        const estimateSummary = summarizeIncluded(
-          estimate.matches.map((m) => m.record),
-          (r) => r.finalPriceUsdCents,
-          new Set(estimate.excludedIds),
-        );
-        const marketSummary = summarizeMarket(lot, market.listings, {
-          sites: effectiveMarketSources(inputs.marketSources, settings.market.enabledSources),
-          toggles: inputs.marketMatch,
-          mileageRangeKm: settings.market.mileageRangeKm,
-          excludedIds: new Set(market.excludedIds),
-        }).overall;
-        return {
-          lot,
-          trackedAt: createdAt.toISOString(),
-          estimate: estimateSummary,
-          market: marketSummary,
-          evaluation: evaluateLot({
-            lot,
-            inputs,
-            settings,
-            usdToEur,
-            estimateUsdCents: estimateSummary?.average ?? null,
-            marketAverageEurCents: marketSummary?.average ?? null,
-          }),
-        };
-      }),
-    );
-    return { lots: rows.filter((r): r is TrackedLotRow => r !== null), usdToEur };
+    const tracked = await deps.tracked.list();
+    const { rows, usdToEur } = await deps.insights.forLots(tracked.map((t) => t.lotId));
+    const trackedAt = new Map(tracked.map((t) => [t.lotId, t.createdAt.toISOString()]));
+    return {
+      lots: rows.map(({ lot, insights }) => ({
+        lot,
+        trackedAt: trackedAt.get(lot.id)!,
+        estimate: insights.estimate,
+        market: insights.market,
+        evaluation: insights.evaluation,
+      })),
+      usdToEur,
+    };
   }
 
   async function track(lotId: string) {
