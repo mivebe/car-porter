@@ -79,6 +79,8 @@ export function pickBidfaxModel(models: BidfaxModelLink[], lotModel: string): Bi
     (amg ? models.find((m) => compact(m.name) === 'amg') : undefined) ??
     models.find((m) => compact(m.name) === compact(lotModel) || m.slug === bidfaxSlug(lotModel)) ??
     models.find((m) => modelMatches(m.name, lotModel)) ??
+    // IAAI names the model ("C 300"), bidfax the class ("C-class")
+    models.find((m) => /-class$/i.test(m.name) && modelMatches(m.name.replace(/-class$/i, ''), lotModel)) ??
     null
   );
 }
