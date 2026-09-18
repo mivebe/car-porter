@@ -33,6 +33,12 @@ import { cardId, planDrop, type AliasColumn, type DropOutcome, type DropTarget }
 const CANONICAL_PREFIX = 'canonical:';
 const norm = (s: string) => s.trim().toLowerCase();
 
+/**
+ * Cards rendered per column before "show more". Dragging re-renders every card on the board (each
+ * one is a dnd-kit draggable), so a column of 500 names makes a drag take over a second to start.
+ */
+const PAGE_SIZE = 100;
+
 /** Drop on whatever is under the pointer (a make row inside a column wins); keyboard drags fall back to overlap. */
 const collision: CollisionDetection = (args) => {
   const hits = pointerWithin(args);
@@ -77,14 +83,19 @@ export function AliasBoard({ kind, make, source, status, q, active, onActiveChan
   const pool = useAliases({ kind, make: modelMake, source, status, q: q || undefined });
   const change = useChangeAliases();
 
-  // selection only counts for the lists it was made in
-  const scope = [source, status, q, active].join('|');
+  // selection and paging only count for the lists they were made in
+  const scope = [kind, make, source, status, q, active].join('|');
   const [selection, setSelection] = useState<{ scope: string; column: AliasColumn; ids: Set<string> }>({
     scope,
     column: 'pool',
     ids: new Set(),
   });
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [shownCounts, setShownCounts] = useState<{ scope: string } & Record<AliasColumn, number>>({
+    scope,
+    pool: PAGE_SIZE,
+    assigned: PAGE_SIZE,
+  });
   const [drag, setDrag] = useState<DragState | null>(null);
   const [over, setOver] = useState<DropTarget | null>(null);
   const [add, setAdd] = useState(false);
@@ -110,6 +121,13 @@ export function AliasBoard({ kind, make, source, status, q, active, onActiveChan
     selection.scope === scope && selection.column === column ? selection.ids : new Set<string>();
   const listOf = (column: AliasColumn) => ((column === 'pool' ? pool.data?.items : assigned.data?.items) ?? []);
   const visible = (column: AliasColumn) => listOf(column).filter((e) => !hidden.has(cardId(e)));
+  /** How many of a column's cards are rendered; the rest wait behind "show more". */
+  const shownCount = (column: AliasColumn) => (shownCounts.scope === scope ? shownCounts[column] : PAGE_SIZE);
+  const showMore = (column: AliasColumn) =>
+    setShownCounts((c) => {
+      const base = c.scope === scope ? c : { scope, pool: PAGE_SIZE, assigned: PAGE_SIZE };
+      return { ...base, scope, [column]: base[column] + PAGE_SIZE };
+    });
 
   const apply = async (changes: AliasChange[], ids: string[]) => {
     if (changes.length === 0) return;
@@ -167,6 +185,8 @@ export function AliasBoard({ kind, make, source, status, q, active, onActiveChan
 
 
   const poolSelected = visible('pool').filter((e) => selectedIn('pool').has(cardId(e)));
+  const assignedCards = visible('assigned').slice(0, shownCount('assigned'));
+  const poolCards = visible('pool').slice(0, shownCount('pool'));
 
   return (
     <DndContext
@@ -204,8 +224,10 @@ export function AliasBoard({ kind, make, source, status, q, active, onActiveChan
           dragging={!!drag}
           isOver={over?.type === 'assigned'}
           outcome={over?.type === 'assigned' ? outcome : null}
+          hiddenCount={visible('assigned').length - assignedCards.length}
+          onShowMore={() => showMore('assigned')}
         >
-          {visible('assigned').map((e) => (
+          {assignedCards.map((e) => (
             <AliasCard
               key={cardId(e)}
               entry={e}
@@ -220,7 +242,8 @@ export function AliasBoard({ kind, make, source, status, q, active, onActiveChan
         <PoolColumn
           status={status}
           total={pool.data?.total}
-          shown={visible('pool').length}
+          shown={poolCards.length}
+          onShowMore={visible('pool').length > poolCards.length ? () => showMore('pool') : undefined}
           loading={pool.isPending}
           failed={pool.isError}
           dragging={!!drag}
@@ -241,7 +264,7 @@ export function AliasBoard({ kind, make, source, status, q, active, onActiveChan
           }
           onClearSelection={() => setSelection({ scope, column: 'pool', ids: new Set() })}
         >
-          {visible('pool').map((e) => (
+          {poolCards.map((e) => (
             <AliasCard
               key={cardId(e)}
               entry={e}
@@ -494,6 +517,8 @@ function AssignedColumn({
   dragging,
   isOver,
   outcome,
+  hiddenCount,
+  onShowMore,
   children,
 }: {
   active: string | null;
@@ -502,6 +527,8 @@ function AssignedColumn({
   dragging: boolean;
   isOver: boolean;
   outcome: DropOutcome | null;
+  hiddenCount: number;
+  onShowMore: () => void;
   children: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -530,9 +557,21 @@ function AssignedColumn({
       ) : entries.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t('aliases.board.assignedEmpty')}</p>
       ) : (
-        <div className="flex flex-wrap content-start gap-1.5">{children}</div>
+        <>
+          <div className="flex flex-wrap content-start gap-1.5">{children}</div>
+          {hiddenCount > 0 && <ShowMore hidden={hiddenCount} onClick={onShowMore} />}
+        </>
       )}
     </Column>
+  );
+}
+
+function ShowMore({ hidden, onClick }: { hidden: number; onClick: () => void }) {
+  const { t, i18n } = useTranslation();
+  return (
+    <Button variant="ghost" size="sm" className="mt-2 w-full" onClick={onClick} data-testid="alias-show-more">
+      {t('aliases.board.showMore', { count: hidden, hidden: formatNumber(hidden, i18n.language) })}
+    </Button>
   );
 }
 
@@ -540,6 +579,7 @@ function PoolColumn({
   status,
   total,
   shown,
+  onShowMore,
   loading,
   failed,
   dragging,
@@ -553,6 +593,8 @@ function PoolColumn({
   status?: AliasStatus;
   total?: number;
   shown: number;
+  /** set when the list holds more names than are rendered */
+  onShowMore?: () => void;
   loading: boolean;
   failed: boolean;
   dragging: boolean;
@@ -600,7 +642,9 @@ function PoolColumn({
       ) : (
         <>
           <div className="flex flex-wrap content-start gap-1.5">{children}</div>
-          {total !== undefined && total > shown && (
+          {onShowMore && <ShowMore hidden={(total ?? shown) - shown} onClick={onShowMore} />}
+          {/* everything loaded is on screen, but the server had more */}
+          {!onShowMore && total !== undefined && total > shown && (
             <p className="mt-3 text-center text-xs text-muted-foreground">
               {t('aliases.board.truncated', { shown: formatNumber(shown, i18n.language), total: formatNumber(total, i18n.language) })}
             </p>

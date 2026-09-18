@@ -482,6 +482,8 @@
       "poolEmpty": "No site names here.",
       "poolEmptyUnassigned": "Nothing waiting for assignment. Run a scan to check the sites for new names.",
       "truncated": "Showing {{shown}} of {{total}}. Narrow the filters to see the rest.",
+      "showMore_one": "Show 1 more",
+      "showMore_other": "Show {{hidden}} more",
       "selected_one": "{{count}} selected",
       "selected_other": "{{count}} selected",
       "clearSelection": "Clear",

@@ -482,6 +482,8 @@
       "poolEmpty": "Няма имена тук.",
       "poolEmptyUnassigned": "Няма чакащи имена. Пуснете проверка, за да потърсите нови имена в сайтовете.",
       "truncated": "Показани са {{shown}} от {{total}}. Стеснете филтрите, за да видите останалите.",
+      "showMore_one": "Покажи още 1",
+      "showMore_other": "Покажи още {{hidden}}",
       "selected_one": "{{count}} избрано",
       "selected_other": "{{count}} избрани",
       "clearSelection": "Изчисти",

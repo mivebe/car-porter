@@ -16,9 +16,14 @@ export function formatMoney(
   }).format(cents / 100);
 }
 
+const numberFormats = new Map<string, Intl.NumberFormat>();
+
 export function formatNumber(value: number | null | undefined, language: string): string {
   if (value == null) return '—';
-  return new Intl.NumberFormat(intlLocale(language)).format(value);
+  const locale = intlLocale(language);
+  let format = numberFormats.get(locale);
+  if (!format) numberFormats.set(locale, (format = new Intl.NumberFormat(locale)));
+  return format.format(value);
 }
 
 export function formatDateTime(iso: string | null | undefined, language: string): string {

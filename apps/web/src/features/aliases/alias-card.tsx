@@ -76,51 +76,58 @@ export function AliasCard({ entry, column, selected, showMake, onToggleSelect, o
   // never show details while anything is being dragged
   const shown = active ? null : open;
 
+  const card = (
+    <button
+      ref={(el) => {
+        setNodeRef(el);
+        cardRef.current = el;
+      }}
+      type="button"
+      {...attributes}
+      {...listeners}
+      aria-pressed={selected}
+      data-testid="alias-card"
+      data-name={entry.externalName}
+      data-source={entry.source}
+      onPointerDown={(event) => {
+        window.clearTimeout(timer.current);
+        setOpen((o) => (o === 'hover' ? null : o));
+        listeners?.onPointerDown?.(event);
+      }}
+      onPointerEnter={() => {
+        if (active || open) return;
+        timer.current = window.setTimeout(() => setOpen('hover'), DETAILS_HOVER_DELAY_MS);
+      }}
+      onPointerLeave={() => {
+        window.clearTimeout(timer.current);
+        setOpen((o) => (o === 'hover' ? null : o));
+      }}
+      onClick={(event) => {
+        window.clearTimeout(timer.current);
+        if (event.ctrlKey || event.metaKey || event.shiftKey) onToggleSelect();
+        else setOpen((o) => (o === 'click' ? null : 'click'));
+      }}
+      className={cn(
+        'max-w-full cursor-grab touch-none rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing',
+        isDragging && 'opacity-30',
+      )}
+    >
+      <CardFace
+        entry={entry}
+        showMake={showMake}
+        className={cn('transition-colors hover:border-foreground/30', selected && 'border-primary bg-primary/10 ring-1 ring-primary')}
+      />
+    </button>
+  );
+
+  // Only the card whose details are open carries a Popover. Mounting one per card costs about a
+  // second of drag-start lag on a full column: dnd-kit re-renders every draggable when a drag
+  // begins, so each card's render has to stay cheap.
+  if (shown === null) return card;
+
   return (
-    <Popover open={shown !== null} onOpenChange={(next) => !next && setOpen(null)}>
-      <PopoverAnchor asChild>
-        <button
-          ref={(el) => {
-            setNodeRef(el);
-            cardRef.current = el;
-          }}
-          type="button"
-          {...attributes}
-          {...listeners}
-          aria-pressed={selected}
-          data-testid="alias-card"
-          data-name={entry.externalName}
-          data-source={entry.source}
-          onPointerDown={(event) => {
-            window.clearTimeout(timer.current);
-            setOpen((o) => (o === 'hover' ? null : o));
-            listeners?.onPointerDown?.(event);
-          }}
-          onPointerEnter={() => {
-            if (active || open) return;
-            timer.current = window.setTimeout(() => setOpen('hover'), DETAILS_HOVER_DELAY_MS);
-          }}
-          onPointerLeave={() => {
-            window.clearTimeout(timer.current);
-            setOpen((o) => (o === 'hover' ? null : o));
-          }}
-          onClick={(event) => {
-            window.clearTimeout(timer.current);
-            if (event.ctrlKey || event.metaKey || event.shiftKey) onToggleSelect();
-            else setOpen((o) => (o === 'click' ? null : 'click'));
-          }}
-          className={cn(
-            'max-w-full cursor-grab touch-none rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing',
-            isDragging && 'opacity-30',
-          )}
-        >
-          <CardFace
-            entry={entry}
-            showMake={showMake}
-            className={cn('transition-colors hover:border-foreground/30', selected && 'border-primary bg-primary/10 ring-1 ring-primary')}
-          />
-        </button>
-      </PopoverAnchor>
+    <Popover open onOpenChange={(next) => !next && setOpen(null)}>
+      <PopoverAnchor asChild>{card}</PopoverAnchor>
       <PopoverContent
         align="start"
         className={cn('w-72 p-3', shown === 'hover' && 'pointer-events-none')}
