@@ -116,6 +116,24 @@ export function parseBidfaxRecordUrl(url: string) {
 }
 
 /**
+ * Trim from a record URL, for cards whose title yields none:
+ * ".../mercedes-benz-c-300-4matic-2017-white-..." → "C 300 4matic". A slug that only repeats the
+ * model ("mercedes-benz-c-class-2017-...") has no trim.
+ */
+export function trimFromRecordUrl(url: string): string | null {
+  const parsed = parseBidfaxRecordUrl(url);
+  const name = url.match(/\/\d+-([a-z0-9-]+)\.html$/)?.[1];
+  if (!parsed || !name?.startsWith(`${parsed.makeSlug}-`)) return null;
+  const words = name.slice(parsed.makeSlug.length + 1).match(/^(.+?)-(?:19|20)\d{2}-/)?.[1];
+  if (!words || words === parsed.modelSlug) return null;
+  const trim = words.startsWith(`${parsed.modelSlug}-`) ? words.slice(parsed.modelSlug.length + 1) : words;
+  return trim
+    .split('-')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+/**
  * Title prefixes a slug can appear as: "land-rover" → "land rover" / "land-rover". The make alone
  * comes last, for cards whose title doesn't start with the model ("G 63 Amg" under "AMG").
  */
@@ -165,7 +183,7 @@ function parseCards($: cheerio.CheerioAPI, prefixes?: string[]): AuctionRecord[]
       year: parsedTitle?.year ?? null,
       make: parsedUrl.makeSlug,
       model: parsedUrl.modelSlug,
-      trim: parsedTitle?.trim ?? null,
+      trim: parsedTitle?.trim ?? trimFromRecordUrl(url),
       engine: parsedTitle?.engine ?? null,
       fuel: fuelFromTitle(title.replace(/vin:.*$/i, '')),
       saleDate: fields.get('saleDate') ? parseBidfaxDate(fields.get('saleDate')!) : null,

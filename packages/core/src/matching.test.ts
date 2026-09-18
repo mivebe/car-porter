@@ -153,10 +153,17 @@ describe('matchAuctionRecord (bidfax)', () => {
     expect(matchAuctionRecord(lot, record({ fuel: 'Hybrid' })).matches).toBe(false);
   });
 
-  it('keeps records with unknown trim/engine/fuel and reports them', () => {
-    const r = matchAuctionRecord(lot, record({ trim: null, engine: null, fuel: '' }));
+  it('keeps records with unknown engine/fuel and reports them', () => {
+    const r = matchAuctionRecord(lot, record({ engine: null, fuel: '' }));
     expect(r.matches).toBe(true);
-    expect(r.unknown).toEqual(['trim', 'engine', 'fuel']);
+    expect(r.unknown).toEqual(['engine', 'fuel']);
+  });
+
+  it('needs the record trim only when the lot has one', () => {
+    expect(matchAuctionRecord(lot, record({ trim: null })).matches).toBe(false);
+    const r = matchAuctionRecord({ ...lot, trim: null }, record({ trim: null }));
+    expect(r.matches).toBe(true);
+    expect(r.unknown).toContain('trim');
   });
 
   it('finds the model in the trim of a catch-all bidfax model', () => {

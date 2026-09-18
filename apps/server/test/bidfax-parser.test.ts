@@ -13,6 +13,7 @@ import {
   parseBidfaxRecordUrl,
   parseBidfaxSearch,
   parseBidfaxTitle,
+  trimFromRecordUrl,
 } from '../src/sources/bidfax.ts';
 
 const fixture = (name: string) => readFileSync(new URL(`./fixtures/bidfax/${name}`, import.meta.url), 'utf8');
@@ -208,6 +209,14 @@ describe('bidfax search (real recorded pages)', () => {
       externalId: '123',
     });
     expect(parseBidfaxRecordUrl('https://bidfax.info/about.html')).toBeNull();
+  });
+
+  it('reads the trim from a record URL', () => {
+    const url = (model: string, name: string) => `https://en.bidfax.info/mercedes-benz/${model}/39198711-${name}.html`;
+    expect(trimFromRecordUrl(url('c-class', 'mercedes-benz-c-300-4matic-2017-white-20l-vin-55swf4kb2hu224039'))).toBe('C 300 4matic');
+    expect(trimFromRecordUrl(url('amg-gt', 'mercedes-benz-g-63-amg-2017-black-55l-8-vin-wdcyc7dfxhx274112'))).toBe('G 63 Amg');
+    expect(trimFromRecordUrl(url('c-class', 'mercedes-benz-c-class-2017-black-vin-wdc0g4jb9hv009372'))).toBeNull();
+    expect(trimFromRecordUrl('https://bidfax.info/toyota/camry/1-toyota-camry-se-2019-white-25l-vin-x.html')).toBe('Se');
   });
 
   it('strips hyphenated slugs as spaced title prefixes', () => {

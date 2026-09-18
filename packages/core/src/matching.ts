@@ -149,9 +149,10 @@ export function bidfaxLot(lot: Lot): Lot {
 }
 
 /**
- * Bidfax price-estimate match: make + model + exact year are required; trim, engine and fuel
- * must not conflict (unknown on either side is allowed and reported). `modelName` is the bidfax
- * model the records were listed under ("AMG"), when their stored model is only its slug ("amg-gt").
+ * Bidfax price-estimate match: make + model + exact year are required, and the trim too when the
+ * lot has one (a trimless record could be any trim); engine and fuel must not conflict (unknown on
+ * either side is allowed and reported). `modelName` is the bidfax model the records were listed
+ * under ("AMG"), when their stored model is only its slug ("amg-gt").
  */
 export function matchAuctionRecord(lot: Lot, record: AuctionRecord, modelName?: string): MatchResult<AuctionCriterion> {
   const model = modelName ?? record.model;
@@ -164,7 +165,7 @@ export function matchAuctionRecord(lot: Lot, record: AuctionRecord, modelName?: 
       engine: compare(engineLiters(lot.engine), engineLiters(record.engine), (a, b) => Math.abs(a - b) < 0.05),
       fuel: compare(normalizeFuel(lot.fuel), normalizeFuel(record.fuel), (a, b) => a === b),
     },
-    ['make', 'model', 'year'],
+    lot.trim ? ['make', 'model', 'year', 'trim'] : ['make', 'model', 'year'],
   );
 }
 
