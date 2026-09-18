@@ -66,6 +66,8 @@ export type AliasChange =
 export interface CanonicalItem {
   name: string;
   siteNames: number;
+  /** site names per auction site, so the column can show where they come from */
+  bySource: Record<AuctionSource, number>;
   lots: number;
 }
 
@@ -345,7 +347,7 @@ export function createVehicleAliasService(deps: {
     const byKey = new Map<string, CanonicalItem>();
     const add = (name: string) => {
       const key = normalizeText(name);
-      if (!byKey.has(key)) byKey.set(key, { name, siteNames: 0, lots: 0 });
+      if (!byKey.has(key)) byKey.set(key, { name, siteNames: 0, bySource: { copart: 0, iaai: 0 }, lots: 0 });
       return byKey.get(key)!;
     };
     for (const name of names) add(name);
@@ -353,6 +355,7 @@ export function createVehicleAliasService(deps: {
       for (const t of effectiveTargets(e)) {
         const item = add(t);
         item.siteNames++;
+        item.bySource[e.source]++;
         item.lots += e.lotCount ?? 0;
       }
     }

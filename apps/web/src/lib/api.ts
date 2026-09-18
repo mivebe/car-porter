@@ -127,6 +127,8 @@ export type AliasChange = AliasKey &
 export interface CanonicalItem {
   name: string;
   siteNames: number;
+  /** site names per auction site */
+  bySource: Record<AuctionSource, number>;
   lots: number;
 }
 

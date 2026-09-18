@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { AliasCard, CardFace, type CardAction } from './alias-card';
 import { useAliases, useAliasMakes, useCanonicalItems, useChangeAliases } from './alias-hooks';
 import { cardId, planDrop, type AliasColumn, type DropOutcome, type DropTarget } from './drop-plan';
+import { siteColor } from './site-color';
 
 const CANONICAL_PREFIX = 'canonical:';
 const norm = (s: string) => s.trim().toLowerCase();
@@ -385,7 +386,9 @@ function CanonicalColumn({
   const all = useMemo(() => {
     const list = [...(items ?? [])];
     for (const name of [...created, ...(active ? [active] : [])]) {
-      if (!list.some((i) => norm(i.name) === norm(name))) list.push({ name, siteNames: 0, lots: 0 });
+      if (!list.some((i) => norm(i.name) === norm(name))) {
+        list.push({ name, siteNames: 0, bySource: { copart: 0, iaai: 0 }, lots: 0 });
+      }
     }
     return list;
   }, [items, created, active]);
@@ -502,8 +505,22 @@ function CanonicalRow({
     >
       <span className="truncate">{item.name}</span>
       {item.siteNames > 0 && (
-        <span className="shrink-0 text-xs tabular-nums text-muted-foreground" title={t('aliases.board.siteNames', { count: item.siteNames })}>
-          {formatNumber(item.siteNames, i18n.language)}
+        <span className="flex shrink-0 items-center gap-1 text-xs tabular-nums">
+          {(['iaai', 'copart'] as const).map(
+            (source) =>
+              item.bySource[source] > 0 && (
+                <span
+                  key={source}
+                  title={`${t(`sources.${source}`)}: ${t('aliases.board.siteNames', { count: item.bySource[source] })}`}
+                  className={cn('rounded px-1 py-px font-medium', siteColor(source))}
+                >
+                  {formatNumber(item.bySource[source], i18n.language)}
+                </span>
+              ),
+          )}
+          <span className="text-muted-foreground" title={t('aliases.board.siteNames', { count: item.siteNames })}>
+            {formatNumber(item.siteNames, i18n.language)}
+          </span>
         </span>
       )}
     </button>

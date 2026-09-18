@@ -9,6 +9,7 @@ import { formatNumber, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { effectiveTargets } from './alias-hooks';
 import { cardId, type AliasColumn } from './drop-plan';
+import { siteColor } from './site-color';
 
 /** Hovering a card this long shows its details. */
 const DETAILS_HOVER_DELAY_MS = 1200;
@@ -18,12 +19,7 @@ export type CardAction = 'ignore' | 'unassign' | 'reset';
 export function SiteMark({ source }: { source: AliasEntry['source'] }) {
   const { t } = useTranslation();
   return (
-    <span
-      className={cn(
-        'shrink-0 rounded px-1 py-px text-[10px] font-semibold tracking-wide uppercase',
-        source === 'copart' ? 'bg-blue-500/15 text-blue-600 dark:text-blue-400' : 'bg-red-500/15 text-red-600 dark:text-red-400',
-      )}
-    >
+    <span className={cn('shrink-0 rounded px-1 py-px text-[10px] font-semibold tracking-wide uppercase', siteColor(source))}>
       {t(`sources.${source}`)}
     </span>
   );

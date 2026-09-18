@@ -3,7 +3,7 @@ import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '@/i18n';
-import type { AliasEntry } from '@/lib/api';
+import type { AliasEntry, CanonicalItem } from '@/lib/api';
 
 const entry = (name: string): AliasEntry => ({
   source: 'copart',
@@ -18,6 +18,10 @@ const entry = (name: string): AliasEntry => ({
 });
 
 const POOL = Array.from({ length: 250 }, (_, i) => entry(`SITE NAME ${i + 1}`));
+const CANONICAL: CanonicalItem[] = [
+  { name: 'Acura', siteNames: 3, bySource: { copart: 2, iaai: 1 }, lots: 40 },
+  { name: 'Alfa Romeo', siteNames: 1, bySource: { copart: 1, iaai: 0 }, lots: 5 },
+];
 
 vi.mock('./alias-hooks', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./alias-hooks')>()),
@@ -27,7 +31,7 @@ vi.mock('./alias-hooks', async (importOriginal) => ({
     isPending: false,
     isError: false,
   }),
-  useCanonicalItems: () => ({ data: { items: [] }, isPending: false }),
+  useCanonicalItems: () => ({ data: { items: CANONICAL }, isPending: false }),
   useChangeAliases: () => ({ mutateAsync: vi.fn() }),
 }));
 
@@ -38,6 +42,25 @@ const board = () => (
     <AliasBoard kind="make" make="" q="" active={null} onActiveChange={() => {}} onMakeChange={() => {}} />
   </QueryClientProvider>
 );
+
+describe('AliasBoard our makes', () => {
+  beforeEach(async () => {
+    await act(() => i18n.changeLanguage('en'));
+  });
+
+  it('shows site names per site next to the total, and hides a site with none', () => {
+    render(board());
+    const row = (name: string) => screen.getAllByTestId('alias-canonical-item').find((r) => r.dataset.name === name)!;
+
+    // IAAI, then Copart, then the total
+    expect(row('Acura')).toHaveTextContent(/^Acura\s*1\s*2\s*3$/);
+    expect(row('Acura').querySelector('[title^="IAAI"]')).toHaveTextContent('1');
+    expect(row('Acura').querySelector('[title^="Copart"]')).toHaveTextContent('2');
+
+    expect(row('Alfa Romeo').querySelector('[title^="IAAI"]')).toBeNull();
+    expect(row('Alfa Romeo').querySelector('[title^="Copart"]')).toHaveTextContent('1');
+  });
+});
 
 describe('AliasBoard paging', () => {
   beforeEach(async () => {

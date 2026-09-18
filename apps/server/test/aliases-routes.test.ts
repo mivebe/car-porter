@@ -166,10 +166,26 @@ describe('/api/aliases', () => {
     await assign(app, [{ source: 'iaai', kind: 'model', externalName: 'AMG C 63', make: 'Mercedes-Benz' }], to('C 63 AMG'));
 
     const models = (await app.inject({ method: 'GET', url: '/api/aliases/canonical?kind=model&make=mercedes-benz' })).json()
-      .items as { name: string; siteNames: number; lots: number }[];
-    expect(models.find((m) => m.name === 'C-Class')).toEqual({ name: 'C-Class', siteNames: 3, lots: 407 });
-    expect(models.find((m) => m.name === 'C 63 AMG')).toEqual({ name: 'C 63 AMG', siteNames: 1, lots: 7 });
-    expect(models.find((m) => m.name === 'G-Class')).toEqual({ name: 'G-Class', siteNames: 0, lots: 0 });
+      .items as { name: string; siteNames: number; bySource: Record<string, number>; lots: number }[];
+    // C-Class: "C" on both sites, plus Copart's "AMG C 63" (IAAI's was assigned to C 63 AMG above)
+    expect(models.find((m) => m.name === 'C-Class')).toEqual({
+      name: 'C-Class',
+      siteNames: 3,
+      bySource: { copart: 2, iaai: 1 },
+      lots: 407,
+    });
+    expect(models.find((m) => m.name === 'C 63 AMG')).toEqual({
+      name: 'C 63 AMG',
+      siteNames: 1,
+      bySource: { copart: 0, iaai: 1 },
+      lots: 7,
+    });
+    expect(models.find((m) => m.name === 'G-Class')).toEqual({
+      name: 'G-Class',
+      siteNames: 0,
+      bySource: { copart: 0, iaai: 0 },
+      lots: 0,
+    });
 
     const iaaiOnly = (await app.inject({ method: 'GET', url: '/api/aliases/canonical?kind=model&make=Mercedes-Benz&source=iaai' })).json()
       .items as { name: string; siteNames: number }[];
