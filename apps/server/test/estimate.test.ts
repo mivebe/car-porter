@@ -66,6 +66,19 @@ describe('pickBidfaxModel', () => {
     expect(pickBidfaxModel(mercedes, 'C 300')?.slug).toBe('c-class');
     expect(pickBidfaxModel(mercedes, 'C 350E')?.slug).toBe('c-class');
   });
+
+  it('picks the longest bidfax model the auction name starts with', () => {
+    const m = (...names: string[]) => names.map((name) => ({ slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'), name }));
+    expect(pickBidfaxModel(m('F', 'F350', 'F150'), 'F-350 CHASSIS')?.name).toBe('F350');
+    expect(pickBidfaxModel(m('330', '340i', '550'), '330XI')?.name).toBe('330');
+    expect(pickBidfaxModel(m('330', '340i', '550'), 'M340I')?.name).toBe('340i');
+    expect(pickBidfaxModel(m('M-class', 'Gl-class'), 'ML 350', 'Mercedes-Benz')?.name).toBe('M-class');
+    expect(pickBidfaxModel(m('Town', 'Town and country'), 'TOWN & COUNTRY')?.name).toBe('Town and country');
+    expect(pickBidfaxModel(m('3', 'Cx-5', 'Mazda2'), 'MAZDA3', 'MAZDA')?.name).toBe('3');
+    expect(pickBidfaxModel(m('1500', '2500'), 'RAM 1500', 'RAM')?.name).toBe('1500');
+    expect(pickBidfaxModel(m('Sierra', 'Yukon'), 'NEW SIERRA')?.name).toBe('Sierra');
+    expect(pickBidfaxModel(m('TL', 'TSX'), '3.2TL')?.name).toBe('TL');
+  });
 });
 
 describe('nextCoverage', () => {

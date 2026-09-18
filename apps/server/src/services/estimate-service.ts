@@ -2,6 +2,7 @@ import {
   bidfaxLot,
   isWithinMonths,
   modelMatches,
+  modelTokens,
   selectAuctionMatches,
   type AuctionCriterion,
   type AuctionRecord,
@@ -70,17 +71,38 @@ export interface EstimateResponse {
   error?: SourceErrorInfo;
 }
 
-/** Best bidfax model for an auction model name: exact (ignoring punctuation) before prefix matches. */
-export function pickBidfaxModel(models: BidfaxModelLink[], lotModel: string): BidfaxModelLink | null {
-  const compact = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+/**
+ * Best bidfax model for an auction model name: exact (ignoring punctuation), then the longest
+ * bidfax model the name starts with, word by word ("F-350 CHASSIS" is F350, not F; "330XI" is 330,
+ * bidfax having no 330xi; "C 300" is C-class), then a model that starts with the name.
+ */
+export function pickBidfaxModel(models: BidfaxModelLink[], lotModel: string, make = ''): BidfaxModelLink | null {
+  const compact = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+  // IAAI's "ALL-NEW Q5" / "NEW SIERRA", Acura's "3.2TL"
+  const name = lotModel.replace(/^\s*(?:all[\s-]+)?new\s+/i, '').replace(/^\d\.\d\s*(?=[a-z])/i, '');
   // bidfax files every AMG performance model (C 63, GLE 43) under its "AMG" catch-all
-  const amg = /\bamg\b/i.test(lotModel) && /\b(35|43|45|53|55|63|65)\b/.test(lotModel);
+  if (/\bamg\b/i.test(name) && /\b(35|43|45|53|55|63|65)\b/.test(name)) {
+    const amg = models.find((m) => compact(m.name) === 'amg');
+    if (amg) return amg;
+  }
+  const exact = models.find((m) => compact(m.name) === compact(name) || m.slug === bidfaxSlug(name));
+  if (exact) return exact;
+
+  const byPrefix = (wanted: string[]) => {
+    let best: { model: BidfaxModelLink; length: number } | null = null;
+    for (const model of models) {
+      const tokens = modelTokens(model.name, make);
+      const fits = tokens.length > 0 && tokens.length <= wanted.length && tokens.every((t, i) => t === wanted[i]);
+      if (fits && tokens.length > (best?.length ?? 0)) best = { model, length: tokens.length };
+    }
+    return best?.model ?? null;
+  };
   return (
-    (amg ? models.find((m) => compact(m.name) === 'amg') : undefined) ??
-    models.find((m) => compact(m.name) === compact(lotModel) || m.slug === bidfaxSlug(lotModel)) ??
-    models.find((m) => modelMatches(m.name, lotModel)) ??
-    // IAAI names the model ("C 300"), bidfax the class ("C-class")
-    models.find((m) => /-class$/i.test(m.name) && modelMatches(m.name.replace(/-class$/i, ''), lotModel)) ??
+    byPrefix(modelTokens(name, make)) ??
+    // Mercedes' ML is bidfax's M-class; BMW's M340i / M550xi are under 340i / 550
+    (/^ml\b/i.test(name) ? byPrefix(modelTokens(name.replace(/^ml/i, 'M'), make)) : null) ??
+    (/^m\d{3}/i.test(name) ? byPrefix(modelTokens(name.slice(1), make)) : null) ??
+    models.find((m) => modelMatches(m.name, name)) ??
     null
   );
 }
@@ -141,7 +163,7 @@ export function createEstimateService(deps: {
       async () => parseBidfaxModels(await deps.fetchHtml(`${BIDFAX_ORIGIN}/${makeSlug}/`), makeSlug),
     );
     if (!models.ok) throw new SourceError(models.error.code, models.error.message);
-    const model = pickBidfaxModel(models.data, lot.model);
+    const model = pickBidfaxModel(models.data, lot.model, lot.make);
     if (!model) throw new SourceError('not_found', `bidfax: no model matching "${lot.model}" for ${lot.make}`);
     return { makeSlug, model };
   }
@@ -181,7 +203,7 @@ export function createEstimateService(deps: {
     const lot = await loadLot(lotId);
     const makeSlug = bidfaxSlug(lot.make);
     const models = await deps.cache.get<BidfaxModelLink[]>(`bidfax:models:${makeSlug}`);
-    const model = models ? pickBidfaxModel(models.payload, lot.model) : null;
+    const model = models ? pickBidfaxModel(models.payload, lot.model, lot.make) : null;
     return build(lot, model ? makeSlug : null, model);
   }
 
