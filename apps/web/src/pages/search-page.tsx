@@ -13,6 +13,7 @@ import { LotResults } from '@/features/search/lot-results';
 import { SearchFilters } from '@/features/search/search-filters';
 import { LOT_SORTS, sortAndFilterLots, uniqueLots, type LotSort, type SourceFilter } from '@/features/search/sort-lots';
 import { SourceStatusBadge } from '@/features/search/source-status';
+import { IAAI_MARKETS, type IaaiMarket } from '@car-porter/core';
 import { api, type LotSearchParams, type LotSearchResponse } from '@/lib/api';
 
 function readParams(search: URLSearchParams): LotSearchParams | null {
@@ -21,7 +22,11 @@ function readParams(search: URLSearchParams): LotSearchParams | null {
   const yearFrom = Number(search.get('yearFrom'));
   const yearTo = Number(search.get('yearTo'));
   if (!make || !model || !yearFrom || !yearTo) return null;
-  return { make, model, yearFrom, yearTo };
+  const trim = search.get('trim')?.trim();
+  const iaaiMarkets = (search.get('iaaiMarkets')?.split(',') ?? []).filter((m): m is IaaiMarket =>
+    (IAAI_MARKETS as readonly string[]).includes(m),
+  );
+  return { make, model, yearFrom, yearTo, ...(trim ? { trim } : {}), ...(iaaiMarkets.length ? { iaaiMarkets } : {}) };
 }
 
 export function SearchPage() {
@@ -63,6 +68,8 @@ export function SearchPage() {
       model: next.model,
       yearFrom: String(next.yearFrom),
       yearTo: String(next.yearTo),
+      ...(next.trim ? { trim: next.trim } : {}),
+      ...(next.iaaiMarkets?.length ? { iaaiMarkets: next.iaaiMarkets.join(',') } : {}),
     });
   };
 
@@ -82,7 +89,7 @@ export function SearchPage() {
     <div className="flex flex-col gap-6">
       <PageHeader title={t('pages.search.title')} />
       <SearchFilters
-        key={params ? `${params.make}|${params.model}|${params.yearFrom}|${params.yearTo}` : 'empty'}
+        key={params ? JSON.stringify(params) : 'empty'}
         initial={params ?? {}}
         onSearch={runSearch}
         searching={results.isFetching && !results.isFetchingNextPage}

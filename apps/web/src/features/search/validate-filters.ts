@@ -1,3 +1,4 @@
+import type { IaaiMarket } from '@car-porter/core';
 import type { LotSearchParams } from '@/lib/api';
 
 export const MIN_YEAR = 1950;
@@ -10,6 +11,9 @@ export interface FilterDraft {
   model: string;
   yearFrom: string;
   yearTo: string;
+  trim: string;
+  /** empty = all */
+  iaaiMarkets: IaaiMarket[];
 }
 
 /** Returns i18n error keys per field, or parsed params when valid. */
@@ -24,6 +28,16 @@ export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | 
   if (!draft.yearTo || !validYear(to)) errors.yearTo = 'search.errors.yearInvalid';
   if (!errors.yearFrom && !errors.yearTo && from > to) errors.yearTo = 'search.errors.yearOrder';
   if (Object.keys(errors).length) return { errors };
-  return { params: { make: draft.make.trim(), model: draft.model.trim(), yearFrom: from, yearTo: to } };
+  const trim = draft.trim.trim();
+  return {
+    params: {
+      make: draft.make.trim(),
+      model: draft.model.trim(),
+      yearFrom: from,
+      yearTo: to,
+      ...(trim ? { trim } : {}),
+      ...(draft.iaaiMarkets.length ? { iaaiMarkets: draft.iaaiMarkets } : {}),
+    },
+  };
 }
 

@@ -2,7 +2,7 @@ import type { EstimateResponse } from '@/features/lot/estimate-hooks';
 import type { HistoryResponse } from '@/features/lot/history-hooks';
 import type { MarketResponse } from '@/features/lot/market-hooks';
 import type { TrackedLotsResponse } from '@/features/tracking/tracking-hooks';
-import type { AuctionSource, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
+import type { AuctionSource, IaaiMarket, Lot, LotInputs, LotInputsPatch, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
 
 export class ApiError extends Error {
   constructor(
@@ -70,6 +70,9 @@ export interface LotSearchParams {
   model: string;
   yearFrom: number;
   yearTo: number;
+  trim?: string;
+  /** empty or missing = all */
+  iaaiMarkets?: IaaiMarket[];
 }
 
 export interface FxResponse {
@@ -199,7 +202,9 @@ export const api = {
     request<AliasScanStatus>('/api/aliases/scan', { method: 'POST', body: JSON.stringify({ make: make ?? null }) }),
   cancelAliasScan: () => request<AliasScanStatus>('/api/aliases/scan', { method: 'DELETE' }),
   searchLots: (params: LotSearchParams & { page: number; refresh?: boolean }) =>
-    request<LotSearchResponse>(`/api/lots/search?${query({ ...params, refresh: params.refresh ? 1 : undefined })}`),
+    request<LotSearchResponse>(
+      `/api/lots/search?${query({ ...params, iaaiMarkets: params.iaaiMarkets?.join(','), refresh: params.refresh ? 1 : undefined })}`,
+    ),
   lot: (id: string) =>
     request<{ lot: Lot; fetchedAt: string; trackedAt: string | null }>(`/api/lots/${encodeURIComponent(id)}`),
   tracked: () => request<TrackedLotsResponse>('/api/tracked'),

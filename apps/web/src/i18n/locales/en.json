@@ -56,6 +56,15 @@
     "model": "Model",
     "yearFrom": "Year from",
     "yearTo": "Year to",
+    "trim": "Trim",
+    "trimPlaceholder": "C 63, ZL1…",
+    "iaaiMarket": "IAAI market",
+    "allMarkets": "All markets",
+    "markets": {
+      "us": "US",
+      "ca": "Canada",
+      "rb": "Ritchie Bros."
+    },
     "typeYear": "Type a year",
     "submit": "Search",
     "selectMake": "Select manufacturer",

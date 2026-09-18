@@ -56,6 +56,15 @@
     "model": "Модел",
     "yearFrom": "Година от",
     "yearTo": "Година до",
+    "trim": "Версия",
+    "trimPlaceholder": "C 63, ZL1…",
+    "iaaiMarket": "Пазар в IAAI",
+    "allMarkets": "Всички пазари",
+    "markets": {
+      "us": "САЩ",
+      "ca": "Канада",
+      "rb": "Ritchie Bros."
+    },
     "typeYear": "Въведете година",
     "submit": "Търси",
     "selectMake": "Изберете марка",

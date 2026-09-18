@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { validateFilters } from './validate-filters';
+import { validateFilters, type FilterDraft } from './validate-filters';
 
-const draft = { make: 'Toyota', model: 'Camry', yearFrom: '2018', yearTo: '2020' };
+const draft: FilterDraft = { make: 'Toyota', model: 'Camry', yearFrom: '2018', yearTo: '2020', trim: '', iaaiMarkets: [] };
 
 describe('validateFilters', () => {
   it('returns parsed params for valid input', () => {
@@ -10,12 +10,18 @@ describe('validateFilters', () => {
     });
   });
 
+  it('passes a trim and IAAI markets only when set', () => {
+    expect(validateFilters({ ...draft, trim: ' ZL1 ', iaaiMarkets: ['us', 'ca'] })).toEqual({
+      params: { make: 'Toyota', model: 'Camry', yearFrom: 2018, yearTo: 2020, trim: 'ZL1', iaaiMarkets: ['us', 'ca'] },
+    });
+  });
+
   it('allows a single year (from = to)', () => {
     expect(validateFilters({ ...draft, yearFrom: '2019', yearTo: '2019' })).toHaveProperty('params');
   });
 
   it('requires make, model and valid years', () => {
-    expect(validateFilters({ make: '', model: '', yearFrom: '', yearTo: '12' })).toEqual({
+    expect(validateFilters({ ...draft, make: '', model: '', yearFrom: '', yearTo: '12' })).toEqual({
       errors: {
         make: 'search.errors.makeRequired',
         model: 'search.errors.modelRequired',

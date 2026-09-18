@@ -73,6 +73,29 @@ test.describe('lot search', () => {
     await expect(page).toHaveURL(/[?&]lot=/);
   });
 
+  test('narrows by trim and IAAI market, kept in the URL', async ({ page }) => {
+    await page.goto('/?make=Toyota&model=Camry&yearFrom=2018&yearTo=2020');
+    await expect(page.getByTestId('lot-row')).toHaveCount(55);
+
+    await page.getByLabel('Trim').fill('XSE');
+    await page.getByRole('button', { name: 'IAAI market' }).click();
+    await page.getByRole('menuitemcheckbox', { name: 'Ritchie Bros.' }).click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: 'IAAI market' })).toHaveText('US, Canada');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+
+    await expect(page).toHaveURL(/trim=XSE&iaaiMarkets=us%2Cca/);
+    const rows = page.getByTestId('lot-row');
+    await expect(rows.first()).toBeVisible();
+    const count = await rows.count();
+    expect(count).toBeLessThan(55);
+    for (let i = 0; i < count; i++) await expect(rows.nth(i)).toContainText('XSE');
+
+    await page.reload();
+    await expect(page.getByLabel('Trim')).toHaveValue('XSE');
+    await expect(page.getByRole('button', { name: 'IAAI market' })).toHaveText('US, Canada');
+  });
+
   test('narrowing to a single year only shows that year', async ({ page }) => {
     await page.goto('/?make=Toyota&model=Camry&yearFrom=2019&yearTo=2019');
     const rows = page.getByTestId('lot-row');
