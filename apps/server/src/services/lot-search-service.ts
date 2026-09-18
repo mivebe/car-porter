@@ -45,7 +45,14 @@ export function lotSearchCacheKey(source: string, f: LotSearchFilters, page: num
   const norm = (s: string) => s.trim().toLowerCase();
   const trim = trimWords(f.trim ?? '', f.make, f.model).join(' ');
   const markets = source === 'iaai' ? [...(f.iaaiMarkets ?? [])].sort().join(',') : '';
-  const extra = `${trim ? `:t=${trim}` : ''}${markets ? `:m=${markets}` : ''}`;
+  const options = [
+    trim && `t=${trim}`,
+    markets && `m=${markets}`,
+    f.bodyStyle && `b=${norm(f.bodyStyle)}`,
+    f.transmission && `x=${f.transmission}`,
+    f.engine && `e=${f.engine}`,
+  ].filter(Boolean);
+  const extra = options.map((o) => `:${o}`).join('');
   return `${LOT_SEARCH_CACHE_PREFIX}${source}:${norm(f.make)}:${norm(f.model)}:${f.yearFrom}-${f.yearTo}${extra}:p${page}`;
 }
 
@@ -58,13 +65,25 @@ export function createLotSearchService(deps: {
   async function searchSource(adapter: AuctionSearchAdapter, filters: LotSearchFilters, page: number, force: boolean) {
     // site names are re-read on an explicit refresh of the first page only
     const matched = await deps.aliases.resolve(adapter, filters, force && page === 1);
-    const { yearFrom, yearTo, iaaiMarkets } = filters;
+    const { yearFrom, yearTo, iaaiMarkets, transmission } = filters;
     // the site narrows by one trim word, every word is then checked here
     const words = trimWords(filters.trim ?? '', filters.make, filters.model);
     const keyword = trimKeyword(words);
-    const query = { ...matched, yearFrom, yearTo, ...(keyword ? { keyword } : {}), ...(iaaiMarkets?.length ? { iaaiMarkets } : {}) };
+    const found = matched.makes.length > 0 && matched.models.length > 0;
+    const options = found ? await deps.aliases.resolveOptions(adapter, matched, filters, force && page === 1) : {};
+    const query = {
+      ...matched,
+      yearFrom,
+      yearTo,
+      ...(keyword ? { keyword } : {}),
+      ...(iaaiMarkets?.length ? { iaaiMarkets } : {}),
+      ...(transmission ? { transmission } : {}),
+      ...options,
+    };
+    // a body style or engine the site has no values for finds nothing there
+    const none = Object.values(options).some((values) => values.length === 0);
     const result: LotSearchPage =
-      matched.makes.length > 0 && matched.models.length > 0
+      found && !none
         ? await adapter.search(query, page)
         : { lots: [], total: 0, page, pageSize: AUCTION_PAGE_SIZE };
     return { ...result, lots: result.lots.filter((l) => lotMatchesTrim(l, words)), matched };

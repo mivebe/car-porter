@@ -1,3 +1,4 @@
+import type { Transmission } from './matching.ts';
 import type { MarketSource } from './settings.ts';
 
 /**
@@ -110,4 +111,9 @@ export interface LotSearchFilters {
   trim?: string;
   /** IAAI marketplaces to search; empty or missing = all. */
   iaaiMarkets?: IaaiMarket[];
+  /** One of our body styles (see the body aliases), e.g. "Coupe". */
+  bodyStyle?: string;
+  transmission?: Transmission;
+  /** Displacement in liters with one decimal, e.g. "6.2". */
+  engine?: string;
 }

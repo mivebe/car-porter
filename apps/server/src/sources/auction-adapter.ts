@@ -1,4 +1,4 @@
-import type { AuctionSource, IaaiMarket, LotSearchPage } from '@car-porter/core';
+import type { AuctionSource, IaaiMarket, LotSearchPage, Transmission } from '@car-porter/core';
 
 export const AUCTION_PAGE_SIZE = 100;
 
@@ -21,6 +21,17 @@ export interface AuctionQuery extends YearRange {
   keyword?: string | null;
   /** IAAI only; empty or missing = all marketplaces. */
   iaaiMarkets?: IaaiMarket[];
+  /** Site body names, any of them. */
+  bodyStyles?: string[];
+  transmission?: Transmission;
+  /** Site engine values, any of them. */
+  engines?: string[];
+}
+
+/** The site's own body and engine values for a make/model search, to filter by exactly. */
+export interface OptionFacets {
+  body: ExternalFacet[];
+  engine: ExternalFacet[];
 }
 
 export interface AuctionSearchAdapter {
@@ -31,6 +42,8 @@ export interface AuctionSearchAdapter {
   makeFacets(years: YearRange): Promise<ExternalFacet[]>;
   /** Model names under any of the given site makes within the years. */
   modelFacets(makes: string[], years: YearRange): Promise<ExternalFacet[]>;
+  /** Body and engine values within the makes/models/years (all cars when both are empty). */
+  optionFacets(query: Pick<AuctionQuery, 'makes' | 'models'> & YearRange): Promise<OptionFacets>;
   /** `page` is 1-based. */
   search(query: AuctionQuery, page: number): Promise<LotSearchPage>;
 }

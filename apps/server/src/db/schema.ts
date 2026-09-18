@@ -153,7 +153,7 @@ export const vehicleAliases = sqliteTable(
   'vehicle_aliases',
   {
     source: text('source', { enum: ['copart', 'iaai'] }).notNull(),
-    kind: text('kind', { enum: ['make', 'model'] }).notNull(),
+    kind: text('kind', { enum: ['make', 'model', 'body'] }).notNull(),
     externalName: text('external_name').notNull(),
     canonicalMake: text('canonical_make').notNull(),
     canonical: text('canonical').notNull(),

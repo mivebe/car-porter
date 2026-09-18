@@ -148,6 +148,43 @@ describe('/api/lots/search', () => {
     expect(seen.at(-1)).not.toHaveProperty('iaaiMarkets');
   });
 
+  it('filters by body style, transmission and engine in each site’s own values', async () => {
+    const seen: AuctionQuery[] = [];
+    const recording = (adapter: AuctionSearchAdapter): AuctionSearchAdapter => ({
+      ...adapter,
+      search: (f, p) => {
+        seen.push(f);
+        return adapter.search(f, p);
+      },
+    });
+    app = await withAdapters(createMockAuctionAdapters().map(recording));
+    const res = await app.inject({ method: 'GET', url: url({ ...camry, bodyStyle: 'sedan', transmission: 'automatic', engine: '3.5' }) });
+    expect(seen.map(({ bodyStyles, transmission, engines }) => ({ bodyStyles, transmission, engines }))).toEqual([
+      { bodyStyles: ['SEDAN'], transmission: 'automatic', engines: ['3.5L  6', '3.5L 6'] },
+      { bodyStyles: ['Sedan', 'Sedan 4 Door', 'Sedan 4 Dr.'], transmission: 'automatic', engines: ['3.5 L'] },
+    ]);
+    const lots = res.json().lots as { engine: string }[];
+    expect(lots.length).toBeGreaterThan(0);
+    expect(lots.every((l) => l.engine.startsWith('3.5'))).toBe(true);
+
+    // no site value maps to Wagon: the sites are not searched
+    const wagons = await app.inject({ method: 'GET', url: url({ ...camry, bodyStyle: 'Wagon' }) });
+    expect(wagons.json().sources.map((s: { total: number }) => s.total)).toEqual([0, 0]);
+    expect(seen).toHaveLength(2);
+
+    // body names are aliases: moving Copart's SEDAN to Wagon changes what Wagon searches
+    await app.inject({
+      method: 'PUT',
+      url: '/api/aliases/assignment',
+      payload: { changes: [{ source: 'copart', kind: 'body', externalName: 'SEDAN', action: 'assign', targets: ['Wagon'] }] },
+    });
+    await app.inject({ method: 'GET', url: url({ ...camry, bodyStyle: 'Wagon' }) });
+    expect(seen.at(-1)?.bodyStyles).toEqual(['SEDAN']);
+    const bodies = (await app.inject({ method: 'GET', url: '/api/aliases/canonical?kind=body' })).json().items as { name: string; siteNames: number }[];
+    expect(bodies.map((b) => b.name)).toEqual(['Convertible', 'Coupe', 'Hatchback', 'Pickup', 'Sedan', 'SUV', 'Van', 'Wagon']);
+    expect(bodies.find((b) => b.name === 'Wagon')?.siteNames).toBe(1);
+  });
+
   it('validates the query', async () => {
     app = await buildApp({ mockSources: true });
     const bad = [
@@ -158,6 +195,9 @@ describe('/api/lots/search', () => {
       { ...camry, yearFrom: 'abc' },
       { ...camry, iaaiMarkets: 'us,mx' },
       { ...camry, trim: 'x'.repeat(41) },
+      { ...camry, transmission: 'cvt' },
+      { ...camry, engine: '6.2L' },
+      { ...camry, engine: '123' },
     ];
     for (const q of bad) {
       expect((await app.inject({ method: 'GET', url: url(q) })).statusCode, JSON.stringify(q)).toBe(400);

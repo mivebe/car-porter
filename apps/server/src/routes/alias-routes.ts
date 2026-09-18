@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { ScanRunningError, type AliasScanService } from '../services/alias-scan-service.ts';
 import { ALIAS_STATUSES, type AliasStatus, type VehicleAliasService } from '../services/vehicle-alias-service.ts';
 
-const kind = z.enum(['make', 'model']);
+const kind = z.enum(['make', 'model', 'body']);
 const listQuery = z.object({
   kind,
   source: z.enum(AUCTION_SOURCES).optional(),
@@ -21,7 +21,7 @@ const aliasKey = z
     externalName: z.string().min(1),
     make: z.string().trim().optional(),
   })
-  .refine((k) => k.kind === 'make' || !!k.make, { message: 'make is required for models', path: ['make'] });
+  .refine((k) => k.kind !== 'model' || !!k.make, { message: 'make is required for models', path: ['make'] });
 const change = z.discriminatedUnion('action', [
   z.object({ action: z.literal('assign'), targets: z.array(z.string().trim().min(1)).max(50) }),
   z.object({ action: z.literal('ignore') }),
@@ -34,7 +34,7 @@ const assignmentBody = z.object({
     .min(1)
     .max(1000)
     .refine((cs) => cs.every((c) => c.kind === 'model' || c.action !== 'assign' || c.targets.length <= 1), {
-      message: 'a make maps to one make',
+      message: 'a make or body style maps to one target',
     }),
 });
 const canonicalQuery = z.object({

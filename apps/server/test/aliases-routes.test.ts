@@ -40,7 +40,7 @@ describe('/api/aliases', () => {
       ['iaai', 'GREAT DANE TRAILERS'],
     ]);
     expect((await app.inject({ method: 'GET', url: '/api/aliases/summary' })).json()).toEqual({
-      unassigned: { make: 2, model: 0 },
+      unassigned: { make: 2, model: 0, body: 0 },
     });
 
     const res = await assign(app, [{ source: 'copart', kind: 'make', externalName: 'GREAT DANE TRAILERS' }], { action: 'ignore' });
@@ -110,7 +110,7 @@ describe('/api/aliases', () => {
     expect((await app.inject({ method: 'GET', url: '/api/aliases?kind=nope' })).statusCode).toBe(400);
   });
 
-  it('scans every make and its models in the background', async () => {
+  it('scans every make, its models and the body styles in the background', async () => {
     app = await buildApp({ mockSources: true });
     const started = await app.inject({ method: 'POST', url: '/api/aliases/scan', payload: {} });
     expect(started.statusCode).toBe(202);
@@ -124,8 +124,14 @@ describe('/api/aliases', () => {
 
     expect(status.state).toBe('done');
     expect(status.sources).toEqual([
-      expect.objectContaining({ source: 'copart', phase: 'done', done: 2, total: 2, requests: 3, failed: [] }),
-      expect.objectContaining({ source: 'iaai', phase: 'done', done: 2, total: 2, requests: 3, failed: [] }),
+      expect.objectContaining({ source: 'copart', phase: 'done', done: 2, total: 2, requests: 4, failed: [] }),
+      expect.objectContaining({ source: 'iaai', phase: 'done', done: 2, total: 2, requests: 4, failed: [] }),
+    ]);
+    const bodies = await entries(app, { kind: 'body', source: 'iaai' });
+    expect(bodies.items.map((e) => [e.externalName, e.auto.targets, e.status])).toEqual([
+      ['Sedan', ['Sedan'], 'auto'],
+      ['Sedan 4 Door', ['Sedan'], 'auto'],
+      ['Sedan 4 Dr.', ['Sedan'], 'auto'],
     ]);
     const toyota = await entries(app, { kind: 'model', source: 'copart', make: 'Toyota' });
     expect(toyota.items.map((e) => e.externalName)).toEqual(['CAMRY', 'COROLLA', 'RAV4', 'CAMARY']);

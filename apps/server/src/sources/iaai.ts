@@ -1,4 +1,4 @@
-import type { IaaiMarket, Lot, LotSearchPage } from '@car-porter/core';
+import type { IaaiMarket, Lot, LotSearchPage, Transmission } from '@car-porter/core';
 import * as cheerio from 'cheerio';
 import type { Page } from 'patchright';
 import type { BrowserManager } from '../scraping/browser.ts';
@@ -11,6 +11,7 @@ import {
   type AuctionQuery,
   type AuctionSearchAdapter,
   type ExternalFacet,
+  type OptionFacets,
   type YearRange,
 } from './auction-adapter.ts';
 
@@ -45,12 +46,21 @@ export const IAAI_MARKET_NAMES: Record<IaaiMarket, string> = {
   rb: 'Ritchie Bros.',
 };
 
+/** Transmission facet values per choice (verified live 2026-09-18; the rest is "Unknown"). */
+const TRANSMISSION_VALUES: Record<Transmission, string[]> = {
+  automatic: ['Automatic', 'CVT'],
+  manual: ['Manual'],
+};
+
 /**
  * Request body for IAAI's `POST /Search?c=<ts>` endpoint (returns an HTML results page).
  * Facets inside one `Searches` entry are OR'ed, separate entries are AND'ed.
  */
 export function buildIaaiSearchBody(
-  query: Partial<Pick<AuctionQuery, 'makes' | 'models' | 'keyword' | 'iaaiMarkets'>> & YearRange,
+  query: Partial<
+    Pick<AuctionQuery, 'makes' | 'models' | 'keyword' | 'iaaiMarkets' | 'bodyStyles' | 'transmission' | 'engines'>
+  > &
+    YearRange,
   page: number,
   size = AUCTION_PAGE_SIZE,
 ) {
@@ -62,6 +72,9 @@ export function buildIaaiSearchBody(
       ...(query.models?.length ? [facetSearch('Model', query.models)] : []),
       ...(query.iaaiMarkets?.length ? [facetSearch('Market', query.iaaiMarkets.map((m) => IAAI_MARKET_NAMES[m]))] : []),
       ...(keyword ? [{ Facets: null, FullSearch: keyword, LongRanges: null }] : []),
+      ...(query.bodyStyles?.length ? [facetSearch('BodyStyleName', query.bodyStyles)] : []),
+      ...(query.transmission ? [facetSearch('Transmission', TRANSMISSION_VALUES[query.transmission])] : []),
+      ...(query.engines?.length ? [facetSearch('DisplLiters', query.engines)] : []),
       {
         Facets: null,
         FullSearch: null,
@@ -122,8 +135,8 @@ export function parseIaaiTotal(html: string): number | null {
   return facetGroup(html, 'Year')?.reduce((sum, f) => sum + f.Count, 0) ?? null;
 }
 
-/** Make or Model values in IAAI's own spelling for the current search. */
-export function parseIaaiFacets(html: string, group: 'Make' | 'Model'): ExternalFacet[] {
+/** Facet values (Make, Model, BodyStyleName, DisplLiters) in IAAI's own spelling for the current search. */
+export function parseIaaiFacets(html: string, group: 'Make' | 'Model' | 'BodyStyleName' | 'DisplLiters'): ExternalFacet[] {
   const challenge = detectChallenge(html);
   if (challenge) throw new SourceError('blocked', `iaai: blocked by ${challenge}`);
   const facets = facetGroup(html, group);
@@ -257,6 +270,11 @@ export function createIaaiAdapter(browser: BrowserManager, queue: SourceQueue): 
     makeFacets: (years) => post(buildIaaiSearchBody(years, 1, 1), (html) => parseIaaiFacets(html, 'Make')),
     modelFacets: (makes, years) =>
       post(buildIaaiSearchBody({ makes, ...years }, 1, 1), (html) => parseIaaiFacets(html, 'Model')),
+    optionFacets: (query) =>
+      post(buildIaaiSearchBody(query, 1, 1), (html): OptionFacets => ({
+        body: parseIaaiFacets(html, 'BodyStyleName'),
+        engine: parseIaaiFacets(html, 'DisplLiters'),
+      })),
     search: (query, page) => post(buildIaaiSearchBody(query, page), (html) => parseIaaiSearch(html, page)),
   };
 }

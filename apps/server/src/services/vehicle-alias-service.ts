@@ -1,4 +1,6 @@
 import {
+  BODY_STYLES,
+  mapBodyStyles,
   mapMakes,
   mapMakesByName,
   mapModels,
@@ -7,6 +9,7 @@ import {
   type AliasMapping,
   type AuctionSource,
   type LotSearchFilters,
+  siteEngineLiters,
 } from '@car-porter/core';
 import type { CacheRepository } from '../repositories/cache-repository.ts';
 import type {
@@ -19,7 +22,7 @@ import type {
 } from '../repositories/vehicle-aliases-repository.ts';
 import { cached } from '../scraping/cached.ts';
 import { SourceError } from '../scraping/errors.ts';
-import type { AuctionSearchAdapter, ExternalFacet, YearRange } from '../sources/auction-adapter.ts';
+import type { AuctionQuery, AuctionSearchAdapter, ExternalFacet, YearRange } from '../sources/auction-adapter.ts';
 import type { CatalogService } from '../sources/nhtsa.ts';
 import { LOT_SEARCH_CACHE_PREFIX } from './lot-search-service.ts';
 
@@ -30,6 +33,9 @@ export interface MatchedNames {
   makes: string[];
   models: string[];
 }
+
+/** Body and engine values of a site to search with; missing = not filtered, empty = nothing matches. */
+export type MatchedOptions = Pick<AuctionQuery, 'bodyStyles' | 'engines'>;
 
 /** non_car: automatically recognised as a motorcycle/trailer/bus make, so not waiting for assignment */
 export type AliasStatus = 'unassigned' | 'auto' | 'non_car' | 'manual' | 'ignored';
@@ -126,7 +132,7 @@ export function createVehicleAliasService(deps: {
   cache: CacheRepository;
   aliases: VehicleAliasesRepository;
 }) {
-  async function cachedFacets(source: AuctionSource, key: string, force: boolean, load: () => Promise<ExternalFacet[]>) {
+  async function cachedFacets<T = ExternalFacet[]>(source: AuctionSource, key: string, force: boolean, load: () => Promise<T>) {
     // v2: facets read with the sites' car-only filter; older entries also hold boats and trailers
     const result = await cached(deps.cache, { key: `aliases:v2:${source}:${key}`, source, ttlMs: ALIAS_FACETS_TTL_MS, force }, load);
     if (!result.ok) throw new SourceError(result.error.code, result.error.message);
@@ -211,6 +217,59 @@ export function createVehicleAliasService(deps: {
       })),
     );
     return effective(source, 'model', make, computed);
+  }
+
+  /** Our body styles plus the ones the user made by assigning to them. */
+  async function canonicalBodyStyles(): Promise<string[]> {
+    return [...new Set([...BODY_STYLES, ...(await deps.aliases.manualTargets('body'))])];
+  }
+
+  /** Maps and stores a site's body style facets; returns the effective mappings. */
+  async function applyBodyFacets(source: AuctionSource, facets: ExternalFacet[]) {
+    const computed = mapBodyStyles(await canonicalBodyStyles(), facets.map((f) => f.name));
+    const counts = new Map(facets.map((f) => [f.name, f.count]));
+    await deps.aliases.replaceAuto(
+      { source, kind: 'body' },
+      computed.map((m) => ({
+        externalName: m.external,
+        canonicalMake: '',
+        canonical: m.canonical ?? '',
+        match: m.match === 'manual' ? null : m.match,
+        lotCount: counts.get(m.external) ?? null,
+      })),
+    );
+    return effective(source, 'body', '', computed);
+  }
+
+  /**
+   * The site's body and engine values for the body style / engine filters of a search, read from
+   * the site's facets for the matched makes and models; body names are recorded in the alias table.
+   */
+  async function resolveOptions(
+    adapter: AuctionSearchAdapter,
+    matched: MatchedNames,
+    filters: LotSearchFilters,
+    force = false,
+  ): Promise<MatchedOptions> {
+    if (!filters.bodyStyle && !filters.engine) return {};
+    const years = { yearFrom: filters.yearFrom, yearTo: filters.yearTo };
+    const names = (list: string[]) => normalizeText([...list].sort().join('|'));
+    const facets = await cachedFacets(
+      adapter.source,
+      `options:${names(matched.makes)}:${names(matched.models)}:${years.yearFrom}-${years.yearTo}`,
+      force,
+      () => adapter.optionFacets({ ...matched, ...years }),
+    );
+    const options: MatchedOptions = {};
+    if (filters.bodyStyle) {
+      const target = normalizeText(filters.bodyStyle);
+      const rows = await applyBodyFacets(adapter.source, facets.body);
+      options.bodyStyles = rows.filter((m) => m.canonical && normalizeText(m.canonical) === target).map((m) => m.external);
+    }
+    if (filters.engine) {
+      options.engines = facets.engine.filter((f) => siteEngineLiters(f.name) === filters.engine).map((f) => f.name);
+    }
+    return options;
   }
 
   /** Site make names currently tied to a canonical make, from stored rows (no site request). */
@@ -341,7 +400,9 @@ export function createVehicleAliasService(deps: {
     const names =
       filter.kind === 'make'
         ? await canonicalMakes()
-        : [...(await catalogModels(make)), ...(await deps.aliases.manualTargets('model', make))];
+        : filter.kind === 'body'
+          ? await canonicalBodyStyles()
+          : [...(await catalogModels(make)), ...(await deps.aliases.manualTargets('model', make))];
     const { items } = await entries({ kind: filter.kind, source: filter.source, make: filter.kind === 'model' ? make : undefined, limit: Infinity });
 
     const byKey = new Map<string, CanonicalItem>();
@@ -374,12 +435,15 @@ export function createVehicleAliasService(deps: {
 
   /** Unassigned site names per kind, across sites and makes. */
   async function unassignedCounts(): Promise<Record<AliasKind, number>> {
-    const [makes, models] = await Promise.all([entries({ kind: 'make', limit: 0 }), entries({ kind: 'model', limit: 0 })]);
-    return { make: makes.counts.unassigned, model: models.counts.unassigned };
+    const [makes, models, bodies] = await Promise.all(
+      (['make', 'model', 'body'] as const).map((kind) => entries({ kind, limit: 0 })),
+    );
+    return { make: makes!.counts.unassigned, model: models!.counts.unassigned, body: bodies!.counts.unassigned };
   }
 
   return {
     resolve,
+    resolveOptions,
     entries,
     assign,
     canonicalItems,
@@ -387,6 +451,7 @@ export function createVehicleAliasService(deps: {
     unassignedCounts,
     applyMakeFacets,
     applyModelFacets,
+    applyBodyFacets,
     storedExternalMakes,
     canonicalMakeName,
     allYears: ALL_YEARS,

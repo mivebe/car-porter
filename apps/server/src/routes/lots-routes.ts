@@ -1,4 +1,4 @@
-import { IAAI_MARKETS, lotInputsPatchSchema } from '@car-porter/core';
+import { IAAI_MARKETS, lotInputsPatchSchema, TRANSMISSIONS } from '@car-porter/core';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { LotInputsRepository } from '../repositories/lot-inputs-repository.ts';
@@ -23,6 +23,15 @@ const searchQuery = z
       .pipe(z.array(z.enum(IAAI_MARKETS)))
       // all of them = no filter, so both share one cache entry
       .transform((v) => (v.length === IAAI_MARKETS.length ? [] : v)),
+    bodyStyle: z.string().trim().min(1).max(40).optional(),
+    transmission: z.enum(TRANSMISSIONS as ['automatic', 'manual']).optional(),
+    /** liters, e.g. "6.2" or "2" */
+    engine: z
+      .string()
+      .trim()
+      .regex(/^\d{1,2}(\.\d)?$/)
+      .transform((v) => Number(v).toFixed(1))
+      .optional(),
     page: z.coerce.number().int().min(1).max(100).default(1),
     refresh: z
       .enum(['0', '1', 'true', 'false'])

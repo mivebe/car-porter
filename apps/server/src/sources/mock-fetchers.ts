@@ -1,12 +1,18 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import type { AuctionSource } from '@car-porter/core';
-import { AUCTION_PAGE_SIZE, type AuctionQuery, type AuctionSearchAdapter, type ExternalFacet } from './auction-adapter.ts';
+import { siteEngineLiters, type AuctionSource } from '@car-porter/core';
+import {
+  AUCTION_PAGE_SIZE,
+  type AuctionQuery,
+  type AuctionSearchAdapter,
+  type ExternalFacet,
+  type OptionFacets,
+} from './auction-adapter.ts';
 import type { BidfaxSearcher, HtmlFetcher } from './bidfax-client.ts';
 import { bidfaxListingUrl } from './bidfax.ts';
-import { parseCopartSearch, type CopartLogin } from './copart.ts';
-import { parseIaaiSearch } from './iaai.ts';
+import { parseCopartFacets, parseCopartSearch, type CopartLogin } from './copart.ts';
+import { parseIaaiFacets, parseIaaiSearch } from './iaai.ts';
 import { statVinUrl } from './statvin.ts';
 import { autoscout24SearchUrl } from './autoscout24.ts';
 import { carsBgBrandUrl, carsBgHomeUrl, carsBgSearchUrl } from './carsbg.ts';
@@ -168,16 +174,22 @@ const isRecordedSearch = (q: AuctionQuery) =>
 /**
  * Fixture-backed auction adapters: Toyota Camry searches overlapping 2018–2020 return the
  * recorded pages (filtered to the requested years); Toyota Corolla fails (see MOCK_ERROR_MODEL);
- * everything else returns no results. Facets come from MOCK_MAKES / MOCK_MODELS.
+ * everything else returns no results. Facets come from MOCK_MAKES / MOCK_MODELS, body and engine
+ * facets from the recorded Camry page (engines also narrow its lots; body styles are not on lots).
  */
 export function createMockAuctionAdapters(): AuctionSearchAdapter[] {
   const make = (
     source: AuctionSource,
     pages: Record<number, () => Promise<ReturnType<typeof parseCopartSearch>>>,
+    options: () => Promise<OptionFacets>,
   ): AuctionSearchAdapter => ({
     source,
     makeFacets: async () => MOCK_MAKES,
     modelFacets: async (makes) => makes.flatMap((m) => MOCK_MODELS[m] ?? []),
+    optionFacets: async (query) =>
+      isRecordedSearch({ ...query }) || (query.makes.length === 0 && query.models.length === 0)
+        ? options()
+        : { body: [], engine: [] },
     async search(filters, page) {
       if (isErrorSearch(filters)) {
         return source === 'copart' ? parseCopartSearch(CHALLENGE_PAGE, page) : parseIaaiSearch(UNRECOGNIZED_PAGE, page);
@@ -187,21 +199,39 @@ export function createMockAuctionAdapters(): AuctionSearchAdapter[] {
         return { lots: [], total: 0, page, pageSize: AUCTION_PAGE_SIZE };
       }
       const result = await load();
+      const engines = filters.engines?.map(siteEngineLiters);
       return {
         ...result,
-        lots: result.lots.filter((l) => l.year >= filters.yearFrom && l.year <= filters.yearTo),
+        lots: result.lots.filter(
+          (l) =>
+            l.year >= filters.yearFrom &&
+            l.year <= filters.yearTo &&
+            (!engines || engines.includes(l.engine ? siteEngineLiters(l.engine) : null)),
+        ),
       };
     },
   });
 
   return [
-    make('copart', {
-      1: async () => parseCopartSearch(await readFixture('copart/search-toyota-camry-2018-2020.json'), 1),
-    }),
-    make('iaai', {
-      1: async () => parseIaaiSearch(await readFixture('iaai/search-toyota-camry-2018-2020-p1.html'), 1),
-      2: async () => parseIaaiSearch(await readFixture('iaai/search-toyota-camry-2018-2020-p2.html'), 2),
-    }),
+    make(
+      'copart',
+      { 1: async () => parseCopartSearch(await readFixture('copart/search-toyota-camry-2018-2020.json'), 1) },
+      async () => {
+        const text = await readFixture('copart/search-toyota-camry-2018-2020.json');
+        return { body: parseCopartFacets(text, 'BODY'), engine: parseCopartFacets(text, 'ENGN') };
+      },
+    ),
+    make(
+      'iaai',
+      {
+        1: async () => parseIaaiSearch(await readFixture('iaai/search-toyota-camry-2018-2020-p1.html'), 1),
+        2: async () => parseIaaiSearch(await readFixture('iaai/search-toyota-camry-2018-2020-p2.html'), 2),
+      },
+      async () => {
+        const html = await readFixture('iaai/search-toyota-camry-2018-2020-p1.html');
+        return { body: parseIaaiFacets(html, 'BodyStyleName'), engine: parseIaaiFacets(html, 'DisplLiters') };
+      },
+    ),
   ];
 }
 

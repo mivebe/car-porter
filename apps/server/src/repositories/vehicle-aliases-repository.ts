@@ -3,7 +3,7 @@ import { and, asc, eq, inArray, ne, type SQL } from 'drizzle-orm';
 import type { Db } from '../db/client.ts';
 import { vehicleAliases } from '../db/schema.ts';
 
-export type AliasKind = 'make' | 'model';
+export type AliasKind = 'make' | 'model' | 'body';
 export type AliasOrigin = 'auto' | 'manual';
 export type AutoMatch = 'exact' | 'rule' | 'fuzzy' | 'non_car';
 /** What a manual row records: assigned targets, ignored, or explicitly taken off every target. */
@@ -13,9 +13,9 @@ export interface VehicleAlias {
   source: AuctionSource;
   kind: AliasKind;
   externalName: string;
-  /** make rows: the make it maps to ('' = none); model rows: the make it was listed under */
+  /** make rows: the make it maps to ('' = none); model rows: the make it was listed under; '' for body rows */
   canonicalMake: string;
-  /** model rows: the model it maps to ('' = none); '' for make rows */
+  /** model / body rows: the model or body style it maps to ('' = none); '' for make rows */
   canonical: string;
   origin: AliasOrigin;
   /** auto rows: how it matched; manual rows: 'unassigned' or null */

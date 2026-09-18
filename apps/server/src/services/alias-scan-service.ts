@@ -7,13 +7,13 @@ export type ScanState = 'idle' | 'running' | 'done' | 'cancelled';
 
 export interface SourceScanProgress {
   source: AuctionSource;
-  phase: 'queued' | 'makes' | 'models' | 'done' | 'failed' | 'cancelled';
+  phase: 'queued' | 'makes' | 'bodies' | 'models' | 'done' | 'failed' | 'cancelled';
   /** models phase: makes finished / to do */
   done: number;
   total: number;
   /** requests sent to the site so far */
   requests: number;
-  /** makes phase: the year range being read; models phase: the make */
+  /** makes / bodies phase: the year range being read; models phase: the make */
   current: string | null;
   /** makes whose model list could not be read */
   failed: { make: string; error: SourceErrorInfo }[];
@@ -68,6 +68,21 @@ export function createAliasScanService(deps: { adapters: AuctionSearchAdapter[];
         progress.phase = 'makes';
         const rows = await deps.aliases.applyMakeFacets(source, await readMakes());
         makes = [...new Set(rows.map((r) => r.canonical).filter((c): c is string => !!c))].sort();
+
+        progress.phase = 'bodies';
+        const bodies = await readFacetsFully(
+          adapter.facetLimit,
+          years,
+          async (y) => (await adapter.optionFacets({ makes: [], models: [], ...y })).body,
+          {
+            shouldStop: stop,
+            onRequest: (y) => {
+              progress.requests++;
+              progress.current = y.yearFrom === y.yearTo ? String(y.yearFrom) : `${y.yearFrom}–${y.yearTo}`;
+            },
+          },
+        );
+        await deps.aliases.applyBodyFacets(source, bodies);
       }
 
       progress.phase = 'models';

@@ -1,4 +1,4 @@
-import type { Lot, LotSearchPage } from '@car-porter/core';
+import type { Lot, LotSearchPage, Transmission } from '@car-porter/core';
 import type { Page } from 'patchright';
 import { z } from 'zod';
 import type { BrowserManager } from '../scraping/browser.ts';
@@ -11,6 +11,7 @@ import {
   type AuctionQuery,
   type AuctionSearchAdapter,
   type ExternalFacet,
+  type OptionFacets,
   type YearRange,
 } from './auction-adapter.ts';
 
@@ -18,6 +19,14 @@ const ORIGIN = 'https://www.copart.com';
 const PROFILE = 'copart';
 
 const quote = (value: string) => `"${value.trim().toUpperCase().replace(/"/g, '')}"`;
+/** Body and engine values are filtered in their exact facet spelling ("2.0L  4", "Sedan"). */
+const exact = (value: string) => `"${value.replace(/"/g, '')}"`;
+
+/** Transmission facet values per choice (verified live 2026-09-18; the rest is NONE / UNKNOWN). */
+const TRANSMISSION_VALUES: Record<Transmission, string[]> = {
+  automatic: ['AUTOMATIC', 'Automatic'],
+  manual: ['MANUAL', 'Manual'],
+};
 
 /**
  * Cars, SUVs, pickups and vans. Copart's other types (motorcycles, boats, trailers, heavy trucks,
@@ -30,7 +39,9 @@ const AUTOMOBILES = 'vehicle_type_code:VEHTYPE_V';
  * Filter map for the search API. Values under one key are OR'ed, keys are AND'ed. Facets are
  * computed "multi-select" style: a key's own facet ignores that key's filter.
  */
-export function copartFilter(query: Partial<Pick<AuctionQuery, 'makes' | 'models'>> & YearRange) {
+export function copartFilter(
+  query: Partial<Pick<AuctionQuery, 'makes' | 'models' | 'bodyStyles' | 'transmission' | 'engines'>> & YearRange,
+) {
   return {
     VEHT: [AUTOMOBILES],
     ...(query.makes?.length ? { MAKE: query.makes.map((m) => `lot_make_desc:${quote(m)}`) } : {}),
@@ -38,6 +49,11 @@ export function copartFilter(query: Partial<Pick<AuctionQuery, 'makes' | 'models
       ? { MODL: query.models.map((m) => `lot_model_desc:${quote(m)}`) }
       : {}),
     YEAR: [`lot_year:[${query.yearFrom} TO ${query.yearTo}]`],
+    ...(query.bodyStyles?.length ? { BODY: query.bodyStyles.map((b) => `body_style:${exact(b)}`) } : {}),
+    ...(query.transmission
+      ? { TMTP: TRANSMISSION_VALUES[query.transmission].map((t) => `transmission_type:${exact(t)}`) }
+      : {}),
+    ...(query.engines?.length ? { ENGN: query.engines.map((e) => `engine:${exact(e)}`) } : {}),
   };
 }
 
@@ -165,11 +181,11 @@ const facetFields = z.array(
 export const COPART_FACET_LIMIT = 100;
 
 /**
- * Facet values of one filter key ("MAKE", "MODL") in the site's exact spelling, taken from the
- * facet query (`lot_make_desc:"MERCEDES-BENZ"`) rather than the prettified display name.
- * Copart only returns the highest-count values of a facet (100–125 seen), so callers narrow by years.
+ * Facet values of one filter key ("MAKE", "MODL", "BODY", "ENGN") in the site's exact spelling,
+ * taken from the facet query (`lot_make_desc:"MERCEDES-BENZ"`) rather than the prettified display
+ * name. Copart only returns the highest-count values of a facet (100–125 seen), so callers narrow by years.
  */
-export function parseCopartFacets(text: string, code: 'MAKE' | 'MODL'): ExternalFacet[] {
+export function parseCopartFacets(text: string, code: 'MAKE' | 'MODL' | 'BODY' | 'ENGN'): ExternalFacet[] {
   const fields = facetFields.safeParse(parseResponse(text).facetFields);
   if (!fields.success) throw new SourceError('parse_failed', 'copart: unexpected facet fields');
   return (fields.data.find((f) => f.quickPickCode === code)?.facetCounts ?? [])
@@ -257,6 +273,11 @@ export function createCopartAdapter(
       post(facetBody(copartFilter(years)), (text) => parseCopartFacets(text, 'MAKE')),
     modelFacets: (makes, years) =>
       post(facetBody(copartFilter({ makes, ...years })), (text) => parseCopartFacets(text, 'MODL')),
+    optionFacets: (query) =>
+      post(facetBody(copartFilter(query)), (text): OptionFacets => ({
+        body: parseCopartFacets(text, 'BODY'),
+        engine: parseCopartFacets(text, 'ENGN'),
+      })),
     search: (query, page) =>
       post(buildCopartSearchBody(query, page), (text) => parseCopartSearch(text, page)),
   };

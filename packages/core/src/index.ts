@@ -5,6 +5,7 @@ export * from './lot-inputs.ts';
 export * from './market.ts';
 export * from './matching.ts';
 export * from './money.ts';
+export * from './search-options.ts';
 export * from './settings.ts';
 export * from './sources.ts';
 export * from './stats.ts';
