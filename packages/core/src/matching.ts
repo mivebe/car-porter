@@ -106,14 +106,27 @@ function compare<T>(a: T | null | undefined, b: T | null | undefined, eq: (x: T,
   return eq(a, b) ? ('match' as const) : ('mismatch' as const);
 }
 
+/**
+ * Trim words are equal, or one is a numbered level of the other ("1SS", "2SS" and "3LT" are
+ * levels of SS and LT, which titles often leave out). "LT1" is its own trim, not a level of LT.
+ */
+function trimWordMatches(a: string, b: string): boolean {
+  if (a === b) return true;
+  const level = /^\d([a-z]{2,3})$/;
+  return a.match(level)?.[1] === b || b.match(level)?.[1] === a;
+}
+
+/** Performance packages that set a car's price apart, so both trims have them or neither does. */
+const PACKAGES = ['1le'];
+
 export function trimMatches(a: string, b: string): boolean {
-  const na = normalizeText(a);
-  const nb = normalizeText(b);
   if (compact(a) === compact(b)) return true;
-  const ta = new Set(na.split(' '));
-  const tb = new Set(nb.split(' '));
+  const ta = normalizeText(a).split(' ');
+  const tb = normalizeText(b).split(' ');
+  if (PACKAGES.some((p) => ta.includes(p) !== tb.includes(p))) return false;
+  const within = (xs: string[], ys: string[]) => xs.every((x) => ys.some((y) => trimWordMatches(x, y)));
   // one trim's words are all contained in the other ("SE" ⊂ "SE AWD")
-  return [...ta].every((t) => tb.has(t)) || [...tb].every((t) => ta.has(t));
+  return within(ta, tb) || within(tb, ta);
 }
 
 function finalize<K extends string>(criteria: Record<K, CriterionResult>, required: K[]): MatchResult<K> {

@@ -106,6 +106,17 @@ describe('normalizers', () => {
     expect(trimMatches('Sport-Line', 'sportline')).toBe(true);
   });
 
+  it('matches a bare trim with its numbered levels', () => {
+    expect(trimMatches('SS', '1SS')).toBe(true);
+    expect(trimMatches('2ss', 'SS')).toBe(true);
+    expect(trimMatches('SS 1LE', '1SS 1LE')).toBe(true);
+    expect(trimMatches('SS 1LE', '1SS')).toBe(false);
+    expect(trimMatches('RWD  ZL1', 'Zl1')).toBe(true);
+    expect(trimMatches('1SS', '2SS')).toBe(false);
+    expect(trimMatches('1LT', 'LT1')).toBe(false);
+    expect(trimMatches('SS', 'ZL1')).toBe(false);
+  });
+
   it('normalizes fuel in English and Bulgarian', () => {
     expect(normalizeFuel('GAS')).toBe('petrol');
     expect(normalizeFuel('Flexible Fuel')).toBe('petrol');
