@@ -12,7 +12,7 @@ describe('settings', () => {
       sofiaToBgEur: 250,
     });
     expect(DEFAULT_SETTINGS.verdict.worthThresholdEur).toBe(3000);
-    expect(DEFAULT_SETTINGS.bidfax).toEqual({ maxMonths: 12, maxMatches: 20, maxPages: 20 });
+    expect(DEFAULT_SETTINGS.bidfax).toEqual({ maxMonths: 12, maxMatches: 20, maxPages: 30 });
     expect(DEFAULT_SETTINGS.ui).toEqual({ language: 'en', theme: 'dark', palette: 'champagne' });
   });
 

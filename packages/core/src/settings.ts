@@ -61,7 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
     sofiaToBgEur: 250,
   },
   verdict: { worthThresholdEur: 3000 },
-  bidfax: { maxMonths: 12, maxMatches: 20, maxPages: 20 },
+  bidfax: { maxMonths: 12, maxMatches: 20, maxPages: 30 },
   market: {
     mileageRangeKm: 30_000,
     maxPages: 10,
