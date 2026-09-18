@@ -55,6 +55,15 @@ describe('pickBidfaxModel', () => {
     expect(pickBidfaxModel(models, 'CHR')?.slug).toBe('c-hr');
     expect(pickBidfaxModel(models, 'Supra')).toBeNull();
   });
+
+  it('sends AMG performance models to the AMG catch-all', () => {
+    const mercedes = [
+      { slug: 'amg-gt', name: 'AMG' },
+      { slug: 'c-class', name: 'C-class' },
+    ];
+    expect(pickBidfaxModel(mercedes, 'C 63 AMG')?.slug).toBe('amg-gt');
+    expect(pickBidfaxModel(mercedes, 'C')?.slug).toBe('c-class');
+  });
 });
 
 describe('nextCoverage', () => {

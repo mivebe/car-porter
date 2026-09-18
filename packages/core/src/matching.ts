@@ -138,6 +138,17 @@ export function auctionModelMatches(lotModel: string, record: { make: string | n
 }
 
 /**
+ * The lot as bidfax files it. A Copart "C" with trim "63 AMG" is a C 63 AMG, which bidfax lists
+ * under its "AMG" model rather than C-Class, so an AMG performance trim moves into the model.
+ */
+export function bidfaxLot(lot: Lot): Lot {
+  if (!lot.trim) return lot;
+  const trim = normalizeText(lot.trim);
+  if (!/\bamg\b/.test(trim) || !/\b(35|43|45|53|55|63|65)\b/.test(trim)) return lot;
+  return { ...lot, model: `${lot.model} ${lot.trim}`, trim: null };
+}
+
+/**
  * Bidfax price-estimate match: make + model + exact year are required; trim, engine and fuel
  * must not conflict (unknown on either side is allowed and reported). `modelName` is the bidfax
  * model the records were listed under ("AMG"), when their stored model is only its slug ("amg-gt").

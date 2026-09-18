@@ -1,4 +1,5 @@
 import {
+  bidfaxLot,
   isWithinMonths,
   modelMatches,
   selectAuctionMatches,
@@ -72,7 +73,10 @@ export interface EstimateResponse {
 /** Best bidfax model for an auction model name: exact (ignoring punctuation) before prefix matches. */
 export function pickBidfaxModel(models: BidfaxModelLink[], lotModel: string): BidfaxModelLink | null {
   const compact = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  // bidfax files every AMG performance model (C 63, GLE 43) under its "AMG" catch-all
+  const amg = /\bamg\b/i.test(lotModel) && /\b(35|43|45|53|55|63|65)\b/.test(lotModel);
   return (
+    (amg ? models.find((m) => compact(m.name) === 'amg') : undefined) ??
     models.find((m) => compact(m.name) === compact(lotModel) || m.slug === bidfaxSlug(lotModel)) ??
     models.find((m) => modelMatches(m.name, lotModel)) ??
     null
@@ -167,7 +171,7 @@ export function createEstimateService(deps: {
   async function loadLot(lotId: string) {
     const found = await deps.lots.get(lotId);
     if (!found) throw new LotNotFoundError(lotId);
-    return found.lot;
+    return bidfaxLot(found.lot);
   }
 
   /** Stored matches only (no network). */

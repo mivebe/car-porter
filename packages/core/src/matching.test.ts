@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  bidfaxLot,
   engineLiters,
   isWithinMonths,
   matchAuctionRecord,
@@ -165,6 +166,15 @@ describe('matchAuctionRecord (bidfax)', () => {
     expect(matchAuctionRecord({ ...c63, model: 'C 63 AMG' }, amg('C 63'), 'AMG').matches).toBe(true);
     expect(matchAuctionRecord(c63, amg('C 43 4Matic'), 'AMG').matches).toBe(false);
     expect(matchAuctionRecord(c63, amg('Cls 63 S 4Matic'), 'AMG').matches).toBe(false);
+  });
+
+  it('reads a Copart AMG trim as part of the model', () => {
+    const copart = bidfaxLot({ ...lot, make: 'MERCEDES-BENZ', model: 'C', trim: '63 AMG', engine: '4.0L 8', fuel: null });
+    expect(copart).toMatchObject({ model: 'C 63 AMG', trim: null });
+    const amg = (trim: string | null) => record({ make: 'mercedes-benz', model: 'amg-gt', trim, engine: null, fuel: null });
+    expect(matchAuctionRecord(copart, amg('C 63 S'), 'AMG').matches).toBe(true);
+    expect(matchAuctionRecord(copart, amg(null), 'AMG').matches).toBe(false);
+    expect(bidfaxLot({ ...lot, trim: 'SE' })).toMatchObject({ model: lot.model, trim: 'SE' });
   });
 
   it('requires make/model/year to be known', () => {
