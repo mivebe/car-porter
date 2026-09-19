@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { index, integer, primaryKey, sqliteTable, text } from 'drizzle-orm/sqlite-core';
-import { ALIAS_SOURCES, type LotSearchFilters } from '@car-porter/core';
+import { ALIAS_SOURCES, type LotSearchFilters, type MarketYearSpan } from '@car-porter/core';
 
 const now = sql`(unixepoch() * 1000)`;
 const timestamp = (name: string) => integer(name, { mode: 'timestamp_ms' });
@@ -38,7 +38,8 @@ export const lotInputs = sqliteTable('lot_inputs', {
   feesReduced: integer('fees_reduced', { mode: 'boolean' }).notNull().default(false),
   includeSofiaToBg: integer('include_sofia_to_bg', { mode: 'boolean' }).notNull().default(true),
   marketMatch: text('market_match', { mode: 'json' })
-    .$type<{ mileage: boolean; transmission: boolean; fuel: boolean }>()
+    // rows saved before the year span existed lack it
+    .$type<{ mileage: boolean; transmission: boolean; fuel: boolean; yearSpan?: MarketYearSpan }>()
     .notNull()
     .default({ mileage: false, transmission: false, fuel: false }),
   /** null = marketplaces from settings */

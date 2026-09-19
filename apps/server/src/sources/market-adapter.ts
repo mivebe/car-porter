@@ -15,11 +15,20 @@ export interface CatalogEntry {
   label: string;
 }
 
-/** A search for one site make + model and an exact year. */
+/** First-registration years searched, both ends included. */
+export interface YearRange {
+  from: number;
+  to: number;
+}
+
+/** A single year is the range from and to that year. */
+export const yearRange = (years: number | YearRange): YearRange => (typeof years === 'number' ? { from: years, to: years } : years);
+
+/** A search for one site make + model and a range of years. */
 export interface MarketQuery {
   make: CatalogEntry;
   model: CatalogEntry;
-  year: number;
+  years: YearRange;
 }
 
 export interface MarketScan {
@@ -41,7 +50,7 @@ export interface MarketAdapter {
   site: MarketSource;
   /** Without one (AutoScout24), the lot's own make and model are searched as given. */
   catalog?: MarketCatalog;
-  /** Searches make + model + exact year; throws `not_found` when the site doesn't know them. */
+  /** Searches make + model + years; throws `not_found` when the site doesn't know them. */
   scan(query: MarketQuery, options: { maxPages: number }): Promise<MarketScan>;
 }
 

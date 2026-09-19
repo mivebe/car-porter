@@ -32,6 +32,8 @@ export function useUpdateLotInputs(id: string) {
       queryClient.setQueryData(key, saved);
       // history is searched by the pasted VIN
       if ('vinOverride' in patch) void queryClient.invalidateQueries({ queryKey: historyKey(id) });
+      // the stored market search is per year span
+      if ('marketMatch' in patch) void queryClient.invalidateQueries({ queryKey: ['market', id] });
     },
   });
 }

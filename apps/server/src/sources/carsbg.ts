@@ -10,8 +10,10 @@ import {
   cleanText,
   parseKm,
   parsePriceEurCents,
+  yearRange,
   type CatalogEntry,
   type MarketAdapter,
+  type YearRange,
 } from './market-adapter.ts';
 
 export const CARSBG_ORIGIN = 'https://www.cars.bg';
@@ -22,8 +24,9 @@ export const carsBgHomeUrl = () => `${CARSBG_ORIGIN}/`;
 /** A make's result page lists that make's models as `models[]` checkboxes. */
 export const carsBgBrandUrl = (brandId: string) => `${LIST}&brandId=${brandId}`;
 
-export function carsBgSearchUrl(brandId: string, modelId: string, year: number, page = 1): string {
-  return `${LIST}&brandId=${brandId}&models%5B%5D=${modelId}&yearFrom=${year}&yearTo=${year}${page > 1 ? `&page=${page}` : ''}`;
+export function carsBgSearchUrl(brandId: string, modelId: string, years: number | YearRange, page = 1): string {
+  const { from, to } = yearRange(years);
+  return `${LIST}&brandId=${brandId}&models%5B%5D=${modelId}&yearFrom=${from}&yearTo=${to}${page > 1 ? `&page=${page}` : ''}`;
 }
 
 export function createCarsBgFetcher(browser: BrowserManager, queue: SourceQueue): HtmlFetcher {
@@ -107,11 +110,11 @@ export function createCarsBgAdapter(fetchHtml: HtmlFetcher, cache: CacheReposito
       models: (brand) =>
         cachedCatalog(cache, `models:${brand.value}`, 'carsBg', async () => parseCarsBgModels(await fetchHtml(carsBgBrandUrl(brand.value)))),
     },
-    async scan({ make: brand, model, year }, { maxPages }) {
+    async scan({ make: brand, model, years }, { maxPages }) {
       const listings: MarketListing[] = [];
       let page = 1;
       for (;;) {
-        const result = parseCarsBgListing(await fetchHtml(carsBgSearchUrl(brand.value, model.value, year, page)), {
+        const result = parseCarsBgListing(await fetchHtml(carsBgSearchUrl(brand.value, model.value, years, page)), {
           make: brand.label,
           model: model.label,
         });
@@ -121,7 +124,7 @@ export function createCarsBgAdapter(fetchHtml: HtmlFetcher, cache: CacheReposito
             listings,
             pagesScanned: page,
             complete: !result.hasNextPage || result.listings.length === 0,
-            searchUrl: carsBgSearchUrl(brand.value, model.value, year),
+            searchUrl: carsBgSearchUrl(brand.value, model.value, years),
           };
         }
         page++;

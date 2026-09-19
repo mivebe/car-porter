@@ -12,6 +12,13 @@ import {
   parseMobileBgMakes,
   parseMobileBgModels,
 } from '../src/sources/mobilebg.ts';
+import {
+  createMobileDeAdapter,
+  mobileDeSearchUrl,
+  parseMobileDeListing,
+  parseMobileDeMakes,
+  parseMobileDeModels,
+} from '../src/sources/mobilede.ts';
 import { createMockMarketFetchers } from '../src/sources/mock-fetchers.ts';
 import { createOlxAdapter, olxOffersUrl, parseOlxMakePage, parseOlxMakes, parseOlxOffers } from '../src/sources/olxbg.ts';
 
@@ -175,6 +182,51 @@ describe('OLX.bg (real recorded pages)', () => {
   });
 });
 
+describe('mobile.de parsers', () => {
+  it('parses makes and models, a series named without "(All)"', () => {
+    const makes = parseMobileDeMakes(fixture('mobilede/makes.html'));
+    expect(makes).toContainEqual({ value: '24100', label: 'Toyota' });
+    expect(makes).toContainEqual({ value: '17200', label: 'Mercedes-Benz' });
+    expect(parseMobileDeModels(fixture('mobilede/make-toyota.html'), '24100')).toContainEqual({ value: '28', label: 'RAV 4' });
+    const mercedes = parseMobileDeModels(fixture('mobilede/make-mercedes-benz.html'), '17200');
+    expect(mercedes).toContainEqual({ value: 'group-6', label: 'C-Class' });
+    expect(mercedes).toContainEqual({ value: '198', label: 'C 63 AMG' });
+  });
+
+  it('searches a series in its own slot', () => {
+    expect(mobileDeSearchUrl('17200', 'group-6', { from: 2016, to: 2022 }, 2)).toBe(
+      'https://suchen.mobile.de/fahrzeuge/search.html?isSearchRequest=true&s=Car&vc=Car&lang=en&ms=17200%3B%3B6%3B&fr=2016%3A2022&pageNumber=2',
+    );
+  });
+
+  it('parses results from the page data with titles and photos from the cards', () => {
+    const { listings, total } = parseMobileDeListing(fixture('mobilede/toyota-camry-2019.html'));
+    expect(total).toBe(11);
+    expect(listings).toHaveLength(11);
+    expect(listings[0]).toEqual({
+      id: 'https://suchen.mobile.de/fahrzeuge/details.html?id=44451159542432',
+      site: 'mobileDe',
+      url: 'https://suchen.mobile.de/fahrzeuge/details.html?id=44451159542432',
+      title: 'Toyota Camry 2.5 VVTi Hybrid Executive Navi GRA LED',
+      year: 2019,
+      make: 'Toyota',
+      model: 'Camry',
+      trim: null,
+      fuel: 'Hybrid (petrol/electric)',
+      transmission: 'Automatic',
+      mileageKm: 46_000,
+      priceEurCents: 2_693_000,
+      location: 'DE, Singen',
+      imageUrl: 'https://img.classistatic.de/api/v1/mo-prod/images/e9/e9edfd4d-3094-45e0-bd02-df3f2cc370bf?rule=mo-360',
+      importOffer: false,
+    });
+    expect(() => parseMobileDeListing('<html><body><div id="sec-if-cpt-container"></div></body></html>')).toThrow(
+      expect.objectContaining({ code: 'blocked' }),
+    );
+    expect(() => parseMobileDeListing('<html><body></body></html>')).toThrow(expect.objectContaining({ code: 'parse_failed' }));
+  });
+});
+
 describe('market adapters', () => {
   let database: Database;
   const fetchers = createMockMarketFetchers();
@@ -190,14 +242,14 @@ describe('market adapters', () => {
     const adapter = createMobileBgAdapter(fetch, createCacheRepository(database.db));
     expect(await adapter.catalog!.makes()).toContainEqual({ value: 'toyota', label: 'Toyota' });
     expect(await adapter.catalog!.models(entry('toyota'))).toContainEqual({ value: 'rav4', label: 'Rav4' });
-    const scan = await adapter.scan({ make: entry('toyota'), model: entry('rav4'), year: 2019 }, { maxPages: 1 });
+    const scan = await adapter.scan({ make: entry('toyota'), model: entry('rav4'), years: { from: 2019, to: 2019 } }, { maxPages: 1 });
     expect(fetch.mock.calls.map((c) => c[0]).slice(2)).toEqual([mobileBgSearchUrl('toyota', 'rav4', 2019)]);
     expect(scan).toMatchObject({ pagesScanned: 1, complete: false, searchUrl: mobileBgSearchUrl('toyota', 'rav4', 2019) });
     expect(scan.listings).toHaveLength(20);
 
     // page 2 (not recorded: empty) is linked from page 1
     fetch.mockClear();
-    const all = await adapter.scan({ make: entry('toyota'), model: entry('rav4'), year: 2019 }, { maxPages: 5 });
+    const all = await adapter.scan({ make: entry('toyota'), model: entry('rav4'), years: { from: 2019, to: 2019 } }, { maxPages: 5 });
     expect(fetch.mock.calls.map((c) => c[0])).toEqual([mobileBgSearchUrl('toyota', 'rav4', 2019), mobileBgSearchUrl('toyota', 'rav4', 2019, 2)]);
     expect(all).toMatchObject({ pagesScanned: 2, complete: true });
 
@@ -213,7 +265,7 @@ describe('market adapters', () => {
     const adapter = createCarsBgAdapter(fetch, createCacheRepository(database.db));
     const toyota = (await adapter.catalog!.makes()).find((m) => m.label === 'Toyota')!;
     const camry = (await adapter.catalog!.models(toyota)).find((m) => m.label === 'Camry')!;
-    const scan = await adapter.scan({ make: toyota, model: camry, year: 2019 }, { maxPages: 5 });
+    const scan = await adapter.scan({ make: toyota, model: camry, years: { from: 2019, to: 2019 } }, { maxPages: 5 });
     expect(fetch.mock.calls.map((c) => c[0]).slice(2)).toEqual([carsBgSearchUrl('80', '1374', 2019), carsBgSearchUrl('80', '1374', 2019, 2)]);
     expect(scan).toMatchObject({ pagesScanned: 2, complete: true });
     expect(scan.listings).toHaveLength(3);
@@ -223,10 +275,24 @@ describe('market adapters', () => {
     const fetch = vi.fn(fetchers.autoscout24);
     const adapter = createAutoscout24Adapter(fetch);
     expect(adapter.catalog).toBeUndefined();
-    const scan = await adapter.scan({ make: entry('TOYOTA'), model: entry('CAMRY'), year: 2019 }, { maxPages: 5 });
+    const scan = await adapter.scan({ make: entry('TOYOTA'), model: entry('CAMRY'), years: { from: 2019, to: 2019 } }, { maxPages: 5 });
     expect(fetch.mock.calls.map((c) => c[0])).toEqual([autoscout24SearchUrl('toyota', 'camry', 2019), autoscout24SearchUrl('toyota', 'camry', 2019, 2)]);
     expect(scan).toMatchObject({ pagesScanned: 2, complete: true });
     expect(scan.listings).toHaveLength(26);
+  });
+
+  it('mobile.de: searches a year range, pages by the result count', async () => {
+    const fetch = vi.fn(fetchers.mobileDe);
+    const adapter = createMobileDeAdapter(fetch, createCacheRepository(database.db));
+    const toyota = (await adapter.catalog!.makes()).find((m) => m.label === 'Toyota')!;
+    const rav4 = (await adapter.catalog!.models(toyota)).find((m) => m.label === 'RAV 4')!;
+    const years = { from: 2016, to: 2022 };
+    const scan = await adapter.scan({ make: toyota, model: rav4, years }, { maxPages: 2 });
+    expect(fetch.mock.calls.map((c) => c[0]).slice(2)).toEqual([mobileDeSearchUrl('24100', '28', years), mobileDeSearchUrl('24100', '28', years, 2)]);
+    // 478 results are 24 pages
+    expect(scan).toMatchObject({ pagesScanned: 2, complete: false, searchUrl: mobileDeSearchUrl('24100', '28', years) });
+    expect(scan.listings).toHaveLength(40);
+    expect(new Set(scan.listings.map((l) => l.year))).toEqual(new Set([2016, 2017, 2018, 2019, 2020, 2021, 2022]));
   });
 
   it('OLX: lists the models of a make from its category page, searches by category id', async () => {
@@ -234,7 +300,7 @@ describe('market adapters', () => {
     const adapter = createOlxAdapter(fetch, createCacheRepository(database.db));
     const toyota = (await adapter.catalog!.makes()).find((m) => m.label === 'Toyota')!;
     const rav4 = (await adapter.catalog!.models(toyota)).find((m) => m.value === 'rav-4')!;
-    const scan = await adapter.scan({ make: toyota, model: rav4, year: 2020 }, { maxPages: 5 });
+    const scan = await adapter.scan({ make: toyota, model: rav4, years: { from: 2020, to: 2020 } }, { maxPages: 5 });
     expect(fetch.mock.calls.at(-1)![0]).toBe(olxOffersUrl(1181, 'rav-4', 2020));
     expect(scan.listings).toHaveLength(2);
   });

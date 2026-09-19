@@ -8,8 +8,10 @@ import {
   BGN_PER_EUR,
   cachedCatalog,
   cleanText,
+  yearRange,
   type CatalogEntry,
   type MarketAdapter,
+  type YearRange,
 } from './market-adapter.ts';
 
 export const OLX_ORIGIN = 'https://www.olx.bg';
@@ -24,19 +26,20 @@ export const olxCarsUrl = () => CARS_URL;
 /** A make's category page, by OLX's own name for it ("mercedes", not "mercedes-benz"). */
 export const olxMakeUrl = (makeValue: string) => `${CARS_URL}${makeValue}/`;
 
-/** The site's own offers API (JSON), filtered by the make category, model and exact year. */
-export function olxOffersUrl(categoryId: number, model: string, year: number, page = 1): string {
+/** The site's own offers API (JSON), filtered by the make category, model and years. */
+export function olxOffersUrl(categoryId: number, model: string, years: number | YearRange, page = 1): string {
+  const { from, to } = yearRange(years);
   return (
     `${OLX_ORIGIN}/api/v1/offers/?offset=${(page - 1) * PAGE_SIZE}&limit=${PAGE_SIZE}&category_id=${categoryId}` +
     `&filter_enum_model%5B0%5D=${encodeURIComponent(model)}` +
-    `&filter_float_auto_make_year%3Afrom=${year}&filter_float_auto_make_year%3Ato=${year}`
+    `&filter_float_auto_make_year%3Afrom=${from}&filter_float_auto_make_year%3Ato=${to}`
   );
 }
 
 /** Human-readable results page for the same search. */
-export const olxSearchPageUrl = (makeValue: string, model: string, year: number) =>
+export const olxSearchPageUrl = (makeValue: string, model: string, years: YearRange) =>
   `${olxMakeUrl(makeValue)}?search%5Bfilter_enum_model%5D%5B0%5D=${encodeURIComponent(model)}` +
-  `&search%5Bfilter_float_auto_make_year%3Afrom%5D=${year}&search%5Bfilter_float_auto_make_year%3Ato%5D=${year}`;
+  `&search%5Bfilter_float_auto_make_year%3Afrom%5D=${years.from}&search%5Bfilter_float_auto_make_year%3Ato%5D=${years.to}`;
 
 /** Raw responses: the page state script is gone from the hydrated DOM, and the API is JSON. */
 export function createOlxFetcher(browser: BrowserManager, queue: SourceQueue): HtmlFetcher {
@@ -140,15 +143,15 @@ export function createOlxAdapter(fetchRaw: HtmlFetcher, cache: CacheRepository):
       makes: () => cachedCatalog(cache, 'makes', 'olxBg', async () => parseOlxMakes(await fetchRaw(olxCarsUrl()))),
       models: async (make) => (await makePage(make)).models,
     },
-    async scan({ make, model, year }, { maxPages }) {
+    async scan({ make, model, years }, { maxPages }) {
       const { categoryId } = await makePage(make);
       const listings: MarketListing[] = [];
       let page = 1;
       for (;;) {
-        const result = parseOlxOffers(await fetchRaw(olxOffersUrl(categoryId, model.value, year, page)), { make: make.label });
+        const result = parseOlxOffers(await fetchRaw(olxOffersUrl(categoryId, model.value, years, page)), { make: make.label });
         listings.push(...result.listings);
         if (!result.hasNextPage || page >= maxPages) {
-          return { listings, pagesScanned: page, complete: !result.hasNextPage, searchUrl: olxSearchPageUrl(make.value, model.value, year) };
+          return { listings, pagesScanned: page, complete: !result.hasNextPage, searchUrl: olxSearchPageUrl(make.value, model.value, years) };
         }
         page++;
       }

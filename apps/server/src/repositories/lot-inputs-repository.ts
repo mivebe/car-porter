@@ -13,7 +13,7 @@ export function createLotInputsRepository(db: Db) {
       repairEstimateEurCents: row.repairEstimateEurCents,
       feesReduced: row.feesReduced,
       includeSofiaToBg: row.includeSofiaToBg,
-      marketMatch: row.marketMatch,
+      marketMatch: { ...DEFAULT_LOT_INPUTS.marketMatch, ...row.marketMatch },
       marketSources: row.marketSources,
     };
   }

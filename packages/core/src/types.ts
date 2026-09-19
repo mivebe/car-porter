@@ -10,7 +10,7 @@ export const AUCTION_SOURCES = ['copart', 'iaai'] as const;
 export type AuctionSource = (typeof AUCTION_SOURCES)[number];
 
 /** Marketplaces with their own make/model lists, searched through the alias table like the auctions. */
-export const CATALOG_MARKET_SOURCES = ['mobileBg', 'carsBg', 'olxBg'] as const satisfies readonly MarketSource[];
+export const CATALOG_MARKET_SOURCES = ['mobileBg', 'carsBg', 'olxBg', 'mobileDe'] as const satisfies readonly MarketSource[];
 export type CatalogMarketSource = (typeof CATALOG_MARKET_SOURCES)[number];
 export const isCatalogMarketSource = (site: string): site is CatalogMarketSource =>
   (CATALOG_MARKET_SOURCES as readonly string[]).includes(site);

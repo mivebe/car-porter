@@ -226,13 +226,21 @@ describe('selectAuctionMatches', () => {
 });
 
 describe('matchMarketListing (BG)', () => {
-  const off = { mileage: false, transmission: false, fuel: false };
-  const on = { mileage: true, transmission: true, fuel: true };
+  const off = { mileage: false, transmission: false, fuel: false, yearSpan: 0 };
+  const on = { mileage: true, transmission: true, fuel: true, yearSpan: 0 };
 
   it('matches make/model/exact year/trim with toggles off', () => {
     expect(matchMarketListing(lot, listing({ mileageKm: 300_000, fuel: 'Дизелов' }), off, 30_000).matches).toBe(true);
     expect(matchMarketListing(lot, listing({ year: 2018 }), off, 30_000).matches).toBe(false);
     expect(matchMarketListing(lot, listing({ trim: 'XLE' }), off, 30_000).matches).toBe(false);
+  });
+
+  it('widens the year to ± the year span', () => {
+    const broad = { ...off, yearSpan: 3 };
+    expect(matchMarketListing(lot, listing({ year: 2016 }), broad, 30_000).matches).toBe(true);
+    expect(matchMarketListing(lot, listing({ year: 2022 }), broad, 30_000).matches).toBe(true);
+    expect(matchMarketListing(lot, listing({ year: 2015 }), broad, 30_000).matches).toBe(false);
+    expect(matchMarketListing(lot, listing({ year: 2024 }), { ...off, yearSpan: 5 }, 30_000).matches).toBe(true);
   });
 
   it('applies mileage range (lot miles → km) when toggled', () => {

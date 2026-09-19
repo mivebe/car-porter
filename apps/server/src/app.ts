@@ -52,6 +52,7 @@ import {
   mockStatVinFetcher,
 } from './sources/mock-fetchers.ts';
 import { createMobileBgAdapter, createMobileBgFetcher } from './sources/mobilebg.ts';
+import { createMobileDeAdapter, createMobileDeFetcher } from './sources/mobilede.ts';
 import { createCatalogService, httpJsonFetcher, type JsonFetcher } from './sources/nhtsa.ts';
 import { createOlxAdapter, createOlxFetcher } from './sources/olxbg.ts';
 import { createStatVinFetcher } from './sources/statvin.ts';
@@ -191,6 +192,7 @@ export async function buildApp({
         carsBg: createCarsBgFetcher(browser, queue),
         autoscout24: createAutoscout24Fetcher(browser, queue),
         olxBg: createOlxFetcher(browser, queue),
+        mobileDe: createMobileDeFetcher(browser, queue),
       };
   const market = createMarketService({
     adapters: overrides.marketAdapters ?? [
@@ -198,6 +200,7 @@ export async function buildApp({
       createCarsBgAdapter(marketFetchers.carsBg, repos.cache),
       createAutoscout24Adapter(marketFetchers.autoscout24),
       createOlxAdapter(marketFetchers.olxBg, repos.cache),
+      createMobileDeAdapter(marketFetchers.mobileDe, repos.cache),
     ],
     aliases,
     cache: repos.cache,

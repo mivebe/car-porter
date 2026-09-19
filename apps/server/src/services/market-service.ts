@@ -15,7 +15,7 @@ import type { MarketListingsRepository, StoredMarketListing } from '../repositor
 import type { SelectionsRepository } from '../repositories/selections-repository.ts';
 import type { SettingsRepository } from '../repositories/settings-repository.ts';
 import { cached } from '../scraping/cached.ts';
-import { notFound, type CatalogEntry, type MarketAdapter, type MarketScan } from '../sources/market-adapter.ts';
+import { notFound, type CatalogEntry, type MarketAdapter, type MarketScan, type YearRange } from '../sources/market-adapter.ts';
 import { LotNotFoundError } from './lot-not-found.ts';
 import type { VehicleAliasService } from './vehicle-alias-service.ts';
 
@@ -77,10 +77,12 @@ export function createMarketService(deps: {
     const lot = found.lot;
     const [inputs, settings] = await Promise.all([deps.inputs.get(lotId), deps.settings.get()]);
     const enabled = new Set(effectiveMarketSources(inputs.marketSources, settings.market.enabledSources));
-    // one search per site + make/model/exact year, shared by every lot of that model/year
+    const span = inputs.marketMatch.yearSpan;
+    const years: YearRange = { from: lot.year - span, to: lot.year + span };
+    // one search per site + make/model/years, shared by every lot of that model and years
     const key = (site: MarketSource) =>
-      `${marketScanPrefix(site)}${normalizeMake(lot.make)}:${normalizeText(lot.model).replace(/\s/g, '')}:${lot.year}`;
-    return { lot, enabled, settings, key };
+      `${marketScanPrefix(site)}${normalizeMake(lot.make)}:${normalizeText(lot.model).replace(/\s/g, '')}:${lot.year}${span ? `±${span}` : ''}`;
+    return { lot, years, enabled, settings, key };
   }
 
   async function respond(ctx: Awaited<ReturnType<typeof load>>, sites: MarketSiteResult[], payloads: (ScanPayload | null)[]) {
@@ -117,11 +119,11 @@ export function createMarketService(deps: {
    * Searches one site for the lot. Sites with their own make/model lists search every site model
    * the alias table maps to the lot's model ("C-Class" is "C 180", "C 200"... on mobile.bg).
    */
-  async function searchSite(adapter: MarketAdapter, lot: Lot, maxPages: number): Promise<MarketScan> {
+  async function searchSite(adapter: MarketAdapter, lot: Lot, years: YearRange, maxPages: number): Promise<MarketScan> {
     const { site, catalog } = adapter;
     if (!catalog || !isCatalogMarketSource(site)) {
       const name = (value: string): CatalogEntry => ({ value, label: value });
-      return adapter.scan({ make: name(lot.make), model: name(lot.model), year: lot.year }, { maxPages });
+      return adapter.scan({ make: name(lot.make), model: name(lot.model), years }, { maxPages });
     }
 
     const makes = await catalog.makes();
@@ -140,7 +142,7 @@ export function createMarketService(deps: {
     if (targets.length === 0) notFound(site, `model "${lot.model}"`);
 
     const scans: MarketScan[] = [];
-    for (const { make, model } of targets) scans.push(await adapter.scan({ make, model, year: lot.year }, { maxPages }));
+    for (const { make, model } of targets) scans.push(await adapter.scan({ make, model, years }, { maxPages }));
     return {
       listings: scans.flatMap((s) => s.listings),
       pagesScanned: scans.reduce((sum, s) => sum + s.pagesScanned, 0),
@@ -183,7 +185,7 @@ export function createMarketService(deps: {
           deps.cache,
           { key: ctx.key(site), source: site, ttlMs: MARKET_TTL_MS, force },
           async () => {
-            const result = await searchSite(adapter, lot, settings.market.maxPages);
+            const result = await searchSite(adapter, lot, ctx.years, settings.market.maxPages);
             const seenAt = now();
             const listingIds = [...new Set(result.listings.map((l) => l.id))];
             await deps.listings.upsertSeen(result.listings, seenAt);

@@ -1,7 +1,11 @@
 import { z } from 'zod';
 
-export const MARKET_SOURCES = ['mobileBg', 'carsBg', 'autoscout24', 'olxBg'] as const;
+export const MARKET_SOURCES = ['mobileBg', 'carsBg', 'autoscout24', 'olxBg', 'mobileDe'] as const;
 export type MarketSource = (typeof MARKET_SOURCES)[number];
+
+/** Broad year search for the BG market: the lot's year only, or ± 3 / ± 5 years. */
+export const MARKET_YEAR_SPANS = [0, 3, 5] as const;
+export type MarketYearSpan = (typeof MARKET_YEAR_SPANS)[number];
 
 const nonNegative = z.number().finite().nonnegative();
 
@@ -67,7 +71,7 @@ export const DEFAULT_SETTINGS: Settings = {
   market: {
     mileageRangeKm: 30_000,
     maxPages: 10,
-    enabledSources: { mobileBg: true, carsBg: true, autoscout24: false, olxBg: false },
+    enabledSources: { mobileBg: true, carsBg: true, autoscout24: false, olxBg: false, mobileDe: false },
   },
   fx: { usdToEurOverride: null },
   scraping: { minDelayMs: 1500, maxDelayMs: 4000 },

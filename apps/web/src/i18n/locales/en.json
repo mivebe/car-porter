@@ -36,7 +36,8 @@
     "iaai": "IAAI",
     "mobileBg": "mobile.bg",
     "carsBg": "cars.bg",
-    "olxBg": "OLX.bg"
+    "olxBg": "OLX.bg",
+    "mobileDe": "mobile.de"
   },
   "sourceErrors": {
     "blocked": "blocked",
@@ -286,6 +287,7 @@
     "sourcesLabel": "Marketplaces",
     "matchLabel": "Also match",
     "match": {
+      "year": "Year",
       "mileage": "Mileage ±{{range}} km (lot: {{km}} km)",
       "transmission": "Transmission",
       "fuel": "Fuel"
@@ -294,7 +296,12 @@
       "mobileBg": "mobile.bg",
       "carsBg": "cars.bg",
       "autoscout24": "AutoScout24 (EU)",
-      "olxBg": "OLX.bg"
+      "olxBg": "OLX.bg",
+      "mobileDe": "mobile.de (DE)"
+    },
+    "yearSpan": {
+      "exact": "Exact",
+      "broad": "±{{years}}"
     },
     "average": "Average",
     "median": "Median",

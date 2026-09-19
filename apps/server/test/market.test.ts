@@ -1,4 +1,4 @@
-import type { Lot, MarketListing } from '@car-porter/core';
+import { DEFAULT_LOT_INPUTS, type Lot, type MarketListing } from '@car-porter/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApp } from '../src/app.ts';
 import { openDatabase, type Database } from '../src/db/client.ts';
@@ -16,6 +16,7 @@ import { createAutoscout24Adapter } from '../src/sources/autoscout24.ts';
 import { createCarsBgAdapter } from '../src/sources/carsbg.ts';
 import type { MarketAdapter, MarketScan } from '../src/sources/market-adapter.ts';
 import { createMobileBgAdapter } from '../src/sources/mobilebg.ts';
+import { createMobileDeAdapter, mobileDeSearchUrl } from '../src/sources/mobilede.ts';
 import { createMockMarketFetchers, mockNhtsaFetcher } from '../src/sources/mock-fetchers.ts';
 import { createCatalogService } from '../src/sources/nhtsa.ts';
 import { createOlxAdapter } from '../src/sources/olxbg.ts';
@@ -73,6 +74,7 @@ describe('market service', () => {
         createCarsBgAdapter(fetchers.carsBg, cache),
         createAutoscout24Adapter(fetchers.autoscout24),
         createOlxAdapter(fetchers.olxBg, cache),
+        createMobileDeAdapter(fetchers.mobileDe, cache),
       ],
       aliases,
       cache,
@@ -97,6 +99,7 @@ describe('market service', () => {
       ['carsBg', true, null],
       ['autoscout24', false, null],
       ['olxBg', false, null],
+      ['mobileDe', false, null],
     ]);
 
     const res = await service.run(lot.id);
@@ -105,6 +108,7 @@ describe('market service', () => {
       ['carsBg', 3, true, undefined],
       ['autoscout24', null, null, undefined],
       ['olxBg', null, null, undefined],
+      ['mobileDe', null, null, undefined],
     ]);
     expect(res.sites[0]).toMatchObject({
       checkedAt: clock.toISOString(),
@@ -159,15 +163,45 @@ describe('market service', () => {
 
   it('uses the lot’s own marketplace choice', async () => {
     const { service, inputs } = await setup();
-    await inputs.update(lot.id, { marketSources: { mobileBg: false, carsBg: false, autoscout24: true, olxBg: true } });
+    await inputs.update(lot.id, { marketSources: { mobileBg: false, carsBg: false, autoscout24: true, olxBg: true, mobileDe: false } });
     const res = await service.run(lot.id);
     expect(res.sites.map((s) => [s.site, s.enabled, s.found])).toEqual([
       ['mobileBg', false, null],
       ['carsBg', false, null],
       ['autoscout24', true, 26],
       ['olxBg', true, 0],
+      ['mobileDe', false, null],
     ]);
     expect(res.listings.every((l) => l.site === 'autoscout24')).toBe(true);
+  });
+
+  it('searches mobile.de through its make and model lists', async () => {
+    const { service, inputs } = await setup();
+    await inputs.update(lot.id, { marketSources: { mobileBg: false, carsBg: false, autoscout24: false, olxBg: false, mobileDe: true } });
+    const res = await service.run(lot.id);
+    expect(res.sites.find((s) => s.site === 'mobileDe')).toMatchObject({
+      enabled: true,
+      found: 11,
+      complete: true,
+      searchUrl: mobileDeSearchUrl('24100', '6', 2019),
+    });
+    expect(res.listings.every((l) => l.site === 'mobileDe' && l.model === 'CAMRY')).toBe(true);
+  });
+
+  it('searches ± the lot’s year span, stored apart from the exact-year search', async () => {
+    const rav4 = { ...lot, id: 'iaai:5', lotNumber: '5', model: 'RAV4', trim: null };
+    const { service, inputs } = await setup(undefined, [rav4]);
+    const mobileDe = { mobileBg: false, carsBg: false, autoscout24: false, olxBg: false, mobileDe: true };
+    const years = { from: 2016, to: 2022 };
+    await inputs.update(rav4.id, { marketSources: mobileDe, marketMatch: { ...DEFAULT_LOT_INPUTS.marketMatch, yearSpan: 3 } });
+    const broad = await service.run(rav4.id);
+    expect(broad.sites.find((s) => s.site === 'mobileDe')).toMatchObject({ searchUrl: mobileDeSearchUrl('24100', '28', years) });
+    expect(new Set(broad.listings.map((l) => l.year))).toEqual(new Set([2016, 2017, 2018, 2019, 2020, 2021, 2022]));
+
+    await inputs.update(rav4.id, { marketMatch: DEFAULT_LOT_INPUTS.marketMatch });
+    expect((await service.get(rav4.id)).sites.find((s) => s.site === 'mobileDe')).toMatchObject({ checkedAt: null });
+    await inputs.update(rav4.id, { marketMatch: { ...DEFAULT_LOT_INPUTS.marketMatch, yearSpan: 3 } });
+    expect((await service.get(rav4.id)).listings).toHaveLength(broad.listings.length);
   });
 
   it('reuses a search younger than 24 h, tracks price changes and removed listings on refresh', async () => {
@@ -263,8 +297,8 @@ describe('/api/lots/:id/market', () => {
   it('stores the lot’s match toggles and marketplace choice as lot inputs', async () => {
     const inputsUrl = `/api/lots/${encodeURIComponent('iaai:45973338')}/inputs`;
     const patch = {
-      marketMatch: { mileage: true, transmission: false, fuel: true },
-      marketSources: { mobileBg: true, carsBg: false, autoscout24: true, olxBg: false },
+      marketMatch: { mileage: true, transmission: false, fuel: true, yearSpan: 0 },
+      marketSources: { mobileBg: true, carsBg: false, autoscout24: true, olxBg: false, mobileDe: false },
     };
     expect((await app.inject({ method: 'PATCH', url: inputsUrl, payload: patch })).json()).toMatchObject(patch);
     expect((await app.inject({ method: 'GET', url: inputsUrl })).json()).toMatchObject(patch);
@@ -272,6 +306,7 @@ describe('/api/lots/:id/market', () => {
       true,
       false,
       true,
+      false,
       false,
     ]);
   });

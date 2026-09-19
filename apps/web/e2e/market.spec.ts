@@ -66,3 +66,37 @@ test('BG market: grouped listings, match toggles, exclusions and marketplace cho
   await expect(reopened.getByLabel('Fuel')).toBeChecked();
   await expect(reopened.getByLabel('AutoScout24 (EU)')).toBeChecked();
 });
+
+// mobile.de's recorded Camry 2019 search has 11 listings; wider year searches aren't recorded (empty).
+test('BG market: mobile.de and the broad year search', async ({ page, request }) => {
+  // the lot's inputs outlive the test above
+  await request.patch(`/api/lots/${encodeURIComponent('iaai:45973338')}/inputs`, {
+    data: { marketMatch: { mileage: false, transmission: false, fuel: false, yearSpan: 0 }, marketSources: null },
+  });
+  await page.goto(SEARCH);
+  await expect(page.getByTestId('lot-row').first()).toBeVisible();
+  await page.goto(LOT_URL);
+
+  const section = page.getByRole('dialog').getByTestId('market-section');
+  await section.getByLabel('mobile.de (DE)').click();
+  await section.getByRole('button', { name: 'Check BG market' }).click();
+  const de = section.getByTestId('market-group-mobileDe');
+  await expect(de.getByTestId('market-site-status')).toContainText('11 listings found now');
+  await expect(de.getByTestId('market-group-average')).toContainText('average of 11 listings');
+
+  // ±3 years is a search of its own
+  const span = section.getByTestId('market-year-span');
+  await expect(span.getByRole('button', { name: 'Exact' })).toHaveAttribute('aria-pressed', 'true');
+  await span.getByRole('button', { name: '±3' }).click();
+  await expect(de).toHaveCount(0);
+  await section.getByRole('button', { name: 'Check BG market' }).click();
+  await expect(de.getByTestId('market-site-status')).toContainText('0 listings found now');
+  await expect(section.getByTestId('market-group-mobileBg').getByRole('link', { name: 'Open the search' })).toHaveAttribute(
+    'href',
+    'https://www.mobile.bg/obiavi/avtomobili-dzhipove/toyota/camry/ot-2016/do-2022',
+  );
+
+  await page.reload();
+  const reopened = page.getByRole('dialog').getByTestId('market-section');
+  await expect(reopened.getByTestId('market-year-span').getByRole('button', { name: '±3' })).toHaveAttribute('aria-pressed', 'true');
+});

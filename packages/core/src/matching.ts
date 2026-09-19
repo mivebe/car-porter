@@ -212,6 +212,8 @@ export interface MarketMatchToggles {
   mileage: boolean;
   transmission: boolean;
   fuel: boolean;
+  /** Years either side of the lot's year that still match (0 = exact year). */
+  yearSpan: number;
 }
 
 export type MarketCriterion = 'make' | 'model' | 'year' | 'trim' | 'location' | 'mileage' | 'transmission' | 'fuel';
@@ -233,7 +235,7 @@ function marketTrim(lotTrim: string | null, listing: MarketListing): CriterionRe
 }
 
 /**
- * BG market match: make + model + exact year required, trim must not conflict, import offers
+ * BG market match: make + model + year (± the year span) required, trim must not conflict, import offers
  * (cars still abroad) never match; mileage (± range, lot miles → km), transmission and fuel are
  * only compared when toggled on.
  */
@@ -249,7 +251,7 @@ export function matchMarketListing(
     {
       make: compare(lot.make, listing.make, (a, b) => normalizeMake(a) === normalizeMake(b)),
       model: compare(lot.model, listing.model, modelMatches),
-      year: compare(lot.year, listing.year, (a, b) => a === b),
+      year: compare(lot.year, listing.year, (a, b) => Math.abs(a - b) <= toggles.yearSpan),
       trim: marketTrim(lot.trim, listing),
       location: listing.importOffer ? 'mismatch' : 'match',
       mileage: toggles.mileage

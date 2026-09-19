@@ -57,7 +57,7 @@ describe('summarizeMarket', () => {
   ];
   const options = {
     sites: ['mobileBg', 'carsBg'] as const,
-    toggles: { mileage: false, transmission: false, fuel: false },
+    toggles: { mileage: false, transmission: false, fuel: false, yearSpan: 0 },
     mileageRangeKm: 30_000,
     excludedIds: new Set<string>(),
   };
@@ -81,7 +81,7 @@ describe('summarizeMarket', () => {
     const result = summarizeMarket(lot, listings, {
       ...options,
       sites: ['mobileBg'],
-      toggles: { mileage: false, transmission: false, fuel: true },
+      toggles: { mileage: false, transmission: false, fuel: true, yearSpan: 0 },
       excludedIds: new Set([cheapest.id]),
     });
     expect(result.groups[0]!.matches.map((m) => m.listing.id)).not.toContain(hybrid.id);

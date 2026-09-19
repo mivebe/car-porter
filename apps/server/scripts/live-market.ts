@@ -1,7 +1,7 @@
 /**
  * Manual live check of the BG market comparison through the real app (hits live sites).
  * Usage: pnpm --filter @car-porter/server exec tsx scripts/live-market.ts toyota rav4 2019
- * Enables all four marketplaces for the first lot found.
+ * Enables every marketplace for the first lot found.
  */
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -22,7 +22,7 @@ try {
   if (!lot) throw new Error('no lots found');
   console.log('lot:', lot.id, lot.year, lot.make, lot.model, lot.trim, lot.fuel, lot.odometerMiles, 'mi');
   const url = `/api/lots/${encodeURIComponent(lot.id)}`;
-  const sources = { mobileBg: true, carsBg: true, autoscout24: true, olxBg: true };
+  const sources = { mobileBg: true, carsBg: true, autoscout24: true, olxBg: true, mobileDe: true };
   await app.inject({ method: 'PATCH', url: `${url}/inputs`, payload: { marketSources: sources } });
 
   for (const label of ['first run', 'second run (cached)']) {
@@ -34,8 +34,8 @@ try {
       console.log(`  ${s.site}: found=${s.found} pages=${s.pagesScanned} complete=${s.complete} cached=${s.fromCache} error=${JSON.stringify(s.error)} ${s.searchUrl}`);
     }
     const summary = summarizeMarket(lot, body.listings, {
-      sites: ['mobileBg', 'carsBg', 'autoscout24', 'olxBg'],
-      toggles: { mileage: false, transmission: false, fuel: false },
+      sites: ['mobileBg', 'carsBg', 'autoscout24', 'olxBg', 'mobileDe'],
+      toggles: { mileage: false, transmission: false, fuel: false, yearSpan: 0 },
       mileageRangeKm: DEFAULT_SETTINGS.market.mileageRangeKm,
       excludedIds: new Set(),
     });

@@ -11,8 +11,10 @@ import {
   cleanText,
   parseKm,
   parsePriceEurCents,
+  yearRange,
   type CatalogEntry,
   type MarketAdapter,
+  type YearRange,
 } from './market-adapter.ts';
 
 export const MOBILEBG_ORIGIN = 'https://www.mobile.bg';
@@ -21,9 +23,10 @@ const CARS = `${MOBILEBG_ORIGIN}/obiavi/avtomobili-dzhipove`;
 export const mobileBgMakesUrl = () => CARS;
 export const mobileBgMakeUrl = (make: string) => `${CARS}/${make}`;
 
-/** Exact-year search, e.g. `/obiavi/avtomobili-dzhipove/toyota/rav4/ot-2019/do-2019/p-2`. */
-export function mobileBgSearchUrl(make: string, model: string, year: number, page = 1): string {
-  return `${CARS}/${make}/${model}/ot-${year}/do-${year}${page > 1 ? `/p-${page}` : ''}`;
+/** Year-range search, e.g. `/obiavi/avtomobili-dzhipove/toyota/rav4/ot-2019/do-2019/p-2`. */
+export function mobileBgSearchUrl(make: string, model: string, years: number | YearRange, page = 1): string {
+  const { from, to } = yearRange(years);
+  return `${CARS}/${make}/${model}/ot-${from}/do-${to}${page > 1 ? `/p-${page}` : ''}`;
 }
 
 export function createMobileBgFetcher(browser: BrowserManager, queue: SourceQueue): HtmlFetcher {
@@ -131,18 +134,18 @@ export function createMobileBgAdapter(fetchHtml: HtmlFetcher, cache: CacheReposi
           parseMobileBgModels(await fetchHtml(mobileBgMakeUrl(make.value)), make.value),
         ),
     },
-    async scan({ make, model, year }, { maxPages }) {
+    async scan({ make, model, years }, { maxPages }) {
       const listings: MarketListing[] = [];
       let page = 1;
       for (;;) {
-        const result = parseMobileBgListing(await fetchHtml(mobileBgSearchUrl(make.value, model.value, year, page)), {
+        const result = parseMobileBgListing(await fetchHtml(mobileBgSearchUrl(make.value, model.value, years, page)), {
           make: make.value,
           model: model.value,
         });
         listings.push(...result.listings);
         const hasNext = result.linkedPages.includes(page + 1);
         if (!hasNext || page >= maxPages) {
-          return { listings, pagesScanned: page, complete: !hasNext, searchUrl: mobileBgSearchUrl(make.value, model.value, year) };
+          return { listings, pagesScanned: page, complete: !hasNext, searchUrl: mobileBgSearchUrl(make.value, model.value, years) };
         }
         page++;
       }

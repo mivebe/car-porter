@@ -18,6 +18,7 @@ import { autoscout24SearchUrl } from './autoscout24.ts';
 import { carsBgBrandUrl, carsBgHomeUrl, carsBgSearchUrl } from './carsbg.ts';
 import type { MarketSource } from '@car-porter/core';
 import { mobileBgMakesUrl, mobileBgMakeUrl, mobileBgSearchUrl } from './mobilebg.ts';
+import { mobileDeMakesUrl, mobileDeMakeUrl, mobileDeSearchUrl } from './mobilede.ts';
 import { olxCarsUrl, olxMakeUrl, olxOffersUrl } from './olxbg.ts';
 import { makesUrl, modelsUrl, type JsonFetcher } from './nhtsa.ts';
 
@@ -70,7 +71,7 @@ export const mockStatVinFetcher: HtmlFetcher = async (url) =>
   readFixture(url === statVinUrl(MOCK_HISTORY_VIN) ? 'statvin/vin-4t1b11hk0ku821110.html' : 'statvin/vin-not-found.html');
 
 /**
- * Recorded BG marketplace pages for Toyota Camry 2019 (and RAV 4 on mobile.bg / cars.bg / OLX). Other
+ * Recorded marketplace pages for Toyota Camry 2019 (and RAV 4 on mobile.bg / cars.bg / OLX / mobile.de). Other
  * searches of a known make/model return empty result pages.
  */
 export function createMockMarketFetchers(): Record<MarketSource, HtmlFetcher> {
@@ -113,6 +114,17 @@ export function createMockMarketFetchers(): Record<MarketSource, HtmlFetcher> {
         [olxOffersUrl(1181, 'rav-4', 2020)]: 'olxbg/offers-1181-rav-4-2020.json',
       },
       '{"data":[],"links":{}}',
+    ),
+    mobileDe: route(
+      {
+        [mobileDeMakesUrl()]: 'mobilede/makes.html',
+        [mobileDeMakeUrl('24100')]: 'mobilede/make-toyota.html',
+        [mobileDeMakeUrl('17200')]: 'mobilede/make-mercedes-benz.html',
+        [mobileDeSearchUrl('24100', '6', 2019)]: 'mobilede/toyota-camry-2019.html',
+        [mobileDeSearchUrl('24100', '28', { from: 2016, to: 2022 })]: 'mobilede/toyota-rav4-2016-2022-p1.html',
+        [mobileDeSearchUrl('24100', '28', { from: 2016, to: 2022 }, 2)]: 'mobilede/toyota-rav4-2016-2022-p2.html',
+      },
+      '<html><body><script>self.__next_f.push([1,"{\\"searchResults\\":{\\"numResultsTotal\\":0,\\"listings\\":[]}}"])</script></body></html>',
     ),
   };
 }

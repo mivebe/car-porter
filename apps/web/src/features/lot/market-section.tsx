@@ -1,11 +1,13 @@
 import {
   MARKET_SOURCES,
+  MARKET_YEAR_SPANS,
   type Lot,
   type LotInputs,
   type MarketGroup,
   type MarketMatchToggles,
   type MarketSource,
   type MarketSummary,
+  type MarketYearSpan,
   type Settings,
 } from '@car-porter/core';
 import { AlertTriangle, ChevronDown, ChevronRight, ExternalLink, Loader2, RefreshCw, Search, Store } from 'lucide-react';
@@ -53,8 +55,9 @@ export function MarketSection({ lot, inputs, settings, data, sites, summary, run
         boolean
       >,
     });
-  const setMatch = (criterion: keyof MarketMatchToggles, value: boolean) =>
+  const setMatch = (criterion: Exclude<keyof MarketMatchToggles, 'yearSpan'>, value: boolean) =>
     onChange({ marketMatch: { ...inputs.marketMatch, [criterion]: value } });
+  const setYearSpan = (yearSpan: MarketYearSpan) => onChange({ marketMatch: { ...inputs.marketMatch, yearSpan } });
 
   return (
     <Section
@@ -87,6 +90,27 @@ export function MarketSection({ lot, inputs, settings, data, sites, summary, run
         </fieldset>
         <fieldset className="grid content-start gap-2">
           <legend className="mb-1 text-xs text-muted-foreground">{t('market.matchLabel')}</legend>
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm" id="market-year-span-label">
+              {t('market.match.year')}
+            </span>
+            <div className="flex rounded-md border p-0.5" role="group" aria-labelledby="market-year-span-label" data-testid="market-year-span">
+              {MARKET_YEAR_SPANS.map((span) => (
+                <button
+                  key={span}
+                  type="button"
+                  aria-pressed={inputs.marketMatch.yearSpan === span}
+                  onClick={() => setYearSpan(span)}
+                  className={cn(
+                    'rounded px-2 py-0.5 text-xs tabular-nums text-muted-foreground hover:text-foreground',
+                    inputs.marketMatch.yearSpan === span && 'bg-primary text-primary-foreground hover:text-primary-foreground',
+                  )}
+                >
+                  {span === 0 ? t('market.yearSpan.exact') : t('market.yearSpan.broad', { years: span })}
+                </button>
+              ))}
+            </div>
+          </div>
           {(['mileage', 'transmission', 'fuel'] as const).map((criterion) => (
             <div key={criterion} className="flex items-center justify-between gap-3">
               <Label htmlFor={`market-match-${criterion}`} className="font-normal">

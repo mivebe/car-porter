@@ -5,17 +5,18 @@ import { assertNotChallenged, SourceError } from '../scraping/errors.ts';
 import { createPageFetcher, type HtmlFetcher } from '../scraping/page-fetcher.ts';
 import type { SourceQueue } from '../scraping/source-queue.ts';
 import { bidfaxSlug } from './bidfax.ts';
-import { absoluteUrl, cleanText, notFound, parseKm, type MarketAdapter } from './market-adapter.ts';
+import { absoluteUrl, cleanText, notFound, parseKm, yearRange, type MarketAdapter, type YearRange } from './market-adapter.ts';
 
 export const AUTOSCOUT24_ORIGIN = 'https://www.autoscout24.bg';
 
 /**
- * Exact first-registration year. AutoScout24 has no listings located in Bulgaria (`cy=BG` is
+ * First-registration year range. AutoScout24 has no listings located in Bulgaria (`cy=BG` is
  * always empty, verified 2026-09-16), so this uses the site's default EU countries: an EU
  * reference price, not a BG market price.
  */
-export function autoscout24SearchUrl(make: string, model: string, year: number, page = 1): string {
-  return `${AUTOSCOUT24_ORIGIN}/lst/${bidfaxSlug(make)}/${bidfaxSlug(model)}?fregfrom=${year}&fregto=${year}&sort=standard&desc=0&atype=C${page > 1 ? `&page=${page}` : ''}`;
+export function autoscout24SearchUrl(make: string, model: string, years: number | YearRange, page = 1): string {
+  const { from, to } = yearRange(years);
+  return `${AUTOSCOUT24_ORIGIN}/lst/${bidfaxSlug(make)}/${bidfaxSlug(model)}?fregfrom=${from}&fregto=${to}&sort=standard&desc=0&atype=C${page > 1 ? `&page=${page}` : ''}`;
 }
 
 export function createAutoscout24Fetcher(browser: BrowserManager, queue: SourceQueue): HtmlFetcher {
@@ -98,7 +99,7 @@ export function createAutoscout24Adapter(fetchHtml: HtmlFetcher): MarketAdapter 
       const listings: MarketListing[] = [];
       let page = 1;
       for (;;) {
-        const result = parseAutoscout24Listing(await fetchHtml(autoscout24SearchUrl(make, model, query.year, page)));
+        const result = parseAutoscout24Listing(await fetchHtml(autoscout24SearchUrl(make, model, query.years, page)));
         // an unknown make/model slug falls back to a broader search instead of an error
         if (!result.modelKnown) notFound('autoscout24', `model "${make} ${model}"`);
         listings.push(...result.listings);
@@ -107,7 +108,7 @@ export function createAutoscout24Adapter(fetchHtml: HtmlFetcher): MarketAdapter 
             listings,
             pagesScanned: page,
             complete: page >= result.numberOfPages,
-            searchUrl: autoscout24SearchUrl(make, model, query.year),
+            searchUrl: autoscout24SearchUrl(make, model, query.years),
           };
         }
         page++;

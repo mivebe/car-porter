@@ -36,6 +36,8 @@ const STRONG_MARKERS: { pattern: RegExp; provider: string }[] = [
   { pattern: /Request unsuccessful\. Incapsula/i, provider: 'incapsula' },
   { pattern: /geo\.captcha-delivery\.com/i, provider: 'datadome' },
   { pattern: /id="px-captcha"/i, provider: 'perimeterx' },
+  // mobile.de's interstitial; it solves itself and reloads the page
+  { pattern: /id="sec-if-cpt-container"/i, provider: 'akamai' },
 ];
 
 /**
