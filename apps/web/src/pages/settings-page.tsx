@@ -4,6 +4,7 @@ import { ExternalLink, Loader2, Plus, RotateCcw, Save, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { EmptyState, InlineMessage } from '@/components/feedback';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,12 +35,7 @@ export function SettingsPage() {
       <PageHeader title={t('pages.settings.title')} />
       {settings.isPending && <Skeleton className="h-96 w-full" />}
       {settings.isError && (
-        <div
-          role="alert"
-          className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive"
-        >
-          {t('settings.loadFailed')}
-        </div>
+        <EmptyState tone="destructive">{t('settings.loadFailed')}</EmptyState>
       )}
       {settings.data && <SettingsForm saved={settings.data} />}
     </div>
@@ -504,9 +500,7 @@ function CopartCard() {
         {windowOpen ? t('settings.copart.windowOpen') : t('settings.copart.windowClosed')}
       </p>
       {open.isError && (
-        <p className="text-sm text-destructive" role="alert">
-          {t('settings.copart.openFailed')}
-        </p>
+        <InlineMessage tone="destructive">{t('settings.copart.openFailed')}</InlineMessage>
       )}
       <Button
         type="button"

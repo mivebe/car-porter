@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { ExternalLink, ListChecks, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
+import { EmptyState } from '@/components/feedback';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -55,18 +56,10 @@ export function TrackingPage() {
         </div>
       )}
       {tracked.isError && (
-        <div
-          role="alert"
-          className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive"
-        >
-          {t('tracking.requestFailed')}
-        </div>
+        <EmptyState tone="destructive">{t('tracking.requestFailed')}</EmptyState>
       )}
       {tracked.data?.lots.length === 0 && (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-16 text-center text-muted-foreground">
-          <ListChecks className="size-10" />
-          <p className="max-w-md text-sm">{t('tracking.empty')}</p>
-        </div>
+        <EmptyState icon={ListChecks}>{t('tracking.empty')}</EmptyState>
       )}
       {tracked.data && tracked.data.lots.length > 0 && (
         <TrackedTable

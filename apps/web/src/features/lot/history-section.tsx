@@ -1,6 +1,7 @@
 import { AUCTION_SOURCES, type AuctionSource, type HistoryEntry, type Lot } from '@car-porter/core';
-import { AlertTriangle, ExternalLink, History, Loader2, RefreshCw, Search } from 'lucide-react';
+import { ExternalLink, History, Loader2, RefreshCw, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { InlineMessage } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SourceBadge } from '@/features/search/source-badge';
@@ -56,17 +57,11 @@ export function HistorySection({ lot, data, running, runFailed, onRun }: History
       )}
 
       {running && (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-          <Loader2 className="size-4 animate-spin" />
-          {t('history.checking')}
-        </p>
+        <InlineMessage tone="busy">{t('history.checking')}</InlineMessage>
       )}
 
       {runFailed && (
-        <p className="flex items-center gap-2 text-sm text-destructive" role="alert">
-          <AlertTriangle className="size-4" />
-          {t('history.requestFailed')}
-        </p>
+        <InlineMessage tone="destructive">{t('history.requestFailed')}</InlineMessage>
       )}
 
       {hasRun && (

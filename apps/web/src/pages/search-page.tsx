@@ -1,8 +1,9 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, CarFront, Loader2, RefreshCw, SearchX } from 'lucide-react';
+import { CarFront, Loader2, RefreshCw, SearchX } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
+import { EmptyState } from '@/components/feedback';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -133,10 +134,7 @@ export function SearchPage() {
       />
 
       {!params && (
-        <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-16 text-center text-muted-foreground">
-          <CarFront className="size-10" />
-          <p className="max-w-md text-sm">{t('search.emptyState')}</p>
-        </div>
+        <EmptyState icon={CarFront}>{t('search.emptyState')}</EmptyState>
       )}
 
       {params && results.isPending && (
@@ -148,9 +146,7 @@ export function SearchPage() {
       )}
 
       {params && results.isError && (
-        <div role="alert" className="rounded-lg border border-destructive/40 p-4 text-sm text-destructive">
-          {t('search.requestFailed')}
-        </div>
+        <EmptyState tone="destructive">{t('search.requestFailed')}</EmptyState>
       )}
 
       {firstPage && (
@@ -198,18 +194,9 @@ export function SearchPage() {
           </div>
 
           {lots.length === 0 && latestSources.every((s) => !s.ok) ? (
-            <div
-              role="alert"
-              className="flex flex-col items-center gap-3 rounded-lg border border-dashed border-destructive/40 py-16 text-center text-destructive"
-            >
-              <AlertTriangle className="size-10" />
-              <p className="max-w-md text-sm">{t('search.allSourcesFailed')}</p>
-            </div>
+            <EmptyState tone="destructive">{t('search.allSourcesFailed')}</EmptyState>
           ) : lots.length === 0 ? (
-            <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed py-16 text-muted-foreground">
-              <SearchX className="size-10" />
-              <p className="text-sm">{t('search.noResults')}</p>
-            </div>
+            <EmptyState icon={SearchX}>{t('search.noResults')}</EmptyState>
           ) : (
             <LotResults
               lots={lots}

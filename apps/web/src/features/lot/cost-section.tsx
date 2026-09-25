@@ -1,6 +1,7 @@
 import type { LotEvaluation, LotInputs, Settings } from '@car-porter/core';
 import { Calculator, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { InlineMessage } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
@@ -86,7 +87,7 @@ export function CostSection({ inputs, settings, fx, fxError, evaluation, onChang
         </div>
       </div>
 
-      {fxError && !fx && <p className="text-sm text-destructive">{t('cost.fxUnavailable')}</p>}
+      {fxError && !fx && <InlineMessage tone="destructive">{t('cost.fxUnavailable')}</InlineMessage>}
       {!breakdown && bid.bidUsdCents == null && <p className="text-sm text-muted-foreground">{t('cost.enterBid')}</p>}
 
       {breakdown && fx && (

@@ -15,10 +15,12 @@ import {
   type DragStartEvent,
 } from '@dnd-kit/core';
 import { ALIAS_SOURCES, CATALOG_MARKET_SOURCES, type AliasSource } from '@car-porter/core';
-import { ChevronDown, ChevronRight, MousePointerClick, Plus, Search } from 'lucide-react';
+import { MousePointerClick, Plus, Search } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { Disclosure } from '@/components/disclosure';
+import { EmptyState, InlineMessage } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -454,15 +456,9 @@ function CanonicalColumn({
         {withNames.map(row)}
         {without.length > 0 && (
           <>
-            <button
-              type="button"
-              className="mt-2 flex items-center gap-1 px-1 text-xs font-medium text-muted-foreground hover:text-foreground"
-              onClick={() => setShowEmpty((v) => !v)}
-              aria-expanded={showEmpty || !!term}
-            >
-              {showEmpty || term ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+            <Disclosure className="mt-2 px-1" expanded={showEmpty || !!term} onToggle={() => setShowEmpty((v) => !v)}>
               {t('aliases.board.withoutSiteNames', { count: without.length })}
-            </button>
+            </Disclosure>
             {(showEmpty || !!term) && without.map(row)}
           </>
         )}
@@ -569,10 +565,9 @@ function AssignedColumn({
       )}
     >
       {!active ? (
-        <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-muted-foreground">
-          <MousePointerClick className="size-8" />
-          <p className="max-w-xs">{t('aliases.board.selectHint')}</p>
-        </div>
+        <EmptyState icon={MousePointerClick} framed={false} className="h-full">
+          {t('aliases.board.selectHint')}
+        </EmptyState>
       ) : loading ? (
         <ColumnSkeleton rows={4} />
       ) : entries.length === 0 ? (
@@ -653,9 +648,7 @@ function PoolColumn({
       {loading ? (
         <ColumnSkeleton rows={6} />
       ) : failed ? (
-        <p role="alert" className="text-sm text-destructive">
-          {t('aliases.requestFailed')}
-        </p>
+        <InlineMessage tone="destructive">{t('aliases.requestFailed')}</InlineMessage>
       ) : shown === 0 ? (
         <p className="text-sm text-muted-foreground" data-testid="alias-pool-empty">
           {status === 'unassigned' ? t('aliases.board.poolEmptyUnassigned') : t('aliases.board.poolEmpty')}

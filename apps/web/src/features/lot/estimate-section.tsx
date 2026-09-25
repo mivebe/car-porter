@@ -1,6 +1,8 @@
-import { AlertTriangle, ChevronDown, ChevronRight, ExternalLink, Gavel, Loader2, RefreshCw, Search } from 'lucide-react';
+import { ExternalLink, Gavel, Loader2, RefreshCw, Search } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Disclosure } from '@/components/disclosure';
+import { InlineMessage } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -39,17 +41,13 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
       }
     >
       {running && (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-          <Loader2 className="size-4 animate-spin" />
-          {t('estimate.scanning')}
-        </p>
+        <InlineMessage tone="busy">{t('estimate.scanning')}</InlineMessage>
       )}
 
       {(data?.error || runFailed) && (
-        <p className="flex items-center gap-2 text-sm text-destructive" role="alert" data-testid="estimate-error">
-          <AlertTriangle className="size-4" />
+        <InlineMessage tone="destructive" data-testid="estimate-error">
           {data?.error ? `${t(`sourceErrors.${data.error.code}`)}: ${data.error.message}` : t('estimate.requestFailed')}
-        </p>
+        </InlineMessage>
       )}
 
       {data?.scan && (
@@ -92,17 +90,14 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
       )}
 
       {data && data.matches.length > 0 && (
-        <button
-          type="button"
-          className="flex items-center gap-1 justify-self-start text-xs font-medium text-muted-foreground hover:text-foreground"
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
+        <Disclosure
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
           aria-controls="estimate-matches"
           data-testid="estimate-matches-toggle"
         >
-          {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
           {t('estimate.sales', { count: data.matches.length })}
-        </button>
+        </Disclosure>
       )}
 
       {data && data.matches.length > 0 && expanded && (

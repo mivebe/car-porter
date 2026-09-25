@@ -10,9 +10,11 @@ import {
   type MarketYearSpan,
   type Settings,
 } from '@car-porter/core';
-import { AlertTriangle, ChevronDown, ChevronRight, ExternalLink, Loader2, RefreshCw, Search, Store } from 'lucide-react';
+import { ExternalLink, Loader2, RefreshCw, Search, Store } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Disclosure } from '@/components/disclosure';
+import { InlineMessage } from '@/components/feedback';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -131,16 +133,10 @@ export function MarketSection({ lot, inputs, settings, data, sites, summary, run
       </div>
 
       {running && (
-        <p className="flex items-center gap-2 text-sm text-muted-foreground" role="status">
-          <Loader2 className="size-4 animate-spin" />
-          {t('market.searching')}
-        </p>
+        <InlineMessage tone="busy">{t('market.searching')}</InlineMessage>
       )}
       {runFailed && (
-        <p className="flex items-center gap-2 text-sm text-destructive" role="alert">
-          <AlertTriangle className="size-4" />
-          {t('market.requestFailed')}
-        </p>
+        <InlineMessage tone="destructive">{t('market.requestFailed')}</InlineMessage>
       )}
 
       {hasRun && summary.overall && (
@@ -224,17 +220,14 @@ function SiteGroup({
         )}
       </p>
       {group.matches.length > 0 && (
-        <button
-          type="button"
-          className="flex items-center gap-1 justify-self-start text-xs font-medium text-muted-foreground hover:text-foreground"
-          onClick={() => setExpanded((v) => !v)}
-          aria-expanded={expanded}
+        <Disclosure
+          expanded={expanded}
+          onToggle={() => setExpanded((v) => !v)}
           aria-controls={listId}
           data-testid="market-listings-toggle"
         >
-          {expanded ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
           {t('market.listings', { count: group.matches.length })}
-        </button>
+        </Disclosure>
       )}
       {group.matches.length > 0 && expanded && (
         <ul id={listId} className="divide-y rounded-lg border" data-testid="market-listings">

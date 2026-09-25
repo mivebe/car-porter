@@ -5,7 +5,7 @@ import { expect, test } from './test';
 test('search: every source failing shows typed badges and an error state', async ({ page }) => {
   await page.goto('/?make=Toyota&model=Corolla&yearFrom=2018&yearTo=2020');
 
-  await expect(page.getByRole('alert')).toContainText('No source could be searched');
+  await expect(page.getByRole('alert')).toContainText('Could not search any source');
   await expect(page.getByText('No lots match these filters.')).toBeHidden();
   await expect(page.getByTestId('source-status-Copart')).toHaveText('Copart: blocked');
   await expect(page.getByTestId('source-status-IAAI')).toHaveText('IAAI: parsing failed');
