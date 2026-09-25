@@ -2,8 +2,8 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import type { AliasScanSource } from '@/lib/api';
+import { SourceBadge } from '@/features/search/source-badge';
 import { cn } from '@/lib/utils';
-import { SiteMark } from './alias-card';
 import { useAliasScan } from './alias-hooks';
 
 /** Starts the scan of every site make and model; while it runs it stops it. */
@@ -55,7 +55,7 @@ function SourceProgress({ progress: p }: { progress: AliasScanSource }) {
   return (
     <li className="flex flex-col gap-1.5 rounded-lg border bg-card/40 px-3 py-2 text-sm" data-testid={`alias-scan-${p.source}`}>
       <div className="flex min-w-0 items-center gap-2">
-        <SiteMark source={p.source} />
+        <SourceBadge source={p.source} />
         {active && <Loader2 className="size-3.5 shrink-0 animate-spin text-muted-foreground" />}
         <span className="shrink-0">{t(`aliases.scan.phase.${p.phase}`)}</span>
         {detail && <span className="truncate tabular-nums text-muted-foreground">{detail}</span>}

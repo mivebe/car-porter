@@ -24,12 +24,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { AliasChange, AliasEntry, AliasKind, AliasStatus, CanonicalItem } from '@/lib/api';
+import { siteColor } from '@/features/search/site-color';
 import { formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { AliasCard, CardFace, type CardAction } from './alias-card';
 import { useAliases, useAliasMakes, useCanonicalItems, useChangeAliases } from './alias-hooks';
+import { CountBadge } from './count-badge';
 import { cardId, planDrop, type AliasColumn, type DropOutcome, type DropTarget } from './drop-plan';
-import { siteColor } from './site-color';
 
 /** Per-site counts next to a make or model: the auctions first, then the BG marketplaces. */
 const BADGE_ORDER: AliasSource[] = ['iaai', 'copart', ...CATALOG_MARKET_SOURCES];
@@ -694,9 +695,7 @@ function MakePicker({ source, onPick }: { source?: AliasSource; onPick: (make: s
           >
             <span className="truncate">{m.name}</span>
             {m.unassigned > 0 && (
-              <Badge variant="destructive" className="h-4 px-1.5 text-[10px] tabular-nums">
-                {formatNumber(m.unassigned, i18n.language)}
-              </Badge>
+              <CountBadge>{formatNumber(m.unassigned, i18n.language)}</CountBadge>
             )}
           </button>
         ))}

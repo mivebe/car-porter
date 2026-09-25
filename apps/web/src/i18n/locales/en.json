@@ -37,7 +37,10 @@
     "mobileBg": "mobile.bg",
     "carsBg": "cars.bg",
     "olxBg": "OLX.bg",
-    "mobileDe": "mobile.de"
+    "mobileDe": "mobile.de",
+    "autoscout24": "AutoScout24",
+    "bidfax": "bidfax",
+    "statvin": "stat.vin"
   },
   "sourceErrors": {
     "blocked": "blocked",
@@ -263,10 +266,6 @@
     "empty": "No earlier auctions of this vehicle were found.",
     "thisLot": "This lot",
     "photo": "Photo from the {{date}} auction",
-    "sites": {
-      "bidfax": "bidfax",
-      "statvin": "stat.vin"
-    },
     "queries": {
       "vin": "VIN",
       "lot": "lot number"
@@ -291,13 +290,6 @@
       "mileage": "Mileage ±{{range}} km (lot: {{km}} km)",
       "transmission": "Transmission",
       "fuel": "Fuel"
-    },
-    "sites": {
-      "mobileBg": "mobile.bg",
-      "carsBg": "cars.bg",
-      "autoscout24": "AutoScout24 (EU)",
-      "olxBg": "OLX.bg",
-      "mobileDe": "mobile.de (DE)"
     },
     "yearSpan": {
       "exact": "Exact",

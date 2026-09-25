@@ -9,21 +9,12 @@ import { formatNumber, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { effectiveTargets } from './alias-hooks';
 import { cardId, type AliasColumn } from './drop-plan';
-import { siteColor } from './site-color';
+import { SourceBadge } from '@/features/search/source-badge';
 
 /** Hovering a card this long shows its details. */
 const DETAILS_HOVER_DELAY_MS = 1200;
 
 export type CardAction = 'ignore' | 'unassign' | 'reset';
-
-export function SiteMark({ source }: { source: AliasEntry['source'] }) {
-  const { t } = useTranslation();
-  return (
-    <span className={cn('shrink-0 rounded px-1 py-px text-[10px] font-semibold tracking-wide uppercase', siteColor(source))}>
-      {t(`sources.${source}`)}
-    </span>
-  );
-}
 
 /** The visual card, shared by the list and the drag overlay. */
 export function CardFace({ entry, showMake, className }: { entry: AliasEntry; showMake?: boolean; className?: string }) {
@@ -35,7 +26,7 @@ export function CardFace({ entry, showMake, className }: { entry: AliasEntry; sh
         className,
       )}
     >
-      <SiteMark source={entry.source} />
+      <SourceBadge source={entry.source} />
       <span className="truncate font-medium">{entry.externalName}</span>
       {showMake && entry.make && <span className="truncate text-xs text-muted-foreground">· {entry.make}</span>}
       {entry.lotCount != null && (
@@ -170,7 +161,7 @@ function AliasDetails({ entry, actions, onAction }: { entry: AliasEntry; actions
   return (
     <div className="flex flex-col gap-3 text-sm">
       <div className="flex items-center gap-2">
-        <SiteMark source={entry.source} />
+        <SourceBadge source={entry.source} />
         <span className="font-semibold break-all">{entry.externalName}</span>
       </div>
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">

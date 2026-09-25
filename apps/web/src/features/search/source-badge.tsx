@@ -1,20 +1,19 @@
-import type { Lot } from '@car-porter/core';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { siteColor, type Site } from './site-color';
 
-export function SourceBadge({ source }: { source: Lot['source'] }) {
+/** The site's name in its colour; the one mark for a site everywhere in the app. */
+export function SourceBadge({ source, className }: { source: Site; className?: string }) {
   const { t } = useTranslation();
   return (
-    <Badge
-      variant="outline"
+    <span
       className={cn(
-        source === 'copart'
-          ? 'border-blue-500/40 text-blue-600 dark:text-blue-400'
-          : 'border-red-500/40 text-red-600 dark:text-red-400',
+        'inline-flex shrink-0 items-center rounded px-1 py-px text-[10px] leading-4 font-semibold tracking-wide uppercase',
+        siteColor(source),
+        className,
       )}
     >
       {t(`sources.${source}`)}
-    </Badge>
+    </span>
   );
 }

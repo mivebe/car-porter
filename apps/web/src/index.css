@@ -3,9 +3,11 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* Colour themes: each has a light (:root) and dark (.dark) set, picked with data-palette on <html>. Champagne is the default. */
+/* Colour themes: each has a light and a dark set, picked with data-palette on <html>. Champagne is the default.
+   The selectors also match any element carrying data-palette, so a swatch can show another palette's colours. */
 /* champagne */
-:root {
+:root,
+[data-palette='champagne'] {
   --radius: 0.625rem;
   --background: oklch(0.98 0.006 85);
   --foreground: oklch(0.219 0.007 78);
@@ -30,7 +32,8 @@
   --destructive: oklch(0.568 0.192 24);
 }
 
-.dark {
+.dark,
+.dark [data-palette='champagne'] {
   --background: oklch(0.178 0.003 68);
   --foreground: oklch(0.948 0.013 82);
   --card: oklch(0.218 0.004 85);
@@ -55,7 +58,7 @@
 }
 
 /* racing */
-:root[data-palette='racing'] {
+[data-palette='racing'] {
   --background: oklch(0.976 0.004 157);
   --foreground: oklch(0.229 0.022 164);
   --card: oklch(1 0 0);
@@ -79,7 +82,8 @@
   --destructive: oklch(0.568 0.192 24);
 }
 
-:root.dark[data-palette='racing'] {
+.dark[data-palette='racing'],
+.dark [data-palette='racing'] {
   --background: oklch(0.183 0.012 167);
   --foreground: oklch(0.954 0.01 126);
   --card: oklch(0.22 0.015 166);
@@ -104,7 +108,7 @@
 }
 
 /* petrol */
-:root[data-palette='petrol'] {
+[data-palette='petrol'] {
   --background: oklch(0.975 0.005 258);
   --foreground: oklch(0.206 0.019 252);
   --card: oklch(1 0 0);
@@ -128,7 +132,8 @@
   --destructive: oklch(0.556 0.185 15);
 }
 
-:root.dark[data-palette='petrol'] {
+.dark[data-palette='petrol'],
+.dark [data-palette='petrol'] {
   --background: oklch(0.175 0.015 253);
   --foreground: oklch(0.946 0.008 242);
   --card: oklch(0.215 0.019 252);
@@ -153,7 +158,7 @@
 }
 
 /* titanium */
-:root[data-palette='titanium'] {
+[data-palette='titanium'] {
   --background: oklch(0.979 0.002 0);
   --foreground: oklch(0.204 0.007 258);
   --card: oklch(1 0 0);
@@ -177,7 +182,8 @@
   --destructive: oklch(0.568 0.192 24);
 }
 
-:root.dark[data-palette='titanium'] {
+.dark[data-palette='titanium'],
+.dark [data-palette='titanium'] {
   --background: oklch(0.173 0.004 264);
   --foreground: oklch(0.949 0.003 265);
   --card: oklch(0.209 0.006 271);
@@ -199,6 +205,27 @@
   --success: oklch(0.732 0.121 157);
   --warning: oklch(0.767 0.13 73);
   --destructive: oklch(0.626 0.193 23);
+}
+
+/* Site colours (auctions and marketplaces), shared by every palette. IAAI is kept clear of the destructive red. */
+:root {
+  --site-copart: oklch(0.52 0.16 257);
+  --site-iaai: oklch(0.52 0.19 335);
+  --site-mobile-bg: oklch(0.52 0.12 165);
+  --site-cars-bg: oklch(0.55 0.13 75);
+  --site-olx-bg: oklch(0.5 0.17 295);
+  --site-mobile-de: oklch(0.55 0.15 45);
+  --site-autoscout24: oklch(0.52 0.1 215);
+}
+
+.dark {
+  --site-copart: oklch(0.74 0.12 257);
+  --site-iaai: oklch(0.74 0.14 335);
+  --site-mobile-bg: oklch(0.76 0.11 165);
+  --site-cars-bg: oklch(0.8 0.12 80);
+  --site-olx-bg: oklch(0.74 0.13 295);
+  --site-mobile-de: oklch(0.76 0.12 50);
+  --site-autoscout24: oklch(0.76 0.09 215);
 }
 
 @theme inline {
@@ -227,6 +254,13 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-brand: var(--brand);
+  --color-site-copart: var(--site-copart);
+  --color-site-iaai: var(--site-iaai);
+  --color-site-mobile-bg: var(--site-mobile-bg);
+  --color-site-cars-bg: var(--site-cars-bg);
+  --color-site-olx-bg: var(--site-olx-bg);
+  --color-site-mobile-de: var(--site-mobile-de);
+  --color-site-autoscout24: var(--site-autoscout24);
 }
 
 @layer base {

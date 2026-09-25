@@ -313,7 +313,7 @@ function SettingsForm({ saved }: { saved: Settings }) {
             {MARKET_SOURCES.map((site) => (
               <div key={site} className="flex items-center justify-between gap-3">
                 <Label htmlFor={`default-source-${site}`} className="font-normal">
-                  {t(`market.sites.${site}`)}
+                  {t(`sources.${site}`)}
                 </Label>
                 <Switch
                   id={`default-source-${site}`}
@@ -391,14 +391,6 @@ function SettingsForm({ saved }: { saved: Settings }) {
 
 const THEMES = ['dark', 'light'] as const;
 
-/** Ground and accent of each palette in dark mode, for the picker swatch. */
-const SWATCHES: Record<Palette, [string, string]> = {
-  champagne: ['#121110', '#D6B77C'],
-  racing: ['#0D1411', '#C6A15B'],
-  petrol: ['#0C1117', '#D08A5C'],
-  titanium: ['#0F1012', '#A9C4D6'],
-};
-
 function AppearanceCard() {
   const { t, i18n } = useTranslation();
   const { theme, palette } = useTheme();
@@ -451,10 +443,12 @@ function AppearanceCard() {
             <SelectContent>
               {PALETTES.map((value) => (
                 <SelectItem key={value} value={value}>
+                  {/* data-palette gives the swatch that palette's colours (see index.css) */}
                   <span
                     aria-hidden
+                    data-palette={value}
                     className="size-3.5 shrink-0 rounded-full border border-border"
-                    style={{ background: `linear-gradient(135deg, ${SWATCHES[value][0]} 50%, ${SWATCHES[value][1]} 50%)` }}
+                    style={{ background: 'linear-gradient(135deg, var(--background) 50%, var(--brand) 50%)' }}
                   />
                   {t(`settings.appearance.palettes.${value}`)}
                 </SelectItem>

@@ -37,7 +37,10 @@
     "mobileBg": "mobile.bg",
     "carsBg": "cars.bg",
     "olxBg": "OLX.bg",
-    "mobileDe": "mobile.de"
+    "mobileDe": "mobile.de",
+    "autoscout24": "AutoScout24",
+    "bidfax": "bidfax",
+    "statvin": "stat.vin"
   },
   "sourceErrors": {
     "blocked": "блокирано",
@@ -263,10 +266,6 @@
     "empty": "Не са намерени предишни търгове на този автомобил.",
     "thisLot": "Този лот",
     "photo": "Снимка от търга на {{date}}",
-    "sites": {
-      "bidfax": "bidfax",
-      "statvin": "stat.vin"
-    },
     "queries": {
       "vin": "VIN",
       "lot": "номер на лот"
@@ -291,13 +290,6 @@
       "mileage": "Пробег ±{{range}} км (лот: {{km}} км)",
       "transmission": "Скоростна кутия",
       "fuel": "Гориво"
-    },
-    "sites": {
-      "mobileBg": "mobile.bg",
-      "carsBg": "cars.bg",
-      "autoscout24": "AutoScout24 (ЕС)",
-      "olxBg": "OLX.bg",
-      "mobileDe": "mobile.de (DE)"
     },
     "yearSpan": {
       "exact": "Точна",

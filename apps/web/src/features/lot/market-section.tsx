@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { SourceBadge } from '@/features/search/source-badge';
 import { formatMoney, formatNumber, formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { MarketResponse, MarketSiteResult, StoredMarketListing } from './market-hooks';
@@ -82,7 +83,7 @@ export function MarketSection({ lot, inputs, settings, data, sites, summary, run
           {MARKET_SOURCES.map((site) => (
             <div key={site} className="flex items-center justify-between gap-3">
               <Label htmlFor={`market-source-${site}`} className="font-normal">
-                {t(`market.sites.${site}`)}
+                {t(`sources.${site}`)}
               </Label>
               <Switch id={`market-source-${site}`} checked={sites.includes(site)} onCheckedChange={(v) => setSource(site, v)} />
             </div>
@@ -190,7 +191,9 @@ function SiteGroup({
   return (
     <div className="grid gap-2" data-testid={`market-group-${group.site}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h4 className="text-sm font-medium">{t(`market.sites.${group.site}`)}</h4>
+        <h4>
+          <SourceBadge source={group.site} />
+        </h4>
         {group.summary && (
           <span className="text-sm tabular-nums" data-testid="market-group-average">
             {t('market.groupAverage', { average: eur(group.summary.average), count: group.summary.count })}

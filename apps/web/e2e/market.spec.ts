@@ -49,7 +49,7 @@ test('BG market: grouped listings, match toggles, exclusions and marketplace cho
   await expect(section.getByTestId('market-average')).toHaveText('€21,625');
 
   // add AutoScout24 (EU reference): it hasn't been searched yet, so the button checks again
-  await section.getByLabel('AutoScout24 (EU)').click();
+  await section.getByLabel('AutoScout24').click();
   await expect(section.getByTestId('market-group-autoscout24').getByTestId('market-site-status')).toContainText('not checked yet');
   await section.getByRole('button', { name: 'Check BG market' }).click();
   const eu = section.getByTestId('market-group-autoscout24');
@@ -64,7 +64,7 @@ test('BG market: grouped listings, match toggles, exclusions and marketplace cho
   const reopened = page.getByRole('dialog').getByTestId('market-section');
   await expect(reopened.getByTestId('market-count')).toHaveText('3 / 4');
   await expect(reopened.getByLabel('Fuel')).toBeChecked();
-  await expect(reopened.getByLabel('AutoScout24 (EU)')).toBeChecked();
+  await expect(reopened.getByLabel('AutoScout24')).toBeChecked();
 });
 
 // mobile.de's recorded Camry 2019 search has 11 listings; wider year searches aren't recorded (empty).
@@ -78,7 +78,7 @@ test('BG market: mobile.de and the broad year search', async ({ page, request })
   await page.goto(LOT_URL);
 
   const section = page.getByRole('dialog').getByTestId('market-section');
-  await section.getByLabel('mobile.de (DE)').click();
+  await section.getByLabel('mobile.de').click();
   await section.getByRole('button', { name: 'Check BG market' }).click();
   const de = section.getByTestId('market-group-mobileDe');
   await expect(de.getByTestId('market-site-status')).toContainText('11 listings found now');

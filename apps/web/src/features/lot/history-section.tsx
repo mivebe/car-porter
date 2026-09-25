@@ -94,7 +94,7 @@ export function HistorySection({ lot, data, running, runFailed, onRun }: History
 
 function CheckLine({ check }: { check: HistoryCheck }) {
   const { t, i18n } = useTranslation();
-  const label = t('history.checkLabel', { site: t(`history.sites.${check.site}`), query: t(`history.queries.${check.query}`) });
+  const label = t('history.checkLabel', { site: t(`sources.${check.site}`), query: t(`history.queries.${check.query}`) });
   return (
     <li data-testid="history-check" className={check.error ? 'text-destructive' : undefined}>
       {label}
@@ -159,7 +159,7 @@ function EntryItem({ entry, lot }: { entry: HistoryEntry; lot: Lot }) {
               rel="noreferrer"
               className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
             >
-              {t(`history.sites.${source.site}`, { defaultValue: source.site })}
+              {t(`sources.${source.site}`, { defaultValue: source.site })}
               <ExternalLink className="size-3" />
             </a>
           ))}

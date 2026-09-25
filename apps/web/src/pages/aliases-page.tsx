@@ -3,13 +3,13 @@ import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/layout/page-header';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AliasBoard } from '@/features/aliases/alias-board';
 import { useAliasMakes, useAliasSummary } from '@/features/aliases/alias-hooks';
+import { CountBadge } from '@/features/aliases/count-badge';
 import { ScanButton, ScanProgress } from '@/features/aliases/scan-button';
 import { Combobox } from '@/features/search/combobox';
 import type { AliasKind, AliasStatus } from '@/lib/api';
@@ -52,9 +52,9 @@ export function AliasesPage() {
               <TabsTrigger key={k} value={k} className="gap-1.5">
                 {t(`aliases.kind.${k}`)}
                 {!!unassigned?.[k] && (
-                  <Badge variant="destructive" className="h-4 px-1.5 text-[10px] tabular-nums" data-testid={`unassigned-${k}`}>
+                  <CountBadge data-testid={`unassigned-${k}`}>
                     {unassigned[k]}
-                  </Badge>
+                  </CountBadge>
                 )}
               </TabsTrigger>
             ))}
@@ -87,9 +87,9 @@ export function AliasesPage() {
                 <SelectItem key={s} value={s}>
                   {t(`sources.${s}`)}
                   {!!count && (
-                    <Badge variant="destructive" className="h-4 px-1.5 text-[10px] tabular-nums" data-testid={`unassigned-site-${s}`}>
+                    <CountBadge data-testid={`unassigned-site-${s}`}>
                       {count}
-                    </Badge>
+                    </CountBadge>
                   )}
                 </SelectItem>
               );

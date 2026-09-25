@@ -38,7 +38,7 @@ test('settings: validation, save, effect on the verdict and market defaults, res
   await page.getByLabel('“Worth it” from a margin of').fill('9000');
   await page.getByRole('button', { name: 'Remove fee part 3' }).click();
   await expect(page.getByTestId('fee-total')).toHaveText('Total 30% · reduced 10%');
-  await page.getByLabel('AutoScout24 (EU)').click();
+  await page.getByLabel('AutoScout24').click();
   await expect(page.getByText('Unsaved changes')).toBeVisible();
   await save.click();
   await expect(page.getByText('Settings saved')).toBeVisible();
@@ -47,14 +47,14 @@ test('settings: validation, save, effect on the verdict and market defaults, res
   await page.reload();
   await expect(page.getByLabel('“Worth it” from a margin of')).toHaveValue('9000');
   await expect(page.getByRole('textbox', { name: 'Part 3' })).toHaveCount(0);
-  await expect(page.getByLabel('AutoScout24 (EU)')).toBeChecked();
+  await expect(page.getByLabel('AutoScout24')).toBeChecked();
 
   // the lot uses the new fees, threshold and default marketplaces
   await page.goto(`${SEARCH}&lot=${encodeURIComponent(LOT)}`);
   const sheet = page.getByRole('dialog');
   await expect(sheet.getByText('Fees 10%')).toHaveCount(1);
   await expect(sheet.getByText('Fees 20%')).toHaveCount(1);
-  await expect(sheet.getByTestId('market-section').getByLabel('AutoScout24 (EU)')).toBeChecked();
+  await expect(sheet.getByTestId('market-section').getByLabel('AutoScout24')).toBeChecked();
 
   // back to the defaults
   await page.goto('/settings');

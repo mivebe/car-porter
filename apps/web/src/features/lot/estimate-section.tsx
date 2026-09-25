@@ -130,7 +130,7 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
                       rel="noreferrer"
                       className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                     >
-                      {t('history.sites.bidfax')}
+                      {t('sources.bidfax')}
                       <ExternalLink className="size-3" />
                     </a>
                   </div>
