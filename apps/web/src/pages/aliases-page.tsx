@@ -3,7 +3,6 @@ import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
 import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -98,24 +97,18 @@ export function AliasesPage() {
         </Select>
 
         {kind === 'model' && (
-          <div className="flex items-center gap-1">
-            <div className="w-56">
-              <Combobox
-                ariaLabel={t('aliases.filters.make')}
-                value={make}
-                onChange={(m) => update({ make: m, sel: null })}
-                options={(aliasMakes.data?.items ?? []).map((m) => m.name)}
-                loading={aliasMakes.isLoading}
-                placeholder={t('aliases.filters.allMakes')}
-                searchPlaceholder={t('search.searchMake')}
-                emptyText={t('search.noOptions')}
-              />
-            </div>
-            {make && (
-              <Button variant="ghost" size="sm" onClick={() => update({ make: null, sel: null })}>
-                {t('aliases.filters.allMakes')}
-              </Button>
-            )}
+          <div className="w-56">
+            <Combobox
+              ariaLabel={t('aliases.filters.make')}
+              value={make}
+              onChange={(m) => update({ make: m, sel: null })}
+              options={(aliasMakes.data?.items ?? []).map((m) => m.name)}
+              loading={aliasMakes.isLoading}
+              placeholder={t('aliases.filters.allMakes')}
+              searchPlaceholder={t('search.searchMake')}
+              emptyText={t('search.noOptions')}
+              clearLabel={t('aliases.filters.clearMake')}
+            />
           </div>
         )}
 

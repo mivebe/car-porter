@@ -29,7 +29,7 @@ describe('App shell', () => {
     const user = userEvent.setup();
     render(<App initialPath="/" />);
     expect(document.documentElement).toHaveClass('dark');
-    await user.click(screen.getByRole('button', { name: 'Toggle theme' }));
+    await user.click(screen.getByRole('button', { name: 'Toggle light/dark mode' }));
     expect(document.documentElement).not.toHaveClass('dark');
     expect(localStorage.getItem('car-porter.theme')).toBe('light');
   });

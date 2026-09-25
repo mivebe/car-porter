@@ -20,7 +20,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { SourceBadge } from '@/features/search/source-badge';
-import { formatMoney, formatNumber, formatRelative } from '@/lib/format';
+import { formatMoney, formatNumber, formatRelative, milesToKm } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { MarketResponse, MarketSiteResult, StoredMarketListing } from './market-hooks';
 import { Section, Stat } from './section';
@@ -81,7 +81,7 @@ export function MarketSection({ lot, inputs, settings, data, sites, summary, run
     >
       <div className="grid gap-4 sm:grid-cols-2">
         <fieldset className="grid content-start gap-2">
-          <legend className="mb-1 text-xs text-muted-foreground">{t('market.sourcesLabel')}</legend>
+          <legend className="mb-1 text-sm font-medium">{t('market.sourcesLabel')}</legend>
           {MARKET_SOURCES.map((site) => (
             <div key={site} className="flex items-center justify-between gap-3">
               <Label htmlFor={`market-source-${site}`} className="font-normal">
@@ -92,7 +92,7 @@ export function MarketSection({ lot, inputs, settings, data, sites, summary, run
           ))}
         </fieldset>
         <fieldset className="grid content-start gap-2">
-          <legend className="mb-1 text-xs text-muted-foreground">{t('market.matchLabel')}</legend>
+          <legend className="mb-1 text-sm font-medium">{t('market.matchLabel')}</legend>
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm" id="market-year-span-label">
               {t('market.match.year')}
@@ -119,7 +119,7 @@ export function MarketSection({ lot, inputs, settings, data, sites, summary, run
               <Label htmlFor={`market-match-${criterion}`} className="font-normal">
                 {t(`market.match.${criterion}`, {
                   range: formatNumber(settings.market.mileageRangeKm, lang),
-                  km: lot.odometerMiles != null ? formatNumber(Math.round(lot.odometerMiles * 1.609344), lang) : '-',
+                  km: lot.odometerMiles != null ? formatNumber(milesToKm(lot.odometerMiles), lang) : '-',
                 })}
               </Label>
               <Switch

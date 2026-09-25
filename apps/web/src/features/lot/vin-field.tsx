@@ -1,5 +1,5 @@
 import { checkVin, effectiveVin, vinMatchesMask } from '@car-porter/core';
-import { AlertTriangle, CheckCircle2, ScanLine } from 'lucide-react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
@@ -28,11 +28,8 @@ export function VinField({ lotVin, override, onCommit }: VinFieldProps) {
   };
 
   return (
-    <div className="grid gap-2">
-      <Label htmlFor="vin-override" className="flex items-center gap-2">
-        <ScanLine className="size-4" />
-        {t('lotDetail.vinOverride')}
-      </Label>
+    <div className="grid gap-1.5">
+      <Label htmlFor="vin-override">{t('lotDetail.vinOverride')}</Label>
       <Input
         id="vin-override"
         className="font-mono uppercase"

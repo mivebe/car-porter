@@ -72,6 +72,6 @@ test.describe('lot detail + import cost', () => {
     await page.getByRole('button', { name: 'Language' }).click();
     await page.getByRole('menuitemradio', { name: 'Български' }).click();
     await page.getByTestId('lot-row').first().click();
-    await expect(page.getByRole('dialog').getByText('Разходи за внос в България')).toBeVisible();
+    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Цена до БГ' })).toBeVisible();
   });
 });

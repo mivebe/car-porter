@@ -6,7 +6,7 @@ import { InlineMessage } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { formatDate, formatMoney, formatNumber, formatRelative } from '@/lib/format';
+import { formatDate, formatMoney, formatNumber, formatRelative, milesToKm } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { estimateSummary, type EstimateResponse } from './estimate-hooks';
 import { Section, Stat } from './section';
@@ -134,7 +134,7 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
                       r.trim,
                       r.engine,
                       r.damage,
-                      r.odometerMiles != null ? t('units.miles', { value: formatNumber(r.odometerMiles, lang) }) : null,
+                      r.odometerMiles != null ? t('units.km', { value: formatNumber(milesToKm(r.odometerMiles), lang) }) : null,
                       r.auction?.toUpperCase(),
                       r.location,
                     ]

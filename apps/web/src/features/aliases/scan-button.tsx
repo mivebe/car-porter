@@ -1,4 +1,4 @@
-import { Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, ScanSearch } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import type { AliasScanSource } from '@/lib/api';
@@ -21,7 +21,7 @@ export function ScanButton() {
   }
   return (
     <Button onClick={() => start.mutate(undefined)} disabled={start.isPending} data-testid="alias-scan">
-      <RefreshCw />
+      <ScanSearch />
       {t('aliases.scan.startAll')}
     </Button>
   );

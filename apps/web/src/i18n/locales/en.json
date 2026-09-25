@@ -10,7 +10,7 @@
     "aliases": "Aliases"
   },
   "header": {
-    "toggleTheme": "Toggle theme",
+    "toggleTheme": "Toggle light/dark mode",
     "language": "Language"
   },
   "language": {
@@ -182,7 +182,7 @@
     }
   },
   "cost": {
-    "title": "Import cost to Bulgaria",
+    "title": "Cost to BG",
     "bid": "Purchase price (bid)",
     "resetBid": "Reset to default price",
     "bidSource": {
@@ -205,7 +205,7 @@
       "fxOverride": "In EUR (manual rate {{rate}})",
       "rotterdamSofia": "Rotterdam → Sofia",
       "sofiaToBg": "Sofia → anywhere in BG",
-      "total": "Total landed cost"
+      "total": "Total cost to BG"
     }
   },
   "estimate": {
@@ -331,7 +331,7 @@
     },
     "rows": {
       "marketAverage": "BG market average",
-      "total": "Total landed cost",
+      "total": "Cost to BG",
       "repair": "Repair estimate",
       "margin": "Margin"
     },
@@ -347,7 +347,7 @@
     "empty": "No tracked lots yet. Open a lot from the search and press “Track” to follow its estimate and verdict here.",
     "columns": {
       "estimate": "Estimate",
-      "cost": "Landed cost",
+      "cost": "Cost to BG",
       "market": "BG market",
       "margin": "Margin",
       "verdict": "Verdict"
@@ -380,7 +380,7 @@
       "delayOrder": "Must be at least the minimum delay."
     },
     "cost": {
-      "title": "Import costs",
+      "title": "Cost to BG",
       "percentages": "Fees (% of the bid)",
       "part": "Part {{n}}",
       "removePart": "Remove fee part {{n}}",
@@ -425,7 +425,7 @@
         "petrol": "Petrol & Copper",
         "titanium": "Titanium Ice"
       },
-      "theme": "Mode",
+      "theme": "Light/dark mode",
       "themes": {
         "dark": "Dark",
         "light": "Light"
@@ -476,7 +476,8 @@
       "allSites": "All sites",
       "make": "Make",
       "allMakes": "All makes",
-      "search": "Search site names"
+      "search": "Search site names",
+      "clearMake": "Clear make"
     },
     "scan": {
       "startAll": "Scan all",

@@ -141,7 +141,7 @@ function SettingsForm({ saved }: { saved: Settings }) {
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <SettingsCard title={t('settings.cost.title')}>
           <fieldset className="grid gap-2">
-            <legend className="mb-1 text-sm">{t('settings.cost.percentages')}</legend>
+            <legend className="mb-1 text-sm font-medium">{t('settings.cost.percentages')}</legend>
             {percents.map((percent, i) => (
               <div key={`${i}-${formKey}`} className="flex items-end gap-2">
                 <NumberField
@@ -305,7 +305,7 @@ function SettingsForm({ saved }: { saved: Settings }) {
             )}
           </div>
           <fieldset className="grid gap-2">
-            <legend className="mb-1 text-sm">{t('settings.market.defaultSources')}</legend>
+            <legend className="mb-1 text-sm font-medium">{t('settings.market.defaultSources')}</legend>
             {MARKET_SOURCES.map((site) => (
               <div key={site} className="flex items-center justify-between gap-3">
                 <Label htmlFor={`default-source-${site}`} className="font-normal">

@@ -16,6 +16,9 @@ export function formatMoney(
   }).format(cents / 100);
 }
 
+/** Whole kilometres for a mileage in miles (US auctions report miles). */
+export const milesToKm = (miles: number) => Math.round(miles * 1.609344);
+
 const numberFormats = new Map<string, Intl.NumberFormat>();
 
 export function formatNumber(value: number | null | undefined, language: string): string {

@@ -1,4 +1,4 @@
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -25,6 +25,8 @@ interface ComboboxProps {
   loading?: boolean;
   disabled?: boolean;
   ariaLabel: string;
+  /** Shows an × that empties the value; its accessible name. */
+  clearLabel?: string;
 }
 
 export function Combobox({
@@ -39,6 +41,7 @@ export function Combobox({
   loading,
   disabled,
   ariaLabel,
+  clearLabel,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState('');
@@ -50,22 +53,39 @@ export function Combobox({
     setOpen(false);
   };
 
+  const clearable = !!clearLabel && !!value && !disabled;
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          aria-label={ariaLabel}
-          disabled={disabled}
-          className="w-full justify-between font-normal"
-        >
-          <span className={cn('truncate', !value && 'text-muted-foreground')}>{value || placeholder}</span>
-          {loading ? <Loader2 className="animate-spin opacity-60" /> : <ChevronsUpDown className="opacity-50" />}
-        </Button>
-      </PopoverTrigger>
+      <div className="relative">
+        <PopoverTrigger asChild>
+          <Button
+            id={id}
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            aria-label={ariaLabel}
+            disabled={disabled}
+            className={cn('w-full justify-between font-normal', clearable && 'pr-14')}
+          >
+            <span className={cn('truncate', !value && 'text-muted-foreground')}>{value || placeholder}</span>
+            {loading ? <Loader2 className="animate-spin opacity-60" /> : <ChevronsUpDown className="opacity-50" />}
+          </Button>
+        </PopoverTrigger>
+        {clearable && (
+          // beside the trigger, not inside it: a button can't hold another button
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            className="absolute top-1/2 right-8 -translate-y-1/2 text-muted-foreground"
+            aria-label={clearLabel}
+            onClick={() => onChange('')}
+          >
+            <X />
+          </Button>
+        )}
+      </div>
       <PopoverContent className="w-(--radix-popover-trigger-width) min-w-56 p-0" align="start">
         <Command>
           <CommandInput placeholder={searchPlaceholder} value={typed} onValueChange={setTyped} />

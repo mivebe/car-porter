@@ -71,7 +71,7 @@ test('settings: language, mode and theme are saved on the server; Copart login w
   browser,
 }) => {
   await page.goto('/settings');
-  await page.getByRole('combobox', { name: 'Mode' }).click();
+  await page.getByRole('combobox', { name: 'Light/dark mode' }).click();
   await page.getByRole('option', { name: 'Light' }).click();
   await expect(page.locator('html')).not.toHaveClass(/dark/);
   await page.getByRole('combobox', { name: 'Theme' }).click();

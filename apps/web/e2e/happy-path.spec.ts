@@ -80,7 +80,7 @@ test('happy path: search → lot → estimate → history → cost → market �
   await expect(row.getByTestId('verdict-status')).toHaveText('Borderline');
 
   // language and theme from the header
-  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await page.getByRole('button', { name: 'Toggle light/dark mode' }).click();
   await expect(page.locator('html')).not.toHaveClass(/dark/);
   await page.getByRole('button', { name: 'Language' }).click();
   await page.getByRole('menuitemradio', { name: 'Български' }).click();

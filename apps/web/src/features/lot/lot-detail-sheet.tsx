@@ -1,5 +1,5 @@
 import { effectiveMarketSources, evaluateLot, summarizeMarket, type Lot } from '@car-porter/core';
-import { Bookmark, BookmarkCheck, ExternalLink, ImageOff, Info, Wrench } from 'lucide-react';
+import { Bookmark, BookmarkCheck, ExternalLink, ImageOff, Info } from 'lucide-react';
 import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { lotTitle } from '@/features/search/lot-title';
 import { SourceBadge } from '@/features/search/source-badge';
 import { useSetTracked } from '@/features/tracking/tracking-hooks';
-import { formatDateTime, formatMoney, formatNumber, sentenceCase } from '@/lib/format';
+import { formatDateTime, formatMoney, formatNumber, milesToKm, sentenceCase } from '@/lib/format';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { cn } from '@/lib/utils';
 import { CostSection } from './cost-section';
@@ -127,11 +127,8 @@ function LotDetail({ lotId, columns }: { lotId: string; columns: 1 | 2 }) {
         override={inputs.data.vinOverride}
         onCommit={(vinOverride) => updateInputs.mutate({ vinOverride })}
       />
-      <div className="grid content-start gap-2">
-        <Label htmlFor="repair-estimate" className="flex items-center gap-2">
-          <Wrench className="size-4" />
-          {t('lotDetail.repairEstimate')}
-        </Label>
+      <div className="grid content-start gap-1.5">
+        <Label htmlFor="repair-estimate">{t('lotDetail.repairEstimate')}</Label>
         <MoneyInput
           id="repair-estimate"
           currency="EUR"
@@ -287,7 +284,7 @@ function Facts({ lot }: { lot: Lot }) {
   const lang = i18n.language;
   const facts: [string, string | null][] = [
     ['vin', lot.vin],
-    ['odometer', lot.odometerMiles != null ? t('units.miles', { value: formatNumber(lot.odometerMiles, lang) }) : null],
+    ['odometer', lot.odometerMiles != null ? t('units.km', { value: formatNumber(milesToKm(lot.odometerMiles), lang) }) : null],
     ['engine', lot.engine],
     ['fuel', sentenceCase(lot.fuel)],
     ['transmission', sentenceCase(lot.transmission)],

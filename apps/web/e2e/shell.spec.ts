@@ -15,7 +15,7 @@ test('app shell: navigation, dark default theme, light toggle, Bulgarian languag
   await expect(page).toHaveURL(/\/tracking$/);
   await expect(page.getByRole('heading', { name: 'Tracking' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Toggle theme' }).click();
+  await page.getByRole('button', { name: 'Toggle light/dark mode' }).click();
   await expect(page.locator('html')).not.toHaveClass(/dark/);
 
   await page.getByRole('button', { name: 'Language' }).click();

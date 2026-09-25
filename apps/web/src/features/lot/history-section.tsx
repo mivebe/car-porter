@@ -1,11 +1,11 @@
 import { AUCTION_SOURCES, type AuctionSource, type HistoryEntry, type Lot } from '@car-porter/core';
-import { ExternalLink, History, Loader2, RefreshCw, Search } from 'lucide-react';
+import { ExternalLink, FileClock, Loader2, RefreshCw, Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { InlineMessage } from '@/components/feedback';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SourceBadge } from '@/features/search/source-badge';
-import { formatDate, formatMoney, formatNumber, formatRelative, sentenceCase } from '@/lib/format';
+import { formatDate, formatMoney, formatNumber, formatRelative, milesToKm, sentenceCase } from '@/lib/format';
 import type { HistoryCheck, HistoryResponse } from './history-hooks';
 import { Section } from './section';
 
@@ -33,7 +33,7 @@ export function HistorySection({ lot, data, running, runFailed, onRun }: History
 
   return (
     <Section
-      icon={History}
+      icon={FileClock}
       title={t('history.title')}
       testId="history-section"
       actions={
@@ -109,7 +109,7 @@ function EntryItem({ entry, lot }: { entry: HistoryEntry; lot: Lot }) {
   const isThisLot = entry.auction === lot.source && entry.lotNumber === lot.lotNumber;
   const details = [
     sentenceCase(entry.damage) || null,
-    entry.odometerMiles != null ? t('units.miles', { value: formatNumber(entry.odometerMiles, lang) }) : null,
+    entry.odometerMiles != null ? t('units.km', { value: formatNumber(milesToKm(entry.odometerMiles), lang) }) : null,
     entry.location,
   ].filter(Boolean);
 
