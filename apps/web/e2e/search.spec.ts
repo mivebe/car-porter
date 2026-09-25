@@ -91,9 +91,12 @@ test.describe('lot search', () => {
 
     await expect(page).toHaveURL(/trim=XSE&iaaiMarkets=us%2Cca/);
     const rows = page.getByTestId('lot-row');
-    await expect(rows.first()).toBeVisible();
+    // the previous 55 rows, then a loading state, give way to the narrowed results
+    await expect.poll(async () => {
+      const n = await rows.count();
+      return n > 0 && n < 55;
+    }).toBe(true);
     const count = await rows.count();
-    expect(count).toBeLessThan(55);
     for (let i = 0; i < count; i++) await expect(rows.nth(i)).toContainText('XSE');
 
     await page.reload();
@@ -117,8 +120,11 @@ test.describe('lot search', () => {
     await page.getByRole('button', { name: 'Search', exact: true }).click();
     await expect(page).toHaveURL(/bodyStyle=Sedan&transmission=automatic&engine=3\.5/);
     const rows = page.getByTestId('lot-row');
-    await expect(rows.first()).toBeVisible();
-    expect(await rows.count()).toBeLessThan(55);
+    // the previous 55 rows, then a loading state, give way to the filtered results
+    await expect.poll(async () => {
+      const n = await rows.count();
+      return n > 0 && n < 55;
+    }).toBe(true);
 
     await page.reload();
     await expect(page.getByRole('combobox', { name: 'Body style' })).toHaveText('Sedan');
