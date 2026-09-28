@@ -60,3 +60,50 @@ export function createBidfaxSearcher(browser: BrowserManager, queue: SourceQueue
       return verifyLoaded(options, html, response);
     });
 }
+
+export interface Photo {
+  body: Buffer;
+  contentType: string;
+}
+
+/** Loads a photo, or null when the site has none at that URL. */
+export type PhotoFetcher = (url: string) => Promise<Photo | null>;
+
+/** bidfax photos live on bidfax.info, which the browser can't hotlink past Cloudflare. */
+export function isBidfaxPhotoUrl(url: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(url);
+    return protocol === 'https:' && (hostname === 'bidfax.info' || hostname.endsWith('.bidfax.info'));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Loads bidfax photos with the profile's cookies: a plain request passes once the profile holds
+ * cf_clearance (set for all of .bidfax.info, verified 2026-09-28). Without it the request gets
+ * the challenge, so one page load through `fetchHtml` earns the cookie and the request is retried.
+ */
+export function createBidfaxPhotoFetcher(browser: BrowserManager, fetchHtml: HtmlFetcher): PhotoFetcher {
+  let warmUp: Promise<unknown> | null = null;
+
+  async function request(url: string) {
+    const context = await browser.getContext(PROFILE);
+    const response = await context.request.get(url, { timeout: 30_000, failOnStatusCode: false });
+    return { status: response.status(), contentType: response.headers()['content-type'] ?? '', body: await response.body() };
+  }
+
+  return async (url) => {
+    let res = await request(url);
+    if (res.status === 403 && !res.contentType.startsWith('image/')) {
+      warmUp ??= fetchHtml(`${BIDFAX_ORIGIN}/`).finally(() => (warmUp = null));
+      await warmUp;
+      res = await request(url);
+    }
+    if (res.status === 404) return null;
+    if (res.status !== 200 || !res.contentType.startsWith('image/')) {
+      throw new SourceError(res.status === 403 ? 'blocked' : 'network', `bidfax: photo HTTP ${res.status}`);
+    }
+    return { body: res.body, contentType: res.contentType };
+  };
+}

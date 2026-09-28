@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/disclosure';
 import { InlineMessage } from '@/components/feedback';
+import { PhotoThumb } from '@/components/photo-thumb';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -112,6 +113,7 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
                   onCheckedChange={(v) => onToggle(r.id, v === true)}
                   aria-label={t('estimate.include', { price: usd(r.finalPriceUsdCents), date: formatDate(r.saleDate, lang) })}
                 />
+                <PhotoThumb url={r.imageUrl} href={r.url} alt={t('history.photo', { date: formatDate(r.saleDate, lang) })} />
                 <div className="grid min-w-0 flex-1 gap-0.5">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold tabular-nums">{usd(r.finalPriceUsdCents)}</span>

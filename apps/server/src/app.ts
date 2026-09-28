@@ -20,6 +20,7 @@ import { insightsRoutes } from './routes/insights-routes.ts';
 import { fxRoutes } from './routes/fx-routes.ts';
 import { lotsRoutes } from './routes/lots-routes.ts';
 import { marketRoutes } from './routes/market-routes.ts';
+import { photoRoutes } from './routes/photo-routes.ts';
 import { recentSearchesRoutes } from './routes/recent-searches-routes.ts';
 import { settingsRoutes } from './routes/settings-routes.ts';
 import { trackingRoutes } from './routes/tracking-routes.ts';
@@ -35,7 +36,14 @@ import { createTrackingService } from './services/tracking-service.ts';
 import { createVehicleAliasService } from './services/vehicle-alias-service.ts';
 import type { AuctionSearchAdapter } from './sources/auction-adapter.ts';
 import { createAutoscout24Adapter, createAutoscout24Fetcher } from './sources/autoscout24.ts';
-import { createBidfaxFetcher, createBidfaxSearcher, type BidfaxSearcher, type HtmlFetcher } from './sources/bidfax-client.ts';
+import {
+  createBidfaxFetcher,
+  createBidfaxPhotoFetcher,
+  createBidfaxSearcher,
+  type BidfaxSearcher,
+  type HtmlFetcher,
+  type PhotoFetcher,
+} from './sources/bidfax-client.ts';
 import { createCarsBgAdapter, createCarsBgFetcher } from './sources/carsbg.ts';
 import { createCopartAdapter, createCopartLogin, type CopartLogin } from './sources/copart.ts';
 import { createFxService, httpTextFetcher, type TextFetcher } from './sources/ecb.ts';
@@ -72,6 +80,7 @@ export interface AppOptions {
     bidfaxFetcher?: HtmlFetcher;
     bidfaxSearcher?: BidfaxSearcher;
     statVinFetcher?: HtmlFetcher;
+    photoFetcher?: PhotoFetcher;
     marketAdapters?: MarketAdapter[];
     auctionAdapters?: AuctionSearchAdapter[];
     copartLogin?: CopartLogin;
@@ -162,9 +171,15 @@ export async function buildApp({
   });
   await app.register(recentSearchesRoutes, { recent: repos.recentSearches });
 
+  const bidfaxFetcher =
+    overrides.bidfaxFetcher ?? (mockSources ? mockBidfaxFetcher : createBidfaxFetcher(browser, queue));
+  await app.register(photoRoutes, {
+    fetchPhoto:
+      overrides.photoFetcher ?? (mockSources ? async () => null : createBidfaxPhotoFetcher(browser, bidfaxFetcher)),
+  });
+
   const estimate = createEstimateService({
-    fetchHtml:
-      overrides.bidfaxFetcher ?? (mockSources ? mockBidfaxFetcher : createBidfaxFetcher(browser, queue)),
+    fetchHtml: bidfaxFetcher,
     cache: repos.cache,
     lots: repos.lots,
     records: repos.auctionRecords,

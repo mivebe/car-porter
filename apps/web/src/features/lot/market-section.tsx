@@ -15,6 +15,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Disclosure } from '@/components/disclosure';
 import { InlineMessage } from '@/components/feedback';
+import { PhotoThumb } from '@/components/photo-thumb';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -274,6 +275,7 @@ function ListingItem({
         onCheckedChange={(v) => onToggle(listing.id, v === true)}
         aria-label={t('market.include', { title: listing.title, price: eur(listing.priceEurCents) })}
       />
+      <PhotoThumb url={listing.imageUrl} href={listing.url} alt={listing.title} />
       <div className="grid min-w-0 flex-1 gap-0.5">
         <div className="flex items-center gap-2">
           <span className="font-semibold tabular-nums" data-testid="market-listing-price">

@@ -1,8 +1,8 @@
 import { AUCTION_SOURCES, type AuctionSource, type HistoryEntry, type Lot } from '@car-porter/core';
 import { ExternalLink, FileClock, Loader2, RefreshCw, Search } from 'lucide-react';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { InlineMessage } from '@/components/feedback';
+import { PhotoThumb } from '@/components/photo-thumb';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { SourceBadge } from '@/features/search/source-badge';
@@ -107,7 +107,6 @@ function CheckLine({ check }: { check: HistoryCheck }) {
 function EntryItem({ entry, lot }: { entry: HistoryEntry; lot: Lot }) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
-  const [photoFailed, setPhotoFailed] = useState(false);
   const isThisLot = entry.auction === lot.source && entry.lotNumber === lot.lotNumber;
   const details = [
     sentenceCase(entry.damage) || null,
@@ -118,19 +117,11 @@ function EntryItem({ entry, lot }: { entry: HistoryEntry; lot: Lot }) {
   return (
     <li className="relative flex gap-3 py-2" data-testid="history-entry">
       <span className="absolute top-3.5 -left-[21px] size-2.5 rounded-full border-2 border-background bg-muted-foreground" />
-      {/* bidfax photos can be blocked by Cloudflare; drop them instead of showing the alt text */}
-      {entry.imageUrl && !photoFailed && (
-        <a href={entry.sources[0]?.url} target="_blank" rel="noreferrer" className="shrink-0">
-          <img
-            src={entry.imageUrl}
-            alt={t('history.photo', { date: formatDate(entry.saleDate, lang) })}
-            referrerPolicy="no-referrer"
-            loading="lazy"
-            onError={() => setPhotoFailed(true)}
-            className="h-14 w-20 rounded object-cover"
-          />
-        </a>
-      )}
+      <PhotoThumb
+        url={entry.imageUrl}
+        href={entry.sources[0]?.url}
+        alt={t('history.photo', { date: formatDate(entry.saleDate, lang) })}
+      />
       <div className="grid min-w-0 flex-1 gap-0.5">
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium tabular-nums">{formatDate(entry.saleDate, lang)}</span>
