@@ -79,6 +79,36 @@
       "ca": "Canada",
       "rb": "Ritchie Bros."
     },
+    "moreFilters": "More filters",
+    "damage": "Damage",
+    "anyDamage": "Any",
+    "damageTypes": {
+      "front": "Front",
+      "rear": "Rear",
+      "side": "Side",
+      "allOver": "All over",
+      "rollover": "Rollover",
+      "roof": "Roof",
+      "undercarriage": "Undercarriage",
+      "frame": "Frame",
+      "mechanical": "Mechanical",
+      "hail": "Hail",
+      "water": "Water / flood",
+      "fire": "Fire / burn",
+      "vandalism": "Vandalism / theft",
+      "biohazard": "Biohazard",
+      "minor": "Minor / wear"
+    },
+    "condition": "Condition",
+    "conditions": {
+      "starts": "Engine starts",
+      "runsDrives": "Runs & drives"
+    },
+    "keys": "Keys",
+    "keysChoices": {
+      "yes": "Has keys",
+      "no": "No keys"
+    },
     "typeYear": "Type a year",
     "submit": "Search",
     "selectMake": "Select manufacturer",
@@ -178,7 +208,11 @@
       "location": "Location",
       "currentBid": "Current bid",
       "buyNow": "Buy Now",
-      "acv": "ACV"
+      "acv": "ACV",
+      "condition": "Condition",
+      "keys": "Keys",
+      "keysYes": "Yes",
+      "keysNo": "No"
     }
   },
   "cost": {

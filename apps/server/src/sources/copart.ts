@@ -1,4 +1,4 @@
-import type { Lot, LotSearchPage, Transmission } from '@car-porter/core';
+import type { DamageType, Lot, LotCondition, LotSearchPage, Transmission } from '@car-porter/core';
 import type { Page } from 'patchright';
 import { z } from 'zod';
 import type { BrowserManager } from '../scraping/browser.ts';
@@ -28,6 +28,31 @@ const TRANSMISSION_VALUES: Record<Transmission, string[]> = {
   manual: ['MANUAL', 'Manual'],
 };
 
+/** Damage codes per group, as in `damage_type_code:DAMAGECODE_FR` (verified live 2026-09-28). */
+export const COPART_DAMAGE_CODES: Record<DamageType, string[]> = {
+  front: ['FR'],
+  rear: ['RR'],
+  side: ['SD'],
+  allOver: ['AO'],
+  rollover: ['RO'],
+  roof: ['TP'],
+  undercarriage: ['UN'],
+  frame: ['FD'],
+  mechanical: ['MC'],
+  hail: ['HL'],
+  water: ['WA'],
+  fire: ['BN', 'BE', 'BI'],
+  vandalism: ['VN', 'ST'],
+  biohazard: ['BC'],
+  minor: ['MN', 'NW'],
+};
+
+/** Lot condition codes: CERT-D "Run and Drive", CERT-S "Engine Start Program" (CERT-E "Enhanced Vehicles" says nothing). */
+const CONDITION_CODES: Record<LotCondition, string[]> = {
+  runsDrives: ['CERT-D'],
+  starts: ['CERT-D', 'CERT-S'],
+};
+
 /**
  * Cars, SUVs, pickups and vans. Copart's other types (motorcycles, boats, trailers, heavy trucks,
  * ATVs, industrial equipment) bring in makes and models we never import, e.g. forklift models
@@ -36,11 +61,16 @@ const TRANSMISSION_VALUES: Record<Transmission, string[]> = {
 const AUTOMOBILES = 'vehicle_type_code:VEHTYPE_V';
 
 /**
- * Filter map for the search API. Values under one key are OR'ed, keys are AND'ed. Facets are
- * computed "multi-select" style: a key's own facet ignores that key's filter.
+ * Filter map for the search API. Keys are AND'ed; values under one of Copart's own facet keys are
+ * OR'ed, under any other key AND'ed (verified live 2026-09-28), so the condition codes ride on the
+ * Source key, which is never filtered by otherwise. Facets are computed "multi-select" style: a
+ * key's own facet ignores that key's filter.
  */
 export function copartFilter(
-  query: Partial<Pick<AuctionQuery, 'makes' | 'models' | 'bodyStyles' | 'transmission' | 'engines'>> & YearRange,
+  query: Partial<
+    Pick<AuctionQuery, 'makes' | 'models' | 'bodyStyles' | 'transmission' | 'engines' | 'damage' | 'condition' | 'keys'>
+  > &
+    YearRange,
 ) {
   return {
     VEHT: [AUTOMOBILES],
@@ -54,6 +84,11 @@ export function copartFilter(
       ? { TMTP: TRANSMISSION_VALUES[query.transmission].map((t) => `transmission_type:${exact(t)}`) }
       : {}),
     ...(query.engines?.length ? { ENGN: query.engines.map((e) => `engine:${exact(e)}`) } : {}),
+    ...(query.damage?.length
+      ? { PRID: query.damage.flatMap((d) => COPART_DAMAGE_CODES[d]).map((c) => `damage_type_code:DAMAGECODE_${c}`) }
+      : {}),
+    ...(query.condition ? { SRCE: CONDITION_CODES[query.condition].map((c) => `lot_condition_code:${c}`) } : {}),
+    ...(query.keys !== undefined ? { KEYS: [`has_keys:${query.keys ? 'YES' : 'NO'}`] } : {}),
   };
 }
 
@@ -94,6 +129,8 @@ const copartLot = z.looseObject({
   orr: z.number().nullish(),
   dd: z.string().nullish(),
   sdd: z.string().nullish(),
+  lcc: z.string().nullish(),
+  hk: z.string().nullish(),
   td: z.string().nullish(),
   tgd: z.string().nullish(),
   yn: z.string().nullish(),
@@ -145,6 +182,8 @@ export function parseCopartLot(raw: unknown): Lot | null {
     primaryDamage: emptyToNull(l.dd),
     secondaryDamage: emptyToNull(l.sdd),
     titleType: emptyToNull(l.tgd) ?? emptyToNull(l.td),
+    condition: l.lcc === 'CERT-D' ? 'runsDrives' : l.lcc === 'CERT-S' ? 'starts' : null,
+    keys: l.hk === 'YES' ? true : l.hk === 'NO' ? false : null,
     location: emptyToNull(l.yn),
     saleDate: l.ad && l.ad > 0 ? new Date(l.ad).toISOString() : null,
     currentBidUsdCents: dollarsToCents(currentBid),

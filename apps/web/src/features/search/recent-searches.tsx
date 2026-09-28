@@ -34,6 +34,9 @@ export function RecentSearches({ onSearch }: RecentSearchesProps) {
       f.bodyStyle && t(`bodyStyles.${f.bodyStyle}`, { defaultValue: f.bodyStyle }),
       f.transmission && t(`search.transmissions.${f.transmission}`),
       f.engine && `${f.engine} L`,
+      f.damage?.map((d) => t(`search.damageTypes.${d}`)).join(', '),
+      f.condition && t(`search.conditions.${f.condition}`),
+      f.keys !== undefined && t(`search.keysChoices.${f.keys ? 'yes' : 'no'}`),
       // US only is the default and goes unmentioned
       f.iaaiMarkets?.length &&
         f.iaaiMarkets.join(',') !== DEFAULT_IAAI_MARKETS.join(',') &&

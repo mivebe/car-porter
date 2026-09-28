@@ -79,6 +79,36 @@
       "ca": "Канада",
       "rb": "Ritchie Bros."
     },
+    "moreFilters": "Още филтри",
+    "damage": "Щета",
+    "anyDamage": "Всякаква",
+    "damageTypes": {
+      "front": "Предна",
+      "rear": "Задна",
+      "side": "Странична",
+      "allOver": "Цялостна",
+      "rollover": "Преобръщане",
+      "roof": "Покрив",
+      "undercarriage": "Под шаси",
+      "frame": "Рама",
+      "mechanical": "Механична",
+      "hail": "Градушка",
+      "water": "Вода / наводнение",
+      "fire": "Пожар / изгаряне",
+      "vandalism": "Вандализъм / кражба",
+      "biohazard": "Биологична опасност",
+      "minor": "Лека / износване"
+    },
+    "condition": "Състояние",
+    "conditions": {
+      "starts": "Двигателят пали",
+      "runsDrives": "Пали и се движи"
+    },
+    "keys": "Ключове",
+    "keysChoices": {
+      "yes": "С ключове",
+      "no": "Без ключове"
+    },
     "typeYear": "Въведете година",
     "submit": "Търси",
     "selectMake": "Изберете марка",
@@ -178,7 +208,11 @@
       "location": "Местоположение",
       "currentBid": "Текущо наддаване",
       "buyNow": "Купи сега",
-      "acv": "ACV"
+      "acv": "ACV",
+      "condition": "Състояние",
+      "keys": "Ключове",
+      "keysYes": "Да",
+      "keysNo": "Не"
     }
   },
   "cost": {

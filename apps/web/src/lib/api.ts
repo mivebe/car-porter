@@ -2,7 +2,7 @@ import type { EstimateResponse } from '@/features/lot/estimate-hooks';
 import type { HistoryResponse } from '@/features/lot/history-hooks';
 import type { MarketResponse } from '@/features/lot/market-hooks';
 import type { TrackedLotsResponse } from '@/features/tracking/tracking-hooks';
-import type { AliasSource, AuctionSource, IaaiMarket, Transmission, Lot, LotEvaluation, LotInputs, LotInputsPatch, PriceSummary, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
+import type { AliasSource, AuctionSource, DamageType, IaaiMarket, LotCondition, Transmission, Lot, LotEvaluation, LotInputs, LotInputsPatch, PriceSummary, Settings, SettingsPatch, SourceErrorInfo } from '@car-porter/core';
 
 export class ApiError extends Error {
   constructor(
@@ -78,6 +78,12 @@ export interface LotSearchParams {
   transmission?: Transmission;
   /** liters, e.g. "6.2" */
   engine?: string;
+  /** empty or missing = any */
+  damage?: DamageType[];
+  /** at least this condition */
+  condition?: LotCondition;
+  /** true = with keys, false = without */
+  keys?: boolean;
 }
 
 /** Stored estimate, history, cost and verdict of a lot (computed without scraping). */
@@ -229,7 +235,13 @@ export const api = {
   cancelAliasScan: () => request<AliasScanStatus>('/api/aliases/scan', { method: 'DELETE' }),
   searchLots: (params: LotSearchParams & { page: number; refresh?: boolean }) =>
     request<LotSearchResponse>(
-      `/api/lots/search?${query({ ...params, iaaiMarkets: params.iaaiMarkets?.join(','), refresh: params.refresh ? 1 : undefined })}`,
+      `/api/lots/search?${query({
+        ...params,
+        iaaiMarkets: params.iaaiMarkets?.join(','),
+        damage: params.damage?.join(','),
+        keys: params.keys === undefined ? undefined : params.keys ? 1 : 0,
+        refresh: params.refresh ? 1 : undefined,
+      })}`,
     ),
   lotInsights: (lotIds: string[]) =>
     request<{ items: LotInsights[]; usdToEur: number | null }>('/api/lots/insights', {

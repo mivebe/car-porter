@@ -31,6 +31,24 @@ describe('copart', () => {
     expect(buildCopartSearchBody({ ...filters, keyword: 'ZL1' }, 1).query).toEqual(['ZL1']);
   });
 
+  it('filters by damage codes, condition codes on an OR key, and keys', () => {
+    const { filter } = buildCopartSearchBody({ ...filters, damage: ['front', 'fire'], condition: 'starts', keys: true }, 1);
+    expect(filter).toMatchObject({
+      PRID: [
+        'damage_type_code:DAMAGECODE_FR',
+        'damage_type_code:DAMAGECODE_BN',
+        'damage_type_code:DAMAGECODE_BE',
+        'damage_type_code:DAMAGECODE_BI',
+      ],
+      SRCE: ['lot_condition_code:CERT-D', 'lot_condition_code:CERT-S'],
+      KEYS: ['has_keys:YES'],
+    });
+    expect(buildCopartSearchBody({ ...filters, condition: 'runsDrives', keys: false }, 1).filter).toMatchObject({
+      SRCE: ['lot_condition_code:CERT-D'],
+      KEYS: ['has_keys:NO'],
+    });
+  });
+
   it('parses a real recorded search response', () => {
     const result = parseCopartSearch(fixture('copart/search-toyota-camry-2018-2020.json'), 1);
     expect(result.total).toBe(1661);
@@ -57,6 +75,11 @@ describe('copart', () => {
     });
     expect(first.imageUrls[0]).toMatch(/_hrs\.jpg$/);
     expect(result.lots.some((l) => l.currentBidUsdCents !== null)).toBe(true);
+    const tally = (values: unknown[]) => values.reduce<Record<string, number>>((a, v) => ({ ...a, [String(v)]: (a[String(v)] ?? 0) + 1 }), {});
+    // CERT-D run and drive, CERT-S engine start; CERT-E enhanced and none say nothing
+    expect(tally(result.lots.map((l) => l.condition))).toEqual({ runsDrives: 15, starts: 4, null: 6 });
+    // YES / NO / EXEMPT
+    expect(tally(result.lots.map((l) => l.keys))).toEqual({ true: 21, false: 3, null: 1 });
   });
 
   it('maps optional numbers: 0 / -1 become null, dates become ISO', () => {
@@ -157,6 +180,25 @@ describe('iaai', () => {
     });
     expect(first.engine).toMatch(/^2\.5L/);
     expect(first.imageUrls[0]).toMatch(/^https:\/\/vis\.iaai\.com\/resizer\?imageKeys=/);
+    const count = (pick: (l: (typeof result.lots)[number]) => unknown, value: unknown) =>
+      result.lots.filter((l) => pick(l) === value).length;
+    // row badges "Run & Drive" / "Starts"; stationary rows have none
+    expect([count((l) => l.condition, 'runsDrives'), count((l) => l.condition, 'starts'), count((l) => l.condition, null)]).toEqual([21, 2, 7]);
+    // "Key Available" or blank for none
+    expect([count((l) => l.keys, true), count((l) => l.keys, false)]).toEqual([26, 4]);
+  });
+
+  it('filters by damage names, start codes and keys', () => {
+    const body = buildIaaiSearchBody({ ...filters, damage: ['front', 'rear'], condition: 'starts', keys: true }, 1);
+    const groups = body.Searches.flatMap((s) => (s.Facets?.[0] ? [[s.Facets[0].Group, s.Facets.map((f) => f.Value)]] : []));
+    expect(Object.fromEntries(groups)).toMatchObject({
+      // "Front & Rear" once
+      PrimaryDamageDesc: ['Front End', 'Front', 'Left Front', 'Right Front', 'Front & Rear', 'Rear', 'Left Rear', 'Right Rear'],
+      StartsDesc: ['Run & Drive', 'Starts'],
+      Key: ['Key Available'],
+    });
+    const none = buildIaaiSearchBody({ ...filters, keys: false }, 1).Searches.find((s) => s.Facets?.[0]?.Group === 'Key');
+    expect(none?.Facets).toEqual([{ Group: 'Key', Value: '' }]);
   });
 
   it('parses page 2 and finds Buy Now prices on some rows', () => {

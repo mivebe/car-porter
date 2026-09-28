@@ -60,6 +60,9 @@ export function lotSearchCacheKey(source: string, f: LotSearchFilters, page: num
     f.bodyStyle && `b=${norm(f.bodyStyle)}`,
     f.transmission && `x=${f.transmission}`,
     f.engine && `e=${f.engine}`,
+    f.damage?.length && `d=${[...f.damage].sort().join(',')}`,
+    f.condition && `c=${f.condition}`,
+    f.keys !== undefined && `k=${f.keys ? 1 : 0}`,
   ].filter(Boolean);
   const extra = options.map((o) => `:${o}`).join('');
   const { yearFrom, yearTo } = searchYears(f);
@@ -75,7 +78,7 @@ export function createLotSearchService(deps: {
   async function searchSource(adapter: AuctionSearchAdapter, filters: LotSearchFilters, page: number, force: boolean) {
     // site names are re-read on an explicit refresh of the first page only
     const matched = await deps.aliases.resolve(adapter, filters, force && page === 1);
-    const { transmission } = filters;
+    const { transmission, damage, condition, keys } = filters;
     const { yearFrom, yearTo } = searchYears(filters);
     const iaaiMarkets = adapter.source === 'iaai' ? iaaiMarketFilter(filters) : undefined;
     // the site narrows by one trim word, every word is then checked here
@@ -90,6 +93,9 @@ export function createLotSearchService(deps: {
       ...(keyword ? { keyword } : {}),
       ...(iaaiMarkets ? { iaaiMarkets } : {}),
       ...(transmission ? { transmission } : {}),
+      ...(damage?.length ? { damage } : {}),
+      ...(condition ? { condition } : {}),
+      ...(keys !== undefined ? { keys } : {}),
       ...options,
     };
     // a body style or engine the site has no values for finds nothing there

@@ -1,8 +1,19 @@
-import { DEFAULT_IAAI_MARKETS, IAAI_MARKETS, TRANSMISSIONS, type IaaiMarket, type Transmission } from '@car-porter/core';
+import {
+  DAMAGE_TYPES,
+  DEFAULT_IAAI_MARKETS,
+  IAAI_MARKETS,
+  LOT_CONDITIONS,
+  TRANSMISSIONS,
+  type DamageType,
+  type IaaiMarket,
+  type LotCondition,
+  type Transmission,
+} from '@car-porter/core';
 import { useQuery } from '@tanstack/react-query';
 import { ChevronDown, Search } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Disclosure } from '@/components/disclosure';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import {
@@ -16,7 +27,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCanonicalItems } from '@/features/aliases/alias-hooks';
 import { api, type LotSearchParams } from '@/lib/api';
-import { validateFilters, type FilterDraft, type FilterErrors } from './validate-filters';
+import { KEYS_CHOICES, validateFilters, type FilterDraft, type FilterErrors, type KeysChoice } from './validate-filters';
 import { Combobox } from './combobox';
 import { YearPicker } from './year-picker';
 
@@ -41,7 +52,13 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
     bodyStyle: initial.bodyStyle ?? '',
     transmission: initial.transmission ?? '',
     engine: initial.engine ?? '',
+    damage: initial.damage ?? [],
+    condition: initial.condition ?? '',
+    keys: initial.keys === undefined ? '' : initial.keys ? 'yes' : 'no',
   });
+  const moreCount = (draft.damage.length ? 1 : 0) + (draft.condition ? 1 : 0) + (draft.keys ? 1 : 0);
+  // collapsed unless the search already uses one of them
+  const [moreOpen, setMoreOpen] = useState(moreCount > 0);
   const [errors, setErrors] = useState<FilterErrors>({});
 
   const makes = useQuery({ queryKey: ['catalog', 'makes'], queryFn: api.makes, staleTime: Infinity });
@@ -69,6 +86,11 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
     const next = current.includes(market) ? current.filter((m) => m !== market) : [...current, market];
     if (next.length === 0) return;
     update({ iaaiMarkets: IAAI_MARKETS.filter((m) => next.includes(m)) });
+  };
+
+  const toggleDamage = (damage: DamageType) => {
+    const next = draft.damage.includes(damage) ? draft.damage.filter((d) => d !== damage) : [...draft.damage, damage];
+    update({ damage: DAMAGE_TYPES.filter((d) => next.includes(d)) });
   };
 
   const submit = (event: FormEvent) => {
@@ -243,6 +265,77 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
+
+          <Disclosure expanded={moreOpen} onToggle={() => setMoreOpen((o) => !o)} className="col-span-full">
+            {t('search.moreFilters')}
+            {moreCount > 0 && ` (${moreCount})`}
+          </Disclosure>
+          {moreOpen && (
+            <>
+              <div className="grid gap-1.5 lg:col-span-2">
+                <Label htmlFor="filter-damage">{t('search.damage')}</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button id="filter-damage" variant="outline" className="justify-between font-normal">
+                      <span className="truncate">
+                        {draft.damage.length
+                          ? draft.damage.map((d) => t(`search.damageTypes.${d}`)).join(', ')
+                          : t('search.anyDamage')}
+                      </span>
+                      <ChevronDown className="opacity-50" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    {DAMAGE_TYPES.map((d) => (
+                      <DropdownMenuCheckboxItem
+                        key={d}
+                        checked={draft.damage.includes(d)}
+                        onCheckedChange={() => toggleDamage(d)}
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        {t(`search.damageTypes.${d}`)}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="filter-condition">{t('search.condition')}</Label>
+                <Select
+                  value={draft.condition || ANY}
+                  onValueChange={(v) => update({ condition: v === ANY ? '' : (v as LotCondition) })}
+                >
+                  <SelectTrigger id="filter-condition" className="w-full" aria-label={t('search.condition')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ANY}>{t('search.any')}</SelectItem>
+                    {LOT_CONDITIONS.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {t(`search.conditions.${c}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="filter-keys">{t('search.keys')}</Label>
+                <Select value={draft.keys || ANY} onValueChange={(v) => update({ keys: v === ANY ? '' : (v as KeysChoice) })}>
+                  <SelectTrigger id="filter-keys" className="w-full" aria-label={t('search.keys')}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={ANY}>{t('search.any')}</SelectItem>
+                    {KEYS_CHOICES.map((k) => (
+                      <SelectItem key={k} value={k}>
+                        {t(`search.keysChoices.${k}`)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
         </form>
       </CardContent>
     </Card>

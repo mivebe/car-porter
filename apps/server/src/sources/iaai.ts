@@ -1,4 +1,4 @@
-import type { IaaiMarket, Lot, LotSearchPage, Transmission } from '@car-porter/core';
+import type { DamageType, IaaiMarket, Lot, LotCondition, LotSearchPage, Transmission } from '@car-porter/core';
 import * as cheerio from 'cheerio';
 import type { Page } from 'patchright';
 import type { BrowserManager } from '../scraping/browser.ts';
@@ -52,13 +52,47 @@ const TRANSMISSION_VALUES: Record<Transmission, string[]> = {
   manual: ['Manual'],
 };
 
+/** "PrimaryDamageDesc" facet values per group (verified live 2026-09-28; the rest is rare or says nothing). */
+export const IAAI_DAMAGE_VALUES: Record<DamageType, string[]> = {
+  front: ['Front End', 'Front', 'Left Front', 'Right Front', 'Front & Rear'],
+  rear: ['Rear', 'Left Rear', 'Right Rear', 'Front & Rear'],
+  side: ['Left Side', 'Right Side', 'Left & Right Side'],
+  allOver: ['All Over'],
+  rollover: ['Rollover', 'Roll Over'],
+  roof: ['Roof', 'Roof Damage'],
+  undercarriage: ['Undercarriage', 'Under Carriage'],
+  frame: ['Frame'],
+  mechanical: ['Mechanical', 'Engine', 'Engine Damage', 'Transmission Damage', 'Electrical', 'Suspension', 'Possible Mech.'],
+  hail: ['Hail'],
+  water: ['Flood', 'Fresh Water', 'Salt Water', 'Water'],
+  fire: ['Engine Burn', 'Exterior Burn', 'Interior Burn', 'Total Burn', 'Engine Fire', 'Interior Fire'],
+  vandalism: ['Vandalized', 'Strip', 'Theft'],
+  biohazard: ['Biohazard', 'Bio Hazard'],
+  minor: ['Normal Wear & Tear', 'None'],
+};
+
+/** "StartsDesc" facet values per condition (verified live 2026-09-28; the rest is "Stationary" / "Can't Test"). */
+const CONDITION_VALUES: Record<LotCondition, string[]> = {
+  runsDrives: ['Run & Drive'],
+  starts: ['Run & Drive', 'Starts'],
+};
+
+/** The row badge: "Run & Drive" or "Starts"; stationary lots have none. */
+function rowCondition(badges: string[]): LotCondition | null {
+  if (badges.includes('Run & Drive')) return 'runsDrives';
+  return badges.includes('Starts') ? 'starts' : null;
+}
+
 /**
  * Request body for IAAI's `POST /Search?c=<ts>` endpoint (returns an HTML results page).
  * Facets inside one `Searches` entry are OR'ed, separate entries are AND'ed.
  */
 export function buildIaaiSearchBody(
   query: Partial<
-    Pick<AuctionQuery, 'makes' | 'models' | 'keyword' | 'iaaiMarkets' | 'bodyStyles' | 'transmission' | 'engines'>
+    Pick<
+      AuctionQuery,
+      'makes' | 'models' | 'keyword' | 'iaaiMarkets' | 'bodyStyles' | 'transmission' | 'engines' | 'damage' | 'condition' | 'keys'
+    >
   > &
     YearRange,
   page: number,
@@ -75,6 +109,12 @@ export function buildIaaiSearchBody(
       ...(query.bodyStyles?.length ? [facetSearch('BodyStyleName', query.bodyStyles)] : []),
       ...(query.transmission ? [facetSearch('Transmission', TRANSMISSION_VALUES[query.transmission])] : []),
       ...(query.engines?.length ? [facetSearch('DisplLiters', query.engines)] : []),
+      ...(query.damage?.length
+        ? [facetSearch('PrimaryDamageDesc', [...new Set(query.damage.flatMap((d) => IAAI_DAMAGE_VALUES[d]))])]
+        : []),
+      ...(query.condition ? [facetSearch('StartsDesc', CONDITION_VALUES[query.condition])] : []),
+      // a blank key is the rest of the lots (verified live 2026-09-28)
+      ...(query.keys !== undefined ? [facetSearch('Key', [query.keys ? 'Key Available' : ''])] : []),
       {
         Facets: null,
         FullSearch: null,
@@ -188,6 +228,11 @@ export function parseIaaiSearch(html: string, page: number): LotSearchPage {
     const saleText = actionTexts.find((t) => /\b[A-Z][a-z]{2} \d{1,2}, .*\b[A-Z]{3,4}$/.test(t)) ?? null;
     const buyNowText = actionTexts.find((t) => /buy now/i.test(t));
     const odometer = fields.get('Odometer')?.match(/([\d,]+)\s*mi/i)?.[1];
+    const badges = row
+      .find('.badge')
+      .map((_, b) => $(b).text().replace(/\s+/g, ' ').trim())
+      .get();
+    const key = fields.get('Key');
 
     lots.push({
       id: `iaai:${stock}`,
@@ -207,6 +252,9 @@ export function parseIaaiSearch(html: string, page: number): LotSearchPage {
       primaryDamage: emptyToNull(fields.get('Primary Damage')),
       secondaryDamage: emptyToNull(fields.get('Secondary Damage')),
       titleType: emptyToNull(fields.get('Title/Sale Doc')),
+      condition: rowCondition(badges),
+      // "Key Available" or blank for none
+      keys: key === undefined ? null : /available/i.test(key),
       location: emptyToNull(fields.get('Branch')),
       saleDate: parseIaaiSaleDate(watchArgs[2] ?? null, saleText),
       currentBidUsdCents: null,

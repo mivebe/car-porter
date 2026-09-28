@@ -189,6 +189,25 @@ describe('/api/lots/search', () => {
     expect(bodies.find((b) => b.name === 'Wagon')?.siteNames).toBe(1);
   });
 
+  it('hands damage, condition and keys to each site, and caches them apart', async () => {
+    const seen: AuctionQuery[] = [];
+    const [copart] = createMockAuctionAdapters();
+    app = await withAdapters([{ ...copart!, search: (f, p) => (seen.push(f), copart!.search(f, p)) }]);
+    const all = (await app.inject({ method: 'GET', url: url(camry) })).json().lots.length as number;
+    const res = await app.inject({ method: 'GET', url: url({ ...camry, damage: 'side,front', condition: 'runsDrives', keys: 1 }) });
+    expect(seen.at(-1)).toMatchObject({ damage: ['front', 'side'], condition: 'runsDrives', keys: true });
+    const lots = res.json().lots as { condition: string; keys: boolean }[];
+    expect(lots.length).toBeGreaterThan(0);
+    expect(lots.length).toBeLessThan(all);
+    expect(lots.every((l) => l.condition === 'runsDrives' && l.keys)).toBe(true);
+    expect(seen[0]).not.toHaveProperty('keys');
+    // keys=0: only lots without keys
+    const none = (await app.inject({ method: 'GET', url: url({ ...camry, keys: 0 }) })).json().lots as { keys: boolean }[];
+    expect(seen.at(-1)).toMatchObject({ keys: false });
+    expect(none.length).toBeGreaterThan(0);
+    expect(none.every((l) => l.keys === false)).toBe(true);
+  });
+
   it('searches every year when none are given, and from/to a single open end', async () => {
     const seen: AuctionQuery[] = [];
     const [copart] = createMockAuctionAdapters();
@@ -219,6 +238,9 @@ describe('/api/lots/search', () => {
       { ...camry, transmission: 'cvt' },
       { ...camry, engine: '6.2L' },
       { ...camry, engine: '123' },
+      { ...camry, damage: 'front,dents' },
+      { ...camry, condition: 'stationary' },
+      { ...camry, keys: 'true' },
     ];
     for (const q of bad) {
       expect((await app.inject({ method: 'GET', url: url(q) })).statusCode, JSON.stringify(q)).toBe(400);

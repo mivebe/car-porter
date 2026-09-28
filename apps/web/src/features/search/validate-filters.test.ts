@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateFilters, type FilterDraft } from './validate-filters';
 
-const draft: FilterDraft = { make: 'Toyota', model: 'Camry', yearFrom: '2018', yearTo: '2020', trim: '', iaaiMarkets: ['us'], bodyStyle: '', transmission: '', engine: '' };
+const draft: FilterDraft = { make: 'Toyota', model: 'Camry', yearFrom: '2018', yearTo: '2020', trim: '', iaaiMarkets: ['us'], bodyStyle: '', transmission: '', engine: '', damage: [], condition: '', keys: '' };
 
 describe('validateFilters', () => {
   it('returns parsed params for valid input', () => {
@@ -24,6 +24,17 @@ describe('validateFilters', () => {
     for (const engine of ['6.2L', '0', 'abc', '123']) {
       expect(validateFilters({ ...draft, engine })).toEqual({ errors: { engine: 'search.errors.engineInvalid' } });
     }
+  });
+
+  it('passes damage, condition and keys only when set', () => {
+    expect(validateFilters({ ...draft, damage: ['front', 'hail'], condition: 'starts', keys: 'yes' })).toMatchObject({
+      params: { damage: ['front', 'hail'], condition: 'starts', keys: true },
+    });
+    expect(validateFilters({ ...draft, keys: 'no' })).toMatchObject({ params: { keys: false } });
+    const { params } = validateFilters(draft) as { params: object };
+    expect(params).not.toHaveProperty('damage');
+    expect(params).not.toHaveProperty('condition');
+    expect(params).not.toHaveProperty('keys');
   });
 
   it('allows a single year (from = to)', () => {

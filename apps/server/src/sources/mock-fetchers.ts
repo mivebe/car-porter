@@ -218,7 +218,10 @@ export function createMockAuctionAdapters(): AuctionSearchAdapter[] {
           (l) =>
             l.year >= filters.yearFrom &&
             l.year <= filters.yearTo &&
-            (!engines || engines.includes(l.engine ? siteEngineLiters(l.engine) : null)),
+            (!engines || engines.includes(l.engine ? siteEngineLiters(l.engine) : null)) &&
+            (filters.condition !== 'runsDrives' || l.condition === 'runsDrives') &&
+            (filters.condition !== 'starts' || !!l.condition) &&
+            (filters.keys === undefined || l.keys === filters.keys),
         ),
       };
     },

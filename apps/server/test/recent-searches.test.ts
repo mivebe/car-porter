@@ -27,6 +27,23 @@ describe('/api/searches/recent', () => {
     });
   });
 
+  it('keeps damage, condition and keys apart from the same search without them', async () => {
+    app = await buildApp({ mockSources: true });
+    await search('make=Toyota&model=Camry');
+    await tick();
+    await search('make=Toyota&model=Camry&damage=side,front&condition=starts&keys=1');
+    await tick();
+    await search('make=Toyota&model=Camry&damage=front,side&condition=starts&keys=1');
+    await tick();
+    await search('make=Toyota&model=Camry&keys=0');
+    const items = await list();
+    expect(items).toHaveLength(3);
+    expect(items[0].filters).toMatchObject({ keys: false });
+    items.shift();
+    expect(items[0].filters).toMatchObject({ damage: ['front', 'side'], condition: 'starts', keys: true });
+    expect(items[1].filters).not.toHaveProperty('damage');
+  });
+
   it('keeps only the newest searches', async () => {
     app = await buildApp({ mockSources: true });
     for (let year = 2000; year <= 2000 + RECENT_SEARCHES_LIMIT; year++) {

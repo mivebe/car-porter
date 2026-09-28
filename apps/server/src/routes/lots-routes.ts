@@ -1,4 +1,11 @@
-import { DEFAULT_IAAI_MARKETS, IAAI_MARKETS, lotInputsPatchSchema, TRANSMISSIONS } from '@car-porter/core';
+import {
+  DAMAGE_TYPES,
+  DEFAULT_IAAI_MARKETS,
+  IAAI_MARKETS,
+  LOT_CONDITIONS,
+  lotInputsPatchSchema,
+  TRANSMISSIONS,
+} from '@car-porter/core';
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { LotInputsRepository } from '../repositories/lot-inputs-repository.ts';
@@ -33,6 +40,19 @@ const searchQuery = z
       .regex(/^\d{1,2}(\.\d)?$/)
       .transform((v) => Number(v).toFixed(1))
       .optional(),
+    /** comma-separated damage groups, e.g. "front,side" */
+    damage: z
+      .string()
+      .optional()
+      .transform((v) => v?.split(',').filter(Boolean) ?? [])
+      .pipe(z.array(z.enum(DAMAGE_TYPES)))
+      .transform((v) => (v.length ? DAMAGE_TYPES.filter((d) => v.includes(d)) : undefined)),
+    condition: z.enum(LOT_CONDITIONS).optional(),
+    /** 1 = with keys, 0 = without */
+    keys: z
+      .enum(['0', '1'])
+      .optional()
+      .transform((v) => (v === undefined ? undefined : v === '1')),
     page: z.coerce.number().int().min(1).max(100).default(1),
     refresh: z
       .enum(['0', '1', 'true', 'false'])
@@ -58,7 +78,9 @@ export async function lotsRoutes(
   app.get('/api/lots/search', async (req, reply) => {
     const q = searchQuery.safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: 'invalid_query', issues: q.error.issues });
-    const { page, refresh, ...filters } = q.data;
+    const { page, refresh, damage, keys, ...rest } = q.data;
+    // unset filters stay out of the recent search and the cache key
+    const filters = { ...rest, ...(damage ? { damage } : {}), ...(keys !== undefined ? { keys } : {}) };
     if (page === 1) await opts.recent.record(filters);
     return opts.search.search(filters, page, refresh);
   });

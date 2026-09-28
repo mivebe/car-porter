@@ -292,6 +292,8 @@ function Facts({ lot }: { lot: Lot }) {
     ['primaryDamage', sentenceCase(lot.primaryDamage)],
     ['secondaryDamage', sentenceCase(lot.secondaryDamage)],
     ['titleType', sentenceCase(lot.titleType)],
+    ['condition', lot.condition ? t(`search.conditions.${lot.condition}`) : null],
+    ['keys', lot.keys == null ? null : t(lot.keys ? 'lotDetail.facts.keysYes' : 'lotDetail.facts.keysNo')],
     ['location', lot.location],
     ['currentBid', lot.currentBidUsdCents != null ? formatMoney(lot.currentBidUsdCents, 'USD', lang) : null],
     ['buyNow', lot.buyNowUsdCents != null ? formatMoney(lot.buyNowUsdCents, 'USD', lang) : null],

@@ -1,10 +1,14 @@
-import type { IaaiMarket, Transmission } from '@car-porter/core';
+import type { DamageType, IaaiMarket, LotCondition, Transmission } from '@car-porter/core';
 import type { LotSearchParams } from '@/lib/api';
 
 export const MIN_YEAR = 1950;
 export const MAX_YEAR = () => new Date().getFullYear() + 1;
 
 export type FilterErrors = Partial<Record<'make' | 'model' | 'yearFrom' | 'yearTo' | 'engine', string>>;
+
+export const KEYS_CHOICES = ['yes', 'no'] as const;
+/** '' = any */
+export type KeysChoice = (typeof KEYS_CHOICES)[number] | '';
 
 export interface FilterDraft {
   make: string;
@@ -19,6 +23,10 @@ export interface FilterDraft {
   transmission: Transmission | '';
   /** liters as typed, "6.2" or "6,2" */
   engine: string;
+  /** [] = any */
+  damage: DamageType[];
+  condition: LotCondition | '';
+  keys: KeysChoice;
 }
 
 /** Returns i18n error keys per field, or parsed params when valid. */
@@ -48,6 +56,9 @@ export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | 
       ...(draft.bodyStyle ? { bodyStyle: draft.bodyStyle } : {}),
       ...(draft.transmission ? { transmission: draft.transmission } : {}),
       ...(engine ? { engine: Number(engine).toFixed(1) } : {}),
+      ...(draft.damage.length ? { damage: draft.damage } : {}),
+      ...(draft.condition ? { condition: draft.condition } : {}),
+      ...(draft.keys ? { keys: draft.keys === 'yes' } : {}),
     },
   };
 }

@@ -1,4 +1,4 @@
-import type { AuctionSource, IaaiMarket, LotSearchPage, Transmission } from '@car-porter/core';
+import type { AuctionSource, DamageType, IaaiMarket, LotCondition, LotSearchPage, Transmission } from '@car-porter/core';
 
 export const AUCTION_PAGE_SIZE = 100;
 
@@ -26,6 +26,12 @@ export interface AuctionQuery extends YearRange {
   transmission?: Transmission;
   /** Site engine values, any of them. */
   engines?: string[];
+  /** Primary damage, any of these groups. */
+  damage?: DamageType[];
+  /** At least this condition. */
+  condition?: LotCondition;
+  /** true = with keys, false = without. */
+  keys?: boolean;
 }
 
 /** The site's own body and engine values for a make/model search, to filter by exactly. */

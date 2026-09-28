@@ -65,3 +65,39 @@ export function siteEngineLiters(value: string): string | null {
 }
 
 export const TRANSMISSIONS: readonly Transmission[] = ['automatic', 'manual'];
+
+/**
+ * Primary damage groups, filtered by in each site's own values: Copart's damage codes and IAAI's
+ * damage names (see the adapters). Side corners ("Left Front") count as front or rear, "Front &
+ * Rear" as both.
+ */
+export const DAMAGE_TYPES = [
+  'front',
+  'rear',
+  'side',
+  'allOver',
+  'rollover',
+  'roof',
+  'undercarriage',
+  'frame',
+  'mechanical',
+  'hail',
+  'water',
+  'fire',
+  'vandalism',
+  'biohazard',
+  'minor',
+] as const;
+export type DamageType = (typeof DAMAGE_TYPES)[number];
+
+/**
+ * How far a lot was verified to work at check-in, the same meaning on both sites:
+ * - runsDrives: Copart "Run and Drive" (CERT-D) = IAAI "Run & Drive": the engine starts, the
+ *   transmission engages and the car moves under its own power;
+ * - starts: Copart "Engine Start Program" (CERT-S) = IAAI "Starts": the engine starts, driving was
+ *   not verified.
+ * Anything else (Copart "Enhanced Vehicles" or no program, IAAI "Stationary" / "Can't Test") claims
+ * nothing. As a filter it is a minimum: "starts" also finds lots that run and drive.
+ */
+export const LOT_CONDITIONS = ['starts', 'runsDrives'] as const;
+export type LotCondition = (typeof LOT_CONDITIONS)[number];

@@ -14,6 +14,8 @@ export interface RecentSearch {
 /** Same search typed differently (case, market order) shares one key. */
 export function recentSearchKey(f: LotSearchFilters) {
   const norm = (s?: string) => s?.trim().toLowerCase() || '';
+  // appended only when set, so searches recorded before these filters keep their key
+  const extra = [[...(f.damage ?? [])].sort().join(','), f.condition ?? '', f.keys === undefined ? '' : f.keys ? 'keys' : 'nokeys'];
   return [
     norm(f.make),
     norm(f.model),
@@ -23,6 +25,7 @@ export function recentSearchKey(f: LotSearchFilters) {
     norm(f.bodyStyle),
     f.transmission ?? '',
     f.engine ?? '',
+    ...(extra.some(Boolean) ? extra : []),
   ].join('|');
 }
 

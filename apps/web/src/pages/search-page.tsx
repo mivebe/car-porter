@@ -20,7 +20,7 @@ import { RecentSearches } from '@/features/search/recent-searches';
 import { SearchFilters } from '@/features/search/search-filters';
 import { LOT_SORTS, sortAndFilterLots, uniqueLots, type LotSort, type SourceFilter } from '@/features/search/sort-lots';
 import { SourceStatusBadge } from '@/features/search/source-status';
-import { DEFAULT_IAAI_MARKETS, IAAI_MARKETS, TRANSMISSIONS } from '@car-porter/core';
+import { DAMAGE_TYPES, DEFAULT_IAAI_MARKETS, IAAI_MARKETS, LOT_CONDITIONS, TRANSMISSIONS } from '@car-porter/core';
 import { api, type LotSearchParams, type LotSearchResponse } from '@/lib/api';
 import { useUpdatePreferences } from '@/lib/preferences';
 
@@ -40,6 +40,11 @@ function readParams(search: URLSearchParams): LotSearchParams | null {
   const bodyStyle = search.get('bodyStyle')?.trim();
   const transmission = TRANSMISSIONS.find((x) => x === search.get('transmission'));
   const engine = search.get('engine')?.trim();
+  const damageListed = search.get('damage')?.split(',') ?? [];
+  const damage = DAMAGE_TYPES.filter((d) => damageListed.includes(d));
+  const condition = LOT_CONDITIONS.find((c) => c === search.get('condition'));
+  const keysParam = search.get('keys');
+  const keys = keysParam === '1' ? true : keysParam === '0' ? false : undefined;
   return {
     make,
     model,
@@ -50,6 +55,9 @@ function readParams(search: URLSearchParams): LotSearchParams | null {
     ...(bodyStyle ? { bodyStyle } : {}),
     ...(transmission ? { transmission } : {}),
     ...(engine ? { engine } : {}),
+    ...(damage.length ? { damage } : {}),
+    ...(condition ? { condition } : {}),
+    ...(keys !== undefined ? { keys } : {}),
   };
 }
 
@@ -108,6 +116,9 @@ export function SearchPage() {
       ...(next.bodyStyle ? { bodyStyle: next.bodyStyle } : {}),
       ...(next.transmission ? { transmission: next.transmission } : {}),
       ...(next.engine ? { engine: next.engine } : {}),
+      ...(next.damage?.length ? { damage: next.damage.join(',') } : {}),
+      ...(next.condition ? { condition: next.condition } : {}),
+      ...(next.keys !== undefined ? { keys: next.keys ? '1' : '0' } : {}),
     });
   };
 

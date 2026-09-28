@@ -1,4 +1,5 @@
 import type { Transmission } from './matching.ts';
+import type { DamageType, LotCondition } from './search-options.ts';
 import type { MarketSource } from './settings.ts';
 
 /**
@@ -40,6 +41,10 @@ export interface Lot {
   primaryDamage: string | null;
   secondaryDamage: string | null;
   titleType: string | null;
+  /** Verified at check-in; null when the site claims nothing. Missing on lots stored before it was read. */
+  condition?: LotCondition | null;
+  /** Keys come with the car; null when the site does not say. Missing on lots stored before it was read. */
+  keys?: boolean | null;
   location: string | null;
   saleDate: string | null;
   currentBidUsdCents: number | null;
@@ -134,4 +139,10 @@ export interface LotSearchFilters {
   transmission?: Transmission;
   /** Displacement in liters with one decimal, e.g. "6.2". */
   engine?: string;
+  /** Primary damage, any of these; empty or missing = any. */
+  damage?: DamageType[];
+  /** At least this condition (see LOT_CONDITIONS). */
+  condition?: LotCondition;
+  /** true = only lots with keys, false = only lots without; missing = any. */
+  keys?: boolean;
 }
