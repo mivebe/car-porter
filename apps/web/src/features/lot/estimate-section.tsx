@@ -133,6 +133,7 @@ export function EstimateSection({ data, running, runFailed, onRun, onToggle }: E
                   </div>
                   <div className="truncate text-xs text-muted-foreground">
                     {[
+                      r.year,
                       r.trim,
                       r.engine,
                       r.damage,
