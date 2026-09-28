@@ -35,7 +35,7 @@ try {
     }
     const summary = summarizeMarket(lot, body.listings, {
       sites: ['mobileBg', 'carsBg', 'autoscout24', 'olxBg', 'mobileDe'],
-      toggles: { mileage: false, transmission: false, fuel: false, yearSpan: 0 },
+      toggles: { trim: true, mileage: false, transmission: false, yearSpan: 0 },
       mileageRangeKm: DEFAULT_SETTINGS.market.mileageRangeKm,
       excludedIds: new Set(),
     });

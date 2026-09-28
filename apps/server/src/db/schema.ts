@@ -38,10 +38,10 @@ export const lotInputs = sqliteTable('lot_inputs', {
   feesReduced: integer('fees_reduced', { mode: 'boolean' }).notNull().default(false),
   includeSofiaToBg: integer('include_sofia_to_bg', { mode: 'boolean' }).notNull().default(true),
   marketMatch: text('market_match', { mode: 'json' })
-    // rows saved before the year span existed lack it
-    .$type<{ mileage: boolean; transmission: boolean; fuel: boolean; yearSpan?: MarketYearSpan }>()
+    // rows saved before the year span or trim toggle existed lack them (and may still hold fuel)
+    .$type<{ trim?: boolean; mileage: boolean; transmission: boolean; yearSpan?: MarketYearSpan }>()
     .notNull()
-    .default({ mileage: false, transmission: false, fuel: false }),
+    .default({ trim: true, mileage: false, transmission: false }),
   /** null = marketplaces from settings */
   marketSources: text('market_sources', { mode: 'json' }).$type<Record<string, boolean>>(),
   updatedAt: timestamp('updated_at').notNull().default(now),

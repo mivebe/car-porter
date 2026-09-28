@@ -38,15 +38,10 @@ test('BG market: grouped listings, match toggles, exclusions and marketplace cho
   await expect(carsBg.getByTestId('market-listing')).toHaveCount(3);
   await expect(section.getByTestId('market-group-autoscout24')).toHaveCount(0);
 
-  // match the fuel too: hybrids drop out
-  await section.getByLabel('Fuel').click();
-  await expect(section.getByTestId('market-count')).toHaveText('3 / 3');
-  await expect(section.getByTestId('market-average')).toHaveText('€20,517');
-
   // exclude the cheapest mobile.bg listing
   await mobile.getByTestId('market-listing').first().getByRole('checkbox').click();
-  await expect(section.getByTestId('market-count')).toHaveText('2 / 3');
-  await expect(section.getByTestId('market-average')).toHaveText('€21,625');
+  await expect(section.getByTestId('market-count')).toHaveText('6 / 7');
+  await expect(section.getByTestId('market-average')).toHaveText('€18,892');
 
   // add AutoScout24 (EU reference): it hasn't been searched yet, so the button checks again
   await section.getByLabel('AutoScout24').click();
@@ -54,16 +49,21 @@ test('BG market: grouped listings, match toggles, exclusions and marketplace cho
   await section.getByRole('button', { name: 'Check BG market' }).click();
   const eu = section.getByTestId('market-group-autoscout24');
   await eu.getByTestId('market-listings-toggle').click();
-  await expect(eu.getByTestId('market-listing')).toHaveCount(1);
-  await expect(section.getByTestId('market-count')).toHaveText('3 / 4');
-  await expect(section.getByTestId('market-average')).toHaveText('€23,413');
+  await expect(eu.getByTestId('market-listing')).toHaveCount(26);
+  await expect(section.getByTestId('market-count')).toHaveText('32 / 33');
+  await expect(section.getByTestId('market-average')).toHaveText('€23,056');
   await expect(section.getByRole('button', { name: 'Refresh' })).toBeVisible();
+
+  // the trim is matched by default; none of these listings conflict with it
+  await expect(section.getByLabel('Trim')).toBeChecked();
+  await section.getByLabel('Trim').click();
+  await expect(section.getByTestId('market-count')).toHaveText('32 / 33');
 
   // everything is stored: toggles, marketplaces, exclusions and listings
   await page.reload();
   const reopened = page.getByRole('dialog').getByTestId('market-section');
-  await expect(reopened.getByTestId('market-count')).toHaveText('3 / 4');
-  await expect(reopened.getByLabel('Fuel')).toBeChecked();
+  await expect(reopened.getByTestId('market-count')).toHaveText('32 / 33');
+  await expect(reopened.getByLabel('Trim')).not.toBeChecked();
   await expect(reopened.getByLabel('AutoScout24')).toBeChecked();
 });
 
@@ -71,7 +71,7 @@ test('BG market: grouped listings, match toggles, exclusions and marketplace cho
 test('BG market: mobile.de and the broad year search', async ({ page, request }) => {
   // the lot's inputs outlive the test above
   await request.patch(`/api/lots/${encodeURIComponent('iaai:45973338')}/inputs`, {
-    data: { marketMatch: { mileage: false, transmission: false, fuel: false, yearSpan: 0 }, marketSources: null },
+    data: { marketMatch: { trim: true, mileage: false, transmission: false, yearSpan: 0 }, marketSources: null },
   });
   await page.goto(SEARCH);
   await expect(page.getByTestId('lot-row').first()).toBeVisible();

@@ -209,14 +209,14 @@ export function selectAuctionMatches(
 }
 
 export interface MarketMatchToggles {
+  trim: boolean;
   mileage: boolean;
   transmission: boolean;
-  fuel: boolean;
   /** Years either side of the lot's year that still match (0 = exact year). */
   yearSpan: number;
 }
 
-export type MarketCriterion = 'make' | 'model' | 'year' | 'trim' | 'location' | 'mileage' | 'transmission' | 'fuel';
+export type MarketCriterion = 'make' | 'model' | 'year' | 'trim' | 'location' | 'mileage' | 'transmission';
 
 /**
  * Trim against a listing: a structured trim must not conflict. Marketplaces mostly only have a
@@ -235,9 +235,9 @@ function marketTrim(lotTrim: string | null, listing: MarketListing): CriterionRe
 }
 
 /**
- * BG market match: make + model + year (± the year span) required, trim must not conflict, import offers
- * (cars still abroad) never match; mileage (± range, lot miles → km), transmission and fuel are
- * only compared when toggled on.
+ * BG market match: make + model + year (± the year span) required, import offers (cars still
+ * abroad) never match; trim (must not conflict), mileage (± range, lot miles → km) and
+ * transmission are only compared when toggled on.
  */
 export function matchMarketListing(
   lot: Lot,
@@ -252,16 +252,13 @@ export function matchMarketListing(
       make: compare(lot.make, listing.make, (a, b) => normalizeMake(a) === normalizeMake(b)),
       model: compare(lot.model, listing.model, modelMatches),
       year: compare(lot.year, listing.year, (a, b) => Math.abs(a - b) <= toggles.yearSpan),
-      trim: marketTrim(lot.trim, listing),
+      trim: toggles.trim ? marketTrim(lot.trim, listing) : skip,
       location: listing.importOffer ? 'mismatch' : 'match',
       mileage: toggles.mileage
         ? compare(lotKm, listing.mileageKm, (a, b) => Math.abs(a - b) <= mileageRangeKm)
         : skip,
       transmission: toggles.transmission
         ? compare(normalizeTransmission(lot.transmission), normalizeTransmission(listing.transmission), (a, b) => a === b)
-        : skip,
-      fuel: toggles.fuel
-        ? compare(normalizeFuel(lot.fuel), normalizeFuel(listing.fuel), (a, b) => a === b)
         : skip,
     },
     ['make', 'model', 'year'],

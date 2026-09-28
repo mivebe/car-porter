@@ -50,14 +50,14 @@ describe('summarizeMarket', () => {
     listing({ priceEurCents: 2_200_000 }),
     listing({ priceEurCents: 1_800_000 }),
     listing({ priceEurCents: 1_500_000, importOffer: true }),
-    listing({ priceEurCents: 2_600_000, fuel: 'Хибриден' }),
+    listing({ priceEurCents: 2_600_000, trim: 'XLE' }),
     listing({ site: 'carsBg', priceEurCents: 2_000_000 }),
     listing({ site: 'carsBg', priceEurCents: null }),
     listing({ site: 'olxBg', priceEurCents: 900_000 }),
   ];
   const options = {
     sites: ['mobileBg', 'carsBg'] as const,
-    toggles: { mileage: false, transmission: false, fuel: false, yearSpan: 0 },
+    toggles: { trim: false, mileage: false, transmission: false, yearSpan: 0 },
     mileageRangeKm: 30_000,
     excludedIds: new Set<string>(),
   };
@@ -75,16 +75,16 @@ describe('summarizeMarket', () => {
     expect(result.overall).toMatchObject({ count: 4, average: 2_150_000, median: 2_100_000 });
   });
 
-  it('applies the fuel toggle and exclusions', () => {
-    const hybrid = listings[3]!;
+  it('applies the trim toggle and exclusions', () => {
+    const xle = listings[3]!;
     const cheapest = listings[1]!;
     const result = summarizeMarket(lot, listings, {
       ...options,
       sites: ['mobileBg'],
-      toggles: { mileage: false, transmission: false, fuel: true, yearSpan: 0 },
+      toggles: { trim: true, mileage: false, transmission: false, yearSpan: 0 },
       excludedIds: new Set([cheapest.id]),
     });
-    expect(result.groups[0]!.matches.map((m) => m.listing.id)).not.toContain(hybrid.id);
+    expect(result.groups[0]!.matches.map((m) => m.listing.id)).not.toContain(xle.id);
     expect(result.groups[0]!.hidden).toBe(2);
     expect(result.overall).toMatchObject({ count: 1, average: 2_200_000 });
   });

@@ -287,9 +287,9 @@
     "matchLabel": "Съвпадение и по",
     "match": {
       "year": "Година",
+      "trim": "Версия",
       "mileage": "Пробег ±{{range}} км (лот: {{km}} км)",
-      "transmission": "Скоростна кутия",
-      "fuel": "Гориво"
+      "transmission": "Скоростна кутия"
     },
     "yearSpan": {
       "exact": "Точна",

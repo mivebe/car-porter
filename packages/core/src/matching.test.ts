@@ -226,8 +226,8 @@ describe('selectAuctionMatches', () => {
 });
 
 describe('matchMarketListing (BG)', () => {
-  const off = { mileage: false, transmission: false, fuel: false, yearSpan: 0 };
-  const on = { mileage: true, transmission: true, fuel: true, yearSpan: 0 };
+  const off = { trim: true, mileage: false, transmission: false, yearSpan: 0 };
+  const on = { trim: true, mileage: true, transmission: true, yearSpan: 0 };
 
   it('matches make/model/exact year/trim with toggles off', () => {
     expect(matchMarketListing(lot, listing({ mileageKm: 300_000, fuel: 'Дизелов' }), off, 30_000).matches).toBe(true);
@@ -249,10 +249,13 @@ describe('matchMarketListing (BG)', () => {
     expect(matchMarketListing(lot, listing({ mileageKm: 111_000 }), on, 30_000).matches).toBe(false);
   });
 
-  it('applies transmission and fuel when toggled', () => {
+  it('applies transmission when toggled', () => {
     expect(matchMarketListing(lot, listing({ transmission: 'Ръчна' }), on, 30_000).matches).toBe(false);
-    expect(matchMarketListing(lot, listing({ fuel: 'Дизелов' }), on, 30_000).matches).toBe(false);
     expect(matchMarketListing(lot, listing({}), on, 30_000).matches).toBe(true);
+  });
+
+  it('ignores the trim when toggled off', () => {
+    expect(matchMarketListing(lot, listing({ trim: 'XLE' }), { ...off, trim: false }, 30_000).matches).toBe(true);
   });
 
   it('never matches import offers (cars still abroad)', () => {

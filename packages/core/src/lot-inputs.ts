@@ -16,11 +16,12 @@ export const lotInputsSchema = z.object({
   repairEstimateEurCents: cents,
   feesReduced: z.boolean(),
   includeSofiaToBg: z.boolean(),
-  /** Optional BG market match criteria (make/model/year/trim always apply). */
+  /** Optional BG market match criteria (make/model/year always apply). */
   marketMatch: z.object({
+    /** Rows saved before the trim toggle existed matched the trim. */
+    trim: z.boolean().default(true),
     mileage: z.boolean(),
     transmission: z.boolean(),
-    fuel: z.boolean(),
     /** Years either side of the lot's year that are searched and matched (0 = exact year). */
     yearSpan: z.literal(MARKET_YEAR_SPANS).default(0),
   }),
@@ -39,6 +40,6 @@ export const DEFAULT_LOT_INPUTS: LotInputs = {
   repairEstimateEurCents: 0,
   feesReduced: false,
   includeSofiaToBg: true,
-  marketMatch: { mileage: false, transmission: false, fuel: false, yearSpan: 0 },
+  marketMatch: { trim: true, mileage: false, transmission: false, yearSpan: 0 },
   marketSources: null,
 };

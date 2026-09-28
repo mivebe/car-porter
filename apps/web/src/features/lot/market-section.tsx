@@ -115,7 +115,7 @@ export function MarketSection({ lot, inputs, settings, data, sites, summary, run
               ))}
             </div>
           </div>
-          {(['mileage', 'transmission', 'fuel'] as const).map((criterion) => (
+          {(['trim', 'mileage', 'transmission'] as const).map((criterion) => (
             <div key={criterion} className="flex items-center justify-between gap-3">
               <Label htmlFor={`market-match-${criterion}`} className="font-normal">
                 {t(`market.match.${criterion}`, {

@@ -287,9 +287,9 @@
     "matchLabel": "Also match",
     "match": {
       "year": "Year",
+      "trim": "Trim",
       "mileage": "Mileage ±{{range}} km (lot: {{km}} km)",
-      "transmission": "Transmission",
-      "fuel": "Fuel"
+      "transmission": "Transmission"
     },
     "yearSpan": {
       "exact": "Exact",

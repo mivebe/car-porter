@@ -297,7 +297,7 @@ describe('/api/lots/:id/market', () => {
   it('stores the lot’s match toggles and marketplace choice as lot inputs', async () => {
     const inputsUrl = `/api/lots/${encodeURIComponent('iaai:45973338')}/inputs`;
     const patch = {
-      marketMatch: { mileage: true, transmission: false, fuel: true, yearSpan: 0 },
+      marketMatch: { trim: false, mileage: true, transmission: false, yearSpan: 0 },
       marketSources: { mobileBg: true, carsBg: false, autoscout24: true, olxBg: false, mobileDe: false },
     };
     expect((await app.inject({ method: 'PATCH', url: inputsUrl, payload: patch })).json()).toMatchObject(patch);

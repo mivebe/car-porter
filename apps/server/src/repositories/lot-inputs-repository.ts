@@ -13,7 +13,13 @@ export function createLotInputsRepository(db: Db) {
       repairEstimateEurCents: row.repairEstimateEurCents,
       feesReduced: row.feesReduced,
       includeSofiaToBg: row.includeSofiaToBg,
-      marketMatch: { ...DEFAULT_LOT_INPUTS.marketMatch, ...row.marketMatch },
+      // pick the known keys: older rows may still carry the removed fuel toggle
+      marketMatch: {
+        trim: row.marketMatch.trim ?? DEFAULT_LOT_INPUTS.marketMatch.trim,
+        mileage: row.marketMatch.mileage,
+        transmission: row.marketMatch.transmission,
+        yearSpan: row.marketMatch.yearSpan ?? DEFAULT_LOT_INPUTS.marketMatch.yearSpan,
+      },
       marketSources: row.marketSources,
     };
   }
