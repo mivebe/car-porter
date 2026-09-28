@@ -1,16 +1,16 @@
 export const LOT_COLUMNS = [
   'photo',
   'vehicle',
-  'odometer',
   'damage',
-  'location',
-  'saleDate',
   'price',
-  'history',
+  'saleDate',
   'sales',
   'avgSold',
-  'costBg',
   'market',
+  'history',
+  'odometer',
+  'location',
+  'costBg',
   'margin',
   'verdict',
 ] as const;
@@ -38,11 +38,12 @@ export const INSIGHT_COLUMNS: ReadonlySet<LotColumnId> = new Set([
 const DEFAULT_VISIBLE: ReadonlySet<LotColumnId> = new Set([
   'photo',
   'vehicle',
-  'odometer',
   'damage',
-  'location',
-  'saleDate',
   'price',
+  'saleDate',
+  'sales',
+  'avgSold',
+  'market',
 ]);
 
 const isColumnId = (id: string): id is LotColumnId => (LOT_COLUMNS as readonly string[]).includes(id);

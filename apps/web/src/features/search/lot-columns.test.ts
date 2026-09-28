@@ -8,11 +8,12 @@ describe('resolveLotColumns', () => {
     expect(columns.filter((c) => c.visible).map((c) => c.id)).toEqual([
       'photo',
       'vehicle',
-      'odometer',
       'damage',
-      'location',
-      'saleDate',
       'price',
+      'saleDate',
+      'sales',
+      'avgSold',
+      'market',
     ]);
   });
 
@@ -43,8 +44,8 @@ describe('moveColumn', () => {
   const columns = resolveLotColumns([]).slice(0, 3);
 
   it('moves a column to a new index', () => {
-    expect(moveColumn(columns, 0, 2).map((c) => c.id)).toEqual(['vehicle', 'odometer', 'photo']);
-    expect(moveColumn(columns, 2, 0).map((c) => c.id)).toEqual(['odometer', 'photo', 'vehicle']);
+    expect(moveColumn(columns, 0, 2).map((c) => c.id)).toEqual(['vehicle', 'damage', 'photo']);
+    expect(moveColumn(columns, 2, 0).map((c) => c.id)).toEqual(['damage', 'photo', 'vehicle']);
   });
 
   it('ignores moves out of range', () => {
