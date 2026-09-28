@@ -42,6 +42,12 @@ function assertUsable(html: string) {
   if (isForbiddenPage(html)) throw new SourceError('blocked', 'bidfax: 403 Forbidden');
 }
 
+/** The page title for parse errors, so a one-off odd page can be told apart from a markup change. */
+function pageTitle($: cheerio.CheerioAPI): string {
+  const title = $('title').first().text().replace(/\s+/g, ' ').trim();
+  return title ? `"${title.slice(0, 80)}"` : 'no title';
+}
+
 /** Model links on a make page, e.g. `<a href="/toyota/camry/">Camry</a>`. */
 export function parseBidfaxModels(html: string, makeSlug: string): BidfaxModelLink[] {
   assertUsable(html);
@@ -223,7 +229,7 @@ export function parseBidfaxListing(
   ].sort((a, b) => a - b);
 
   if (records.length === 0 && $('#dle-content').length === 0) {
-    throw new SourceError('parse_failed', 'bidfax: listing markup not recognized');
+    throw new SourceError('parse_failed', `bidfax: listing markup not recognized (${pageTitle($)})`);
   }
   return { records, linkedPages };
 }
@@ -237,7 +243,7 @@ export function parseBidfaxSearch(html: string): AuctionRecord[] {
   const $ = cheerio.load(html);
   const records = parseCards($);
   if (records.length === 0 && $('#dle-content').length === 0) {
-    throw new SourceError('parse_failed', 'bidfax: search markup not recognized');
+    throw new SourceError('parse_failed', `bidfax: search markup not recognized (${pageTitle($)})`);
   }
   return records;
 }

@@ -221,6 +221,22 @@ describe('estimate service', () => {
     expect(retry.matches).toHaveLength(19);
   });
 
+  it('refetches a listing page once when it comes back unrecognized', async () => {
+    let oddPages = 1;
+    const service = await setup(async (url) => {
+      if (url === P2 && oddPages-- > 0) return '<html><head><title>Oops</title></head><body></body></html>';
+      return mockBidfaxFetcher(url);
+    });
+    const res = await service.run(lot.id);
+    expect(fetcher.mock.calls.map((c) => c[0])).toEqual([MAKE, P1, P2, P2, P3]);
+    expect(res.error).toBeUndefined();
+    expect(res.matches).toHaveLength(19);
+
+    oddPages = 2;
+    const failed = await service.run(lot.id, true);
+    expect(failed.error).toEqual({ code: 'parse_failed', message: 'bidfax: listing markup not recognized ("Oops")' });
+  });
+
   it('records stored by other paths (e.g. VIN history) do not stop a scan early', async () => {
     const service = await setup();
     const p1 = parseBidfaxListing(await mockBidfaxFetcher(P1), {

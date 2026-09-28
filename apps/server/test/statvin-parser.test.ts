@@ -53,6 +53,13 @@ describe('stat.vin parser (real recorded pages)', () => {
     expect(parseStatVinHistory(fixture('vin-not-found.html'))).toEqual([]);
   });
 
+  it('takes the first photo when the JSON-LD image is a list', () => {
+    const html = `<html><script type="application/ld+json">{"@type":"Vehicle","vehicleIdentificationNumber":"X","image":["https://cdn.stat.vin/a.webp","https://cdn.stat.vin/b.webp"]}</script>
+      <div class="car-box-option">Lot number:</div><div class="car-box-value">123</div>
+      <table><thead><tr><th>Date</th><th>Lot #</th></tr></thead><tbody><tr><td>2024-11-29</td><td>123</td></tr></tbody></table></html>`;
+    expect(parseStatVinHistory(html)).toMatchObject([{ lotNumber: '123', imageUrl: 'https://cdn.stat.vin/a.webp' }]);
+  });
+
   it('flags challenge pages and vehicle pages without a history table', () => {
     expect(() => parseStatVinHistory('<html><head><title>Just a moment...</title></head></html>')).toThrow(
       expect.objectContaining({ code: 'blocked' }),

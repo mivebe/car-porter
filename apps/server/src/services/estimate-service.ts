@@ -168,6 +168,16 @@ export function createEstimateService(deps: {
     return { makeSlug, model };
   }
 
+  /** One retry when a listing page comes back unrecognized: bidfax now and then serves an odd page. */
+  async function fetchListing(url: string, context: Parameters<typeof parseBidfaxListing>[1]) {
+    try {
+      return parseBidfaxListing(await deps.fetchHtml(url), context);
+    } catch (err) {
+      if (!(err instanceof SourceError) || err.code !== 'parse_failed') throw err;
+      return parseBidfaxListing(await deps.fetchHtml(url), context);
+    }
+  }
+
   const scanKey = (makeSlug: string, modelSlug: string, year: number) => `bidfax:scan:${makeSlug}:${modelSlug}:${year}`;
   const coverageKey = (makeSlug: string, modelSlug: string, year: number) =>
     `bidfax:coverage:${makeSlug}:${modelSlug}:${year}`;
@@ -265,10 +275,7 @@ export function createEstimateService(deps: {
 
       try {
         while (page <= maxPages) {
-          const { records, linkedPages } = parseBidfaxListing(
-            await deps.fetchHtml(bidfaxListingUrl(mk, md, lot.year, page)),
-            context,
-          );
+          const { records, linkedPages } = await fetchListing(bidfaxListingUrl(mk, md, lot.year, page), context);
           pagesScanned++;
           newRecords += records.filter((r) => !known.has(r.id)).length;
           scannedDates.push(...records.flatMap((r) => (r.saleDate ? [r.saleDate] : [])));

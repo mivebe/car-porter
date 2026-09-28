@@ -24,7 +24,8 @@ interface VehicleJsonLd {
   model?: string;
   vehicleIdentificationNumber?: string;
   modelDate?: string;
-  image?: string;
+  /** A URL, or a list of photo URLs (the current lot's, first is the main photo). */
+  image?: string | string[];
   url?: string;
   vehicleEngine?: { name?: string; fuelType?: string };
 }
@@ -100,6 +101,7 @@ export function parseStatVinHistory(html: string): AuctionRecord[] {
   const odometer = facts.get('odometer, mi')?.match(/[\d,]+/)?.[0]?.replace(/,/g, '');
   const pageUrl = vehicle.url ?? (vin ? statVinUrl(vin) : STATVIN_ORIGIN);
   const year = Number(vehicle.modelDate);
+  const image = [vehicle.image].flat().find((url) => typeof url === 'string');
 
   const records: AuctionRecord[] = [];
   table.find('tbody tr').each((_, tr) => {
@@ -133,7 +135,7 @@ export function parseStatVinHistory(html: string): AuctionRecord[] {
       damage: isCurrentLot ? (facts.get('damage') ?? null) : null,
       saleStatus: saleStatus(cell('status')),
       location: isCurrentLot ? (facts.get('location') ?? null) : null,
-      imageUrl: isCurrentLot ? (emptyToNull(vehicle.image) ?? null) : null,
+      imageUrl: isCurrentLot ? emptyToNull(image) : null,
     });
   });
   return records;
