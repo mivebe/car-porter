@@ -11,7 +11,7 @@ const FILLER = new Set(['amg', 'class', 'series', 'trim']);
 export function trimWords(trim: string, make: string, model: string): string[] {
   const known = new Set([...modelTokens(model, make), ...normalizeText(make).split(' ')]);
   const words: string[] = [];
-  for (const word of normalizeText(trim).split(' ')) {
+  for (const word of glueSplitTrims(normalizeText(trim).split(' '))) {
     if (!word || FILLER.has(word) || known.has(word)) continue;
     // "c63" under C-Class: the model letter is glued to the trim number
     const glued = word.match(/^(\p{L}+)(\d.*)$/u);
@@ -19,6 +19,20 @@ export function trimWords(trim: string, make: string, model: string): string[] {
     for (const w of rest) if (!words.includes(w)) words.push(w);
   }
   return words;
+}
+
+/**
+ * "ZL 1" and "ZL-1" are typed for "ZL1": a short letter word followed by a number is one trim,
+ * otherwise the bare "1" becomes the site keyword and finds nothing useful.
+ */
+function glueSplitTrims(words: string[]): string[] {
+  const out: string[] = [];
+  for (const word of words) {
+    const prev = out[out.length - 1];
+    if (prev && /^\p{L}{1,3}$/u.test(prev) && /^\d+$/.test(word)) out[out.length - 1] = prev + word;
+    else out.push(word);
+  }
+  return out;
 }
 
 /** "2SS" → ["2", "ss"], "C63" → ["c", "63"]. */

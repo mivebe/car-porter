@@ -31,6 +31,9 @@ describe('trimWords', () => {
     expect(trimWords('C63S', 'Mercedes-Benz', 'C-Class')).toEqual(['63', 's']);
     expect(trimWords('Camaro ZL1', 'Chevrolet', 'Camaro')).toEqual(['zl1']);
     expect(trimWords('2SS', 'Chevrolet', 'Camaro')).toEqual(['2ss']);
+    expect(trimWords('ZL 1', 'Chevrolet', 'Camaro')).toEqual(['zl1']);
+    expect(trimWords('zl-1', 'Chevrolet', 'Camaro')).toEqual(['zl1']);
+    expect(trimWords('GT 500', 'Ford', 'Mustang')).toEqual(['gt500']);
     expect(trimWords('  ', 'Chevrolet', 'Camaro')).toEqual([]);
   });
 });
