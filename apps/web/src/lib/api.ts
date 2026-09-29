@@ -244,6 +244,13 @@ export const api = {
         refresh: params.refresh ? 1 : undefined,
       })}`,
     ),
+  lotMarks: (lotIds: string[]) =>
+    request<{ tracked: string[]; opened: string[] }>('/api/lots/marks', {
+      method: 'POST',
+      body: JSON.stringify({ lotIds }),
+    }),
+  markOpened: (id: string) =>
+    request<{ lotId: string; openedAt: string }>(`/api/lots/${encodeURIComponent(id)}/opened`, { method: 'PUT' }),
   lotInsights: (lotIds: string[]) =>
     request<{ items: LotInsights[]; usdToEur: number | null }>('/api/lots/insights', {
       method: 'POST',

@@ -1,5 +1,5 @@
 import type { Lot } from '@car-porter/core';
-import { ImageOff } from 'lucide-react';
+import { BookmarkCheck, ImageOff } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,6 +9,7 @@ import type { LotInsights } from '@/lib/api';
 import { formatDateTime, formatMoney, formatNumber, sentenceCase } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { INSIGHT_COLUMNS, type LotColumnId } from './lot-columns';
+import type { LotMarks } from './lot-marks-hooks';
 import { lotTitle } from './lot-title';
 import { SourceBadge } from './source-badge';
 
@@ -18,6 +19,7 @@ interface LotResultsProps {
   columns: LotColumnId[];
   /** Keyed by lot id; a lot missing from it is still loading. */
   insights: Map<string, LotInsights>;
+  marks: LotMarks;
   selectedId: string | null;
   onSelect: (lot: Lot) => void;
 }
@@ -37,7 +39,7 @@ export function Thumbnail({ lot }: { lot: Lot }) {
 
 const alignRight = (id: LotColumnId) => INSIGHT_COLUMNS.has(id) || id === 'price';
 
-export function LotResults({ lots, columns, insights, selectedId, onSelect }: LotResultsProps) {
+export function LotResults({ lots, columns, insights, marks, selectedId, onSelect }: LotResultsProps) {
   const { t, i18n } = useTranslation();
   const lang = i18n.language;
   const money = (cents: number | null | undefined, currency: 'USD' | 'EUR') => formatMoney(cents, currency, lang);
@@ -49,6 +51,7 @@ export function LotResults({ lots, columns, insights, selectedId, onSelect }: Lo
   );
 
   const cell = (id: LotColumnId, lot: Lot, info: LotInsights | undefined): ReactNode => {
+    const tracked = marks.tracked.has(lot.id);
     if (INSIGHT_COLUMNS.has(id) && !info) return <Skeleton className="ml-auto h-4 w-14" />;
     switch (id) {
       case 'photo':
@@ -56,8 +59,10 @@ export function LotResults({ lots, columns, insights, selectedId, onSelect }: Lo
       case 'vehicle':
         return (
           <div className="flex flex-col gap-1">
-            <span className="font-medium">{lotTitle(lot)}</span>
+            {/* dimmed once opened, like a visited link */}
+            <span className={cn('font-medium', marks.opened.has(lot.id) && 'text-muted-foreground')}>{lotTitle(lot)}</span>
             <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              {tracked && <BookmarkCheck aria-label={t('tracking.tracked')} className="size-3.5 text-primary" />}
               <SourceBadge source={lot.source} />
               <span className="tabular-nums">#{lot.lotNumber}</span>
               {lot.vin && <span className="font-mono">{lot.vin}</span>}
@@ -140,7 +145,13 @@ export function LotResults({ lots, columns, insights, selectedId, onSelect }: Lo
               key={lot.id}
               data-testid="lot-row"
               data-state={selectedId === lot.id ? 'selected' : undefined}
-              className="cursor-pointer"
+              data-tracked={marks.tracked.has(lot.id) || undefined}
+              data-opened={marks.opened.has(lot.id) || undefined}
+              className={cn(
+                'cursor-pointer',
+                // tracked: a faint brand tint and a bar on the leading edge
+                'data-tracked:bg-primary/6 data-tracked:hover:bg-primary/10 data-tracked:[&>td:first-child]:shadow-[inset_3px_0_0_var(--primary)]',
+              )}
               tabIndex={0}
               onClick={() => onSelect(lot)}
               onKeyDown={(e) => {

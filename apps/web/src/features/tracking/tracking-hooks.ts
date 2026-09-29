@@ -1,5 +1,6 @@
 import type { Lot, LotEvaluation, PriceSummary } from '@car-porter/core';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { LOT_MARKS_KEY } from '@/features/search/lot-marks-hooks';
 import { api } from '@/lib/api';
 
 export interface TrackedLotRow {
@@ -28,6 +29,7 @@ export function useSetTracked(lotId: string) {
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ['lot', lotId] }),
         queryClient.invalidateQueries({ queryKey: TRACKED_KEY }),
+        queryClient.invalidateQueries({ queryKey: LOT_MARKS_KEY }),
       ]),
   });
 }

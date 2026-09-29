@@ -1,4 +1,4 @@
-import { desc, eq } from 'drizzle-orm';
+import { desc, eq, inArray } from 'drizzle-orm';
 import type { Db } from '../db/client.ts';
 import { trackedLots } from '../db/schema.ts';
 
@@ -26,7 +26,14 @@ export function createTrackedLotsRepository(db: Db) {
     await db.delete(trackedLots).where(eq(trackedLots.lotId, lotId));
   }
 
-  return { list, get, add, remove };
+  /** The given lots that are tracked. */
+  async function among(lotIds: string[]): Promise<string[]> {
+    if (lotIds.length === 0) return [];
+    const rows = await db.select({ lotId: trackedLots.lotId }).from(trackedLots).where(inArray(trackedLots.lotId, lotIds));
+    return rows.map((r) => r.lotId);
+  }
+
+  return { list, get, add, remove, among };
 }
 
 export type TrackedLotsRepository = ReturnType<typeof createTrackedLotsRepository>;

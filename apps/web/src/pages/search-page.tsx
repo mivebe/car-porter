@@ -13,6 +13,7 @@ import { useSettings } from '@/features/lot/hooks';
 import { LotDetailSheet } from '@/features/lot/lot-detail-sheet';
 import { ColumnPicker } from '@/features/search/column-picker';
 import { LOT_INSIGHTS_KEY, useLotInsights } from '@/features/search/insights-hooks';
+import { useLotMarks } from '@/features/search/lot-marks-hooks';
 import { INSIGHT_COLUMNS, resolveLotColumns } from '@/features/search/lot-columns';
 import { LotResults } from '@/features/search/lot-results';
 import { RECENT_SEARCHES_KEY } from '@/features/search/recent-search-hooks';
@@ -122,6 +123,7 @@ export function SearchPage() {
     results.data?.pages.map((p) => p.lots) ?? [],
     visibleColumns.some((id) => INSIGHT_COLUMNS.has(id)),
   );
+  const marks = useLotMarks(results.data?.pages.map((p) => p.lots) ?? []);
 
   const runSearch = (next: LotSearchParams) => {
     const params: Record<string, string> = {
@@ -232,6 +234,7 @@ export function SearchPage() {
               lots={lots}
               columns={visibleColumns}
               insights={insights}
+              marks={marks}
               selectedId={selectedLotId}
               onSelect={(lot) => setSelectedLot(lot.id)}
             />

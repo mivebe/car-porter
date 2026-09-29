@@ -92,6 +92,34 @@ test.describe('lot search', () => {
     await expect(page).toHaveURL(/[?&]lot=/);
   });
 
+  test('marks opened and tracked lots in the results', async ({ page, request }) => {
+    const marksLoaded = page.waitForResponse((r) => r.url().includes('/api/lots/marks'));
+    await page.goto('/?make=Toyota&model=Camry&yearFrom=2018&yearTo=2020');
+    await marksLoaded;
+    // other specs share the database, so pick a lot nobody has opened or tracked
+    const row = page.locator('[data-testid="lot-row"]:not([data-opened]):not([data-tracked])').first();
+    const lotNumber = (await row.locator('[data-column="vehicle"]').innerText()).match(/#(\d+)/)![1]!;
+    const same = page.getByTestId('lot-row').filter({ hasText: `#${lotNumber}` });
+
+    await same.click();
+    await expect(page).toHaveURL(/[?&]lot=/);
+    const lotId = new URL(page.url()).searchParams.get('lot')!;
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('button', { name: 'Track', exact: true }).click();
+    await expect(sheet.getByRole('button', { name: 'Tracked', exact: true })).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+
+    await expect(same).toHaveAttribute('data-opened', 'true');
+    await expect(same).toHaveAttribute('data-tracked', 'true');
+    await expect(same.getByLabel('Tracked')).toBeVisible();
+
+    // the marks come from the server, so they survive a reload
+    await page.reload();
+    await expect(same).toHaveAttribute('data-opened', 'true');
+    expect((await request.delete(`/api/tracked/${encodeURIComponent(lotId)}`)).ok()).toBe(true);
+  });
+
   test('narrows by trim and IAAI market, kept in the URL', async ({ page }) => {
     await page.goto('/?make=Toyota&model=Camry&yearFrom=2018&yearTo=2020');
     await expect(page.getByTestId('lot-row')).toHaveCount(55);

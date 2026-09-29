@@ -10,6 +10,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { LotInputsRepository } from '../repositories/lot-inputs-repository.ts';
 import type { LotsRepository } from '../repositories/lots-repository.ts';
+import type { OpenedLotsRepository } from '../repositories/opened-lots-repository.ts';
 import type { RecentSearchesRepository } from '../repositories/recent-searches-repository.ts';
 import type { TrackedLotsRepository } from '../repositories/tracked-lots-repository.ts';
 import type { LotSearchService } from '../services/lot-search-service.ts';
@@ -67,6 +68,8 @@ const searchQuery = z
   })
   .refine((q) => (q.yearTo ?? q.yearFrom ?? 0) <= maxYear(), { message: 'year is too far in the future', path: ['yearTo'] });
 
+const marksBody = z.object({ lotIds: z.array(z.string().min(1)).max(500) });
+
 export async function lotsRoutes(
   app: FastifyInstance,
   opts: {
@@ -74,6 +77,7 @@ export async function lotsRoutes(
     lots: LotsRepository;
     inputs: LotInputsRepository;
     tracked: TrackedLotsRepository;
+    opened: OpenedLotsRepository;
     recent: RecentSearchesRepository;
   },
 ) {
@@ -96,6 +100,20 @@ export async function lotsRoutes(
       fetchedAt: found.fetchedAt.toISOString(),
       trackedAt: tracked?.createdAt.toISOString() ?? null,
     };
+  });
+
+  /** Which of a page of lots are tracked or were opened, to mark them in the results. */
+  app.post('/api/lots/marks', async (req, reply) => {
+    const parsed = marksBody.safeParse(req.body);
+    if (!parsed.success) return reply.code(400).send({ error: 'invalid_body' });
+    const ids = [...new Set(parsed.data.lotIds)];
+    const [tracked, opened] = await Promise.all([opts.tracked.among(ids), opts.opened.among(ids)]);
+    return { tracked, opened };
+  });
+
+  app.put<{ Params: { id: string } }>('/api/lots/:id/opened', async (req) => {
+    const { openedAt } = await opts.opened.add(req.params.id);
+    return { lotId: req.params.id, openedAt: openedAt.toISOString() };
   });
 
   app.get<{ Params: { id: string } }>('/api/lots/:id/inputs', async (req) => opts.inputs.get(req.params.id));

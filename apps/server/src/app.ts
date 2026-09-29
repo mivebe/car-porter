@@ -9,6 +9,7 @@ import { createMarketListingsRepository } from './repositories/market-listings-r
 import { createRecentSearchesRepository } from './repositories/recent-searches-repository.ts';
 import { createSelectionsRepository } from './repositories/selections-repository.ts';
 import { createSettingsRepository } from './repositories/settings-repository.ts';
+import { createOpenedLotsRepository } from './repositories/opened-lots-repository.ts';
 import { createTrackedLotsRepository } from './repositories/tracked-lots-repository.ts';
 import { createVehicleAliasesRepository } from './repositories/vehicle-aliases-repository.ts';
 import { aliasRoutes } from './routes/alias-routes.ts';
@@ -106,6 +107,7 @@ export async function buildApp({
     selections: createSelectionsRepository(database.db),
     marketListings: createMarketListingsRepository(database.db),
     tracked: createTrackedLotsRepository(database.db),
+    opened: createOpenedLotsRepository(database.db),
     vehicleAliases: createVehicleAliasesRepository(database.db),
     recentSearches: createRecentSearchesRepository(database.db),
   };
@@ -167,6 +169,7 @@ export async function buildApp({
     lots: repos.lots,
     inputs: repos.lotInputs,
     tracked: repos.tracked,
+    opened: repos.opened,
     recent: repos.recentSearches,
   });
   await app.register(recentSearchesRoutes, { recent: repos.recentSearches });

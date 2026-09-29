@@ -53,6 +53,12 @@ export const trackedLots = sqliteTable('tracked_lots', {
   createdAt: timestamp('created_at').notNull().default(now),
 });
 
+/** Lots whose detail was opened, to mark them in search results. */
+export const openedLots = sqliteTable('opened_lots', {
+  lotId: text('lot_id').primaryKey(),
+  openedAt: timestamp('opened_at').notNull().default(now),
+});
+
 /**
  * Past auction sales (bidfax, stat.vin, ...). Sold results never change, so rows are kept
  * permanently and serve both price estimates and VIN/lot history.

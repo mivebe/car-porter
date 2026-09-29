@@ -1,6 +1,6 @@
 import { effectiveMarketSources, evaluateLot, summarizeMarket, type Lot } from '@car-porter/core';
 import { Bookmark, BookmarkCheck, ExternalLink, ImageOff, Info } from 'lucide-react';
-import { Fragment, type ReactNode } from 'react';
+import { Fragment, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMarkOpened } from '@/features/search/lot-marks-hooks';
 import { lotTitle } from '@/features/search/lot-title';
 import { SourceBadge } from '@/features/search/source-badge';
 import { useSetTracked } from '@/features/tracking/tracking-hooks';
@@ -61,6 +62,8 @@ export function LotDetailSheet({ lotId, onClose }: LotDetailSheetProps) {
 
 function LotDetail({ lotId, columns }: { lotId: string; columns: 1 | 2 }) {
   const { t, i18n } = useTranslation();
+  const { mutate: markOpened } = useMarkOpened();
+  useEffect(() => markOpened(lotId), [lotId, markOpened]);
   const lot = useLot(lotId);
   const inputs = useLotInputs(lotId);
   const settings = useSettings();

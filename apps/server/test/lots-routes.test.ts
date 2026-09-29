@@ -246,6 +246,21 @@ describe('/api/lots/search', () => {
     expect(recent.map((r) => r.filters)).toContainEqual({ yearFrom: 2019, iaaiMarkets: ['us'], damage: ['front'] });
   });
 
+  it('marks which lots of a page are tracked or were opened', async () => {
+    app = await buildApp({ mockSources: true });
+    const [a, b, c] = ((await app.inject({ method: 'GET', url: url(camry) })).json().lots as { id: string }[]).map((l) => l.id);
+    const marks = async (lotIds: string[]) =>
+      (await app!.inject({ method: 'POST', url: '/api/lots/marks', payload: { lotIds } })).json();
+    expect(await marks([a!, b!])).toEqual({ tracked: [], opened: [] });
+
+    const enc = encodeURIComponent;
+    await app.inject({ method: 'PUT', url: `/api/lots/${enc(a!)}/opened` });
+    await app.inject({ method: 'PUT', url: `/api/lots/${enc(a!)}/opened` });
+    await app.inject({ method: 'PUT', url: `/api/tracked/${enc(b!)}` });
+    expect(await marks([a!, b!, c!])).toEqual({ tracked: [b], opened: [a] });
+    expect((await app.inject({ method: 'POST', url: '/api/lots/marks', payload: { lotIds: 'x' } })).statusCode).toBe(400);
+  });
+
   it('validates the query', async () => {
     app = await buildApp({ mockSources: true });
     const bad = [
