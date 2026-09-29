@@ -74,6 +74,7 @@ export function AliasCard({ entry, column, selected, showMake, onToggleSelect, o
       {...listeners}
       aria-pressed={selected}
       data-testid="alias-card"
+      data-no-title
       data-name={entry.externalName}
       data-source={entry.source}
       onPointerDown={(event) => {

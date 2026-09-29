@@ -138,6 +138,7 @@
       "odometer": "Lowest mileage"
     },
     "refresh": "Refresh (ignore cache)",
+    "refreshShort": "Refresh",
     "loadMore": "Load more",
     "errors": {
       "yearInvalid": "Enter a valid year.",

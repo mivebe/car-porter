@@ -30,8 +30,9 @@ export function ColumnPicker({ columns, onChange, onReset }: ColumnPickerProps) 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="icon" aria-label={t('search.columns.title')}>
+        <Button variant="outline">
           <Columns3 />
+          {t('search.columns.title')}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="max-h-(--radix-popover-content-available-height) w-64 overflow-y-auto p-2">

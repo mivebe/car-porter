@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { CarFront, Loader2, RefreshCw, SearchX } from 'lucide-react';
+import { ArrowUpDown, CarFront, Loader2, RefreshCw, SearchX } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router';
@@ -207,7 +207,8 @@ export function SearchPage() {
                 </TabsList>
               </Tabs>
               <Select value={sort} onValueChange={(v) => setSort(v as LotSort)}>
-                <SelectTrigger className="w-44" aria-label={t('search.sortBy')}>
+                <SelectTrigger className="w-48" aria-label={t('search.sortBy')}>
+                  <ArrowUpDown />
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -219,8 +220,9 @@ export function SearchPage() {
                 </SelectContent>
               </Select>
               <ColumnPicker columns={columns} onChange={setLotColumns} onReset={() => setLotColumns([])} />
-              <Button variant="outline" size="icon" onClick={refresh} disabled={results.isFetching} aria-label={t('search.refresh')}>
+              <Button variant="outline" onClick={refresh} disabled={results.isFetching} title={t('search.refresh')}>
                 <RefreshCw className={results.isFetching ? 'animate-spin' : undefined} />
+                {t('search.refreshShort')}
               </Button>
             </div>
           </div>

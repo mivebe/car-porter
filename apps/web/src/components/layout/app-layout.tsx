@@ -12,8 +12,13 @@ const NAV_ITEMS = [
   { to: '/', key: 'nav.search', icon: Search, end: true },
   { to: '/tracking', key: 'nav.tracking', icon: ListChecks, end: false },
   { to: '/aliases', key: 'nav.aliases', icon: ArrowLeftRight, end: false },
-  { to: '/settings', key: 'nav.settings', icon: Settings, end: false },
 ] as const;
+
+const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+  cn(
+    'relative flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground',
+    isActive && 'text-foreground after:absolute after:inset-x-3 after:-bottom-3 after:h-0.5 after:rounded-full after:bg-brand',
+  );
 
 export function AppLayout() {
   const { t } = useTranslation();
@@ -37,13 +42,7 @@ export function AppLayout() {
                 key={to}
                 to={to}
                 end={end}
-                className={({ isActive }) =>
-                  cn(
-                    'relative flex items-center gap-2 rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground',
-                    isActive &&
-                      'text-foreground after:absolute after:inset-x-3 after:-bottom-3 after:h-0.5 after:rounded-full after:bg-brand',
-                  )
-                }
+                className={navLinkClass}
               >
                 <Icon className="size-4" />
                 <span className="hidden sm:inline">{t(key)}</span>
@@ -58,8 +57,11 @@ export function AppLayout() {
               </NavLink>
             ))}
           </nav>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
             <HeaderControls />
+            <NavLink to="/settings" aria-label={t('nav.settings')} className={navLinkClass}>
+              <Settings className="size-4" />
+            </NavLink>
           </div>
         </div>
       </header>

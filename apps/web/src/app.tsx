@@ -9,6 +9,7 @@ import {
 import { AppLayout } from '@/components/layout/app-layout';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { useHoverTitles } from '@/lib/hover-titles';
 import { ThemeProvider } from '@/lib/theme';
 import { AliasesPage } from '@/pages/aliases-page';
 import { SearchPage } from '@/pages/search-page';
@@ -29,6 +30,7 @@ const routes: RouteObject[] = [
 
 /** `initialPath` switches to an in-memory router (used by tests). */
 export function App({ initialPath }: { initialPath?: string }) {
+  useHoverTitles();
   const [queryClient] = useState(
     () => new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } }),
   );

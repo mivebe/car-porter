@@ -138,6 +138,7 @@
       "odometer": "Най-нисък пробег"
     },
     "refresh": "Обнови (без кеш)",
+    "refreshShort": "Обнови",
     "loadMore": "Зареди още",
     "errors": {
       "yearInvalid": "Въведете валидна година.",
