@@ -66,8 +66,9 @@ export interface LotSearchResponse {
 }
 
 export interface LotSearchParams {
-  make: string;
-  model: string;
+  /** missing = every make; a model needs a make */
+  make?: string;
+  model?: string;
   /** missing = open-ended */
   yearFrom?: number;
   yearTo?: number;

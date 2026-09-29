@@ -225,6 +225,27 @@ describe('/api/lots/search', () => {
     expect(recent.at(-1)?.filters).toEqual({ make: 'Toyota', model: 'Camry', iaaiMarkets: ['us'] });
   });
 
+  it('searches every make without a make, and every model of a make without a model', async () => {
+    const seen: AuctionQuery[] = [];
+    const [copart] = createMockAuctionAdapters();
+    app = await withAdapters([{ ...copart!, search: (f, p) => (seen.push(f), copart!.search(f, p)) }]);
+    const all = await app.inject({ method: 'GET', url: url({ yearFrom: 2019, damage: 'front' }) });
+    expect(all.statusCode).toBe(200);
+    expect(seen.at(-1)).toMatchObject({ makes: [], models: [], yearFrom: 2019, damage: ['front'] });
+    expect(all.json().sources[0]).toMatchObject({ ok: true, matched: { makes: [], models: [] } });
+
+    await app.inject({ method: 'GET', url: url({ make: 'Toyota' }) });
+    expect(seen.at(-1)).toMatchObject({ makes: ['TOYOTA', 'TOYO'], models: [] });
+
+    // a make the site doesn't list finds nothing rather than every car
+    const unknown = await app.inject({ method: 'GET', url: url({ make: 'Nosuchmake' }) });
+    expect(unknown.json().sources[0]).toMatchObject({ ok: true, total: 0 });
+    expect(seen).toHaveLength(2);
+
+    const recent = (await app.inject({ method: 'GET', url: '/api/searches/recent' })).json().items as { filters: object }[];
+    expect(recent.map((r) => r.filters)).toContainEqual({ yearFrom: 2019, iaaiMarkets: ['us'], damage: ['front'] });
+  });
+
   it('validates the query', async () => {
     app = await buildApp({ mockSources: true });
     const bad = [

@@ -27,10 +27,28 @@ import { useUpdatePreferences } from '@/lib/preferences';
 const isDefaultMarkets = (markets: readonly string[] | undefined) =>
   !markets?.length || markets.join(',') === DEFAULT_IAAI_MARKETS.join(',');
 
+/** Marks a search with no filters at all, which would otherwise leave the URL empty. */
+const ALL_PARAM = 'all';
+const FILTER_PARAMS = [
+  ALL_PARAM,
+  'make',
+  'model',
+  'yearFrom',
+  'yearTo',
+  'trim',
+  'iaaiMarkets',
+  'bodyStyle',
+  'transmission',
+  'engine',
+  'damage',
+  'condition',
+  'keys',
+];
+
 function readParams(search: URLSearchParams): LotSearchParams | null {
-  const make = search.get('make');
-  const model = search.get('model');
-  if (!make || !model) return null;
+  if (!FILTER_PARAMS.some((key) => search.has(key))) return null;
+  const make = search.get('make')?.trim();
+  const model = make && search.get('model')?.trim();
   const yearFrom = Number(search.get('yearFrom')) || undefined;
   const yearTo = Number(search.get('yearTo')) || undefined;
   const trim = search.get('trim')?.trim();
@@ -46,8 +64,8 @@ function readParams(search: URLSearchParams): LotSearchParams | null {
   const keysParam = search.get('keys');
   const keys = keysParam === '1' ? true : keysParam === '0' ? false : undefined;
   return {
-    make,
-    model,
+    ...(make ? { make } : {}),
+    ...(model ? { model } : {}),
     ...(yearFrom ? { yearFrom } : {}),
     ...(yearTo ? { yearTo } : {}),
     ...(trim ? { trim } : {}),
@@ -106,9 +124,9 @@ export function SearchPage() {
   );
 
   const runSearch = (next: LotSearchParams) => {
-    setSearchParams({
-      make: next.make,
-      model: next.model,
+    const params: Record<string, string> = {
+      ...(next.make ? { make: next.make } : {}),
+      ...(next.model ? { model: next.model } : {}),
       ...(next.yearFrom ? { yearFrom: String(next.yearFrom) } : {}),
       ...(next.yearTo ? { yearTo: String(next.yearTo) } : {}),
       ...(next.trim ? { trim: next.trim } : {}),
@@ -119,7 +137,8 @@ export function SearchPage() {
       ...(next.damage?.length ? { damage: next.damage.join(',') } : {}),
       ...(next.condition ? { condition: next.condition } : {}),
       ...(next.keys !== undefined ? { keys: next.keys ? '1' : '0' } : {}),
-    });
+    };
+    setSearchParams(Object.keys(params).length ? params : { [ALL_PARAM]: '1' });
   };
 
   const refresh = async () => {

@@ -125,8 +125,9 @@ export function searchYears(f: Pick<LotSearchFilters, 'yearFrom' | 'yearTo'>): {
 export const DEFAULT_IAAI_MARKETS: IaaiMarket[] = ['us'];
 
 export interface LotSearchFilters {
-  make: string;
-  model: string;
+  /** missing = every make; a model needs a make */
+  make?: string;
+  model?: string;
   /** missing = open-ended (see `searchYears`) */
   yearFrom?: number;
   yearTo?: number;

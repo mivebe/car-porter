@@ -51,8 +51,8 @@ function iaaiMarketFilter(f: LotSearchFilters) {
 }
 
 export function lotSearchCacheKey(source: string, f: LotSearchFilters, page: number) {
-  const norm = (s: string) => s.trim().toLowerCase();
-  const trim = trimWords(f.trim ?? '', f.make, f.model).join(' ');
+  const norm = (s = '') => s.trim().toLowerCase();
+  const trim = trimWords(f.trim ?? '', f.make ?? '', f.model ?? '').join(' ');
   const markets = source === 'iaai' ? (iaaiMarketFilter(f) ?? []).join(',') : '';
   const options = [
     trim && `t=${trim}`,
@@ -82,9 +82,10 @@ export function createLotSearchService(deps: {
     const { yearFrom, yearTo } = searchYears(filters);
     const iaaiMarkets = adapter.source === 'iaai' ? iaaiMarketFilter(filters) : undefined;
     // the site narrows by one trim word, every word is then checked here
-    const words = trimWords(filters.trim ?? '', filters.make, filters.model);
+    const words = trimWords(filters.trim ?? '', filters.make ?? '', filters.model ?? '');
     const keyword = trimKeyword(words);
-    const found = matched.makes.length > 0 && matched.models.length > 0;
+    // an empty list searches everything, so a make or model the site doesn't have finds nothing
+    const found = (!filters.make || matched.makes.length > 0) && (!filters.model || matched.models.length > 0);
     const options = found ? await deps.aliases.resolveOptions(adapter, matched, filters, force && page === 1) : {};
     const query = {
       ...matched,

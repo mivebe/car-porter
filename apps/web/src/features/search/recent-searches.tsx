@@ -61,7 +61,7 @@ export function RecentSearches({ onSearch }: RecentSearchesProps) {
             <DropdownMenuItem className="min-w-0 flex-1 flex-col items-start gap-0.5" onSelect={() => onSearch(s.filters)}>
               <span className="flex w-full items-baseline justify-between gap-2">
                 <span className="truncate font-medium">
-                  {s.filters.make} {s.filters.model} {yearRange(s.filters)}
+                  {s.filters.make ? `${s.filters.make} ${s.filters.model ?? ''}` : t('search.allMakes')} {yearRange(s.filters)}
                 </span>
                 <span className="shrink-0 text-xs text-muted-foreground">{formatRelative(s.searchedAt, i18n.language)}</span>
               </span>

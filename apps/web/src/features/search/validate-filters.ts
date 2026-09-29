@@ -4,7 +4,7 @@ import type { LotSearchParams } from '@/lib/api';
 export const MIN_YEAR = 1950;
 export const MAX_YEAR = () => new Date().getFullYear() + 1;
 
-export type FilterErrors = Partial<Record<'make' | 'model' | 'yearFrom' | 'yearTo' | 'engine', string>>;
+export type FilterErrors = Partial<Record<'yearFrom' | 'yearTo' | 'engine', string>>;
 
 export const KEYS_CHOICES = ['yes', 'no'] as const;
 /** '' = any */
@@ -32,8 +32,6 @@ export interface FilterDraft {
 /** Returns i18n error keys per field, or parsed params when valid. */
 export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | { params: LotSearchParams } {
   const errors: FilterErrors = {};
-  if (!draft.make.trim()) errors.make = 'search.errors.makeRequired';
-  if (!draft.model.trim()) errors.model = 'search.errors.modelRequired';
   // years are optional: an empty end is open
   const from = Number(draft.yearFrom);
   const to = Number(draft.yearTo);
@@ -44,11 +42,14 @@ export function validateFilters(draft: FilterDraft): { errors: FilterErrors } | 
   const engine = draft.engine.trim().replace(',', '.');
   if (engine && (!/^\d{1,2}(\.\d)?$/.test(engine) || Number(engine) <= 0)) errors.engine = 'search.errors.engineInvalid';
   if (Object.keys(errors).length) return { errors };
-  const trim = draft.trim.trim();
+  const make = draft.make.trim();
+  // models are listed per make, so a model without one is dropped
+  const model = make && draft.model.trim();
+  const trim = model && draft.trim.trim();
   return {
     params: {
-      make: draft.make.trim(),
-      model: draft.model.trim(),
+      ...(make ? { make } : {}),
+      ...(model ? { model } : {}),
       ...(draft.yearFrom ? { yearFrom: from } : {}),
       ...(draft.yearTo ? { yearTo: to } : {}),
       ...(trim ? { trim } : {}),

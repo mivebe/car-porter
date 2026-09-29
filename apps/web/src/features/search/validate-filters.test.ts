@@ -41,13 +41,21 @@ describe('validateFilters', () => {
     expect(validateFilters({ ...draft, yearFrom: '2019', yearTo: '2019' })).toHaveProperty('params');
   });
 
-  it('requires make and model, and valid years when given', () => {
-    expect(validateFilters({ ...draft, make: '', model: '', yearFrom: '', yearTo: '12' })).toEqual({
-      errors: {
-        make: 'search.errors.makeRequired',
-        model: 'search.errors.modelRequired',
-        yearTo: 'search.errors.yearInvalid',
-      },
+  it('searches without make and model, but needs valid years when given', () => {
+    expect(validateFilters({ ...draft, make: '', model: '', yearFrom: '', yearTo: '' })).toEqual({
+      params: { iaaiMarkets: ['us'] },
+    });
+    expect(validateFilters({ ...draft, make: 'Toyota', model: '', trim: 'SE' })).toEqual({
+      params: { make: 'Toyota', yearFrom: 2018, yearTo: 2020, iaaiMarkets: ['us'] },
+    });
+    expect(validateFilters({ ...draft, make: '', yearTo: '12' })).toEqual({
+      errors: { yearTo: 'search.errors.yearInvalid' },
+    });
+  });
+
+  it('drops a model or trim left without a make or model', () => {
+    expect(validateFilters({ ...draft, make: '', trim: 'SE' })).toEqual({
+      params: { yearFrom: 2018, yearTo: 2020, iaaiMarkets: ['us'] },
     });
   });
 

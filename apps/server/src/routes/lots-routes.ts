@@ -18,8 +18,9 @@ const maxYear = () => new Date().getFullYear() + 2;
 
 const searchQuery = z
   .object({
-    make: z.string().trim().min(1),
-    model: z.string().trim().min(1),
+    /** both optional: no make searches every make */
+    make: z.string().trim().min(1).optional(),
+    model: z.string().trim().min(1).optional(),
     /** both optional: a missing end is open */
     yearFrom: z.coerce.number().int().min(1900).optional(),
     yearTo: z.coerce.number().int().min(1900).optional(),
@@ -59,6 +60,7 @@ const searchQuery = z
       .optional()
       .transform((v) => v === '1' || v === 'true'),
   })
+  .refine((q) => !q.model || q.make, { message: 'model needs a make', path: ['model'] })
   .refine((q) => q.yearFrom === undefined || q.yearTo === undefined || q.yearFrom <= q.yearTo, {
     message: 'yearFrom must be <= yearTo',
     path: ['yearFrom'],

@@ -15,14 +15,30 @@ async function pickYear(page: Page, label: string, year: string) {
 }
 
 test.describe('lot search', () => {
-  test('validates required filters', async ({ page }) => {
+  test('searches without make or model, and validates years', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Search', exact: true }).click();
-    await expect(page.getByText('Choose a manufacturer.')).toBeVisible();
-    await expect(page.getByText('Choose a model.')).toBeVisible();
-    // years are optional
-    await expect(page.getByText('Enter a valid year.')).toHaveCount(0);
     await expect(page.getByRole('combobox', { name: 'Year from' })).toHaveText('Any');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page).toHaveURL(/\?all=1$/);
+    await expect(page.getByText('No lots match these filters.')).toBeVisible();
+    await expect(page.getByRole('alert')).toHaveCount(0);
+
+    // a trim needs a model, and goes when the make or model is cleared
+    const trim = page.getByLabel('Trim');
+    await expect(trim).toBeDisabled();
+    await pick(page, 'Manufacturer', 'toyo', 'Toyota');
+    await page.getByRole('button', { name: 'Search', exact: true }).click();
+    await expect(page).toHaveURL(/\?make=Toyota$/);
+    await pick(page, 'Model', 'cam', 'Camry');
+    await trim.fill('SE');
+    await page.getByRole('button', { name: 'Clear model' }).click();
+    await expect(trim).toHaveValue('');
+    await expect(trim).toBeDisabled();
+    await pick(page, 'Model', 'cam', 'Camry');
+    await trim.fill('SE');
+    await page.getByRole('button', { name: 'Clear manufacturer' }).click();
+    await expect(trim).toHaveValue('');
+    await expect(page.getByRole('combobox', { name: 'Model' })).toBeDisabled();
 
     // "to" can't be earlier than "from", and follows it when "from" moves past it
     await pickYear(page, 'Year to', '2019');
@@ -38,7 +54,7 @@ test.describe('lot search', () => {
 
   test('searches Copart + IAAI, filters by source, sorts and loads more', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText(/Choose a manufacturer and model/)).toBeVisible();
+    await expect(page.getByText(/Set the filters you need/)).toBeVisible();
 
     await pick(page, 'Manufacturer', 'toyo', 'Toyota');
     await pick(page, 'Model', 'cam', 'Camry');

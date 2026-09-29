@@ -72,7 +72,9 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
   const bodyOptions = [...new Set([...(bodyStyles.data?.items ?? []).map((b) => b.name), draft.bodyStyle].filter(Boolean))];
 
   const update = (patch: Partial<FilterDraft>) => {
-    setDraft((d) => ({ ...d, ...patch }));
+    // a trim belongs to a model, so it goes when the make or model is cleared
+    const cleared = patch.make === '' || patch.model === '';
+    setDraft((d) => ({ ...d, ...patch, ...(cleared ? { trim: '' } : {}) }));
     setErrors((e) => {
       const next = { ...e };
       for (const key of Object.keys(patch) as (keyof FilterErrors)[]) delete next[key];
@@ -124,8 +126,8 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
               searchPlaceholder={t('search.searchMake')}
               emptyText={t('search.noOptions')}
               customOptionLabel={(typed) => t('search.useCustom', { value: typed })}
+              clearLabel={t('search.clearMake')}
             />
-            {fieldError('make')}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="filter-model">{t('search.model')}</Label>
@@ -141,8 +143,8 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
               searchPlaceholder={t('search.searchModel')}
               emptyText={t('search.noOptions')}
               customOptionLabel={(typed) => t('search.useCustom', { value: typed })}
+              clearLabel={t('search.clearModel')}
             />
-            {fieldError('model')}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor="filter-trim">{t('search.trim')}</Label>
@@ -150,7 +152,8 @@ export function SearchFilters({ initial, onSearch, searching }: SearchFiltersPro
               id="filter-trim"
               value={draft.trim}
               maxLength={40}
-              placeholder={t('search.any')}
+              disabled={!draft.model}
+              placeholder={draft.model ? t('search.any') : t('search.selectModelFirst')}
               onChange={(e) => update({ trim: e.target.value })}
             />
           </div>

@@ -316,16 +316,19 @@ export function createVehicleAliasService(deps: {
   /**
    * Expands a canonical make/model into a site's own names, given loaders for the site's make list
    * and the model list of its matched makes; every mapping is recorded in the alias table.
+   * A missing make or model matches no names, which the search reads as "any".
    */
   async function resolveNames(
     source: AliasSource,
-    query: { make: string; model: string },
+    query: { make?: string; model?: string },
     load: { makes: () => Promise<SiteName[]>; models: (makes: string[]) => Promise<SiteName[]> },
   ): Promise<MatchedNames> {
+    const model = query.model?.trim();
+    if (!query.make?.trim()) return { makes: [], models: [] };
     const make = await canonicalMakeName(query.make);
     const makeRows = await applyMakeFacets(source, await load.makes());
     const makes = makeRows.filter((m) => m.canonical && normalizeMake(m.canonical) === normalizeMake(make)).map((m) => m.external);
-    if (makes.length === 0) return { makes, models: [] };
+    if (makes.length === 0 || !model) return { makes, models: [] };
 
     const modelFacets = await load.models(makes);
     const models = await catalogModels(make);
@@ -333,8 +336,8 @@ export function createVehicleAliasService(deps: {
 
     // a model outside the catalog (user-made or typed, e.g. "C 63 AMG") also gets automatic matches
     // for this search only, so they are not stored against it
-    const inCatalog = models.find((m) => normalizeText(m) === normalizeText(query.model));
-    const target = inCatalog ?? query.model.trim();
+    const inCatalog = models.find((m) => normalizeText(m) === normalizeText(model));
+    const target = inCatalog ?? model;
     const rows = inCatalog
       ? modelRows
       : await effective(source, 'model', make, mapModels(make, [...models, target], modelFacets.map((f) => f.name)));
